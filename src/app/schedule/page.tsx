@@ -62,14 +62,14 @@ export default function SchedulePage() {
   };
 
   const tabs = [
-    { key: "managing" as Tab, label: "管理中", count: managingJobs.length },
-    { key: "upcoming" as Tab, label: "予定", count: upcomingApps.length },
+    { key: "managing" as Tab, label: "自分の募集", count: managingJobs.length },
+    { key: "upcoming" as Tab, label: "お手伝い予定", count: upcomingApps.length },
     { key: "history" as Tab, label: "履歴", count: completedApps.length + completedJobs.length },
   ];
 
   return (
     <div className="px-4 py-5 space-y-5">
-      <h1 className="text-xl font-bold text-yui-green-800">予定・管理</h1>
+      <h1 className="text-xl font-bold text-yui-green-800">やることリスト</h1>
 
       {/* タブ */}
       <div className="flex bg-yui-green-50 rounded-xl p-1">
@@ -99,7 +99,7 @@ export default function SchedulePage() {
       {activeTab === "managing" && (
         <div className="space-y-4">
           {managingJobs.length === 0 ? (
-            <EmptyState message="管理中の募集はありません" />
+            <EmptyState message="出した募集はありません" />
           ) : (
             managingJobs.map((job) => {
               const applications = demoGetApplicationsByJob(job.id);
@@ -119,7 +119,7 @@ export default function SchedulePage() {
                         job.status === "matched" ? "bg-green-100 text-green-700" :
                         "bg-yellow-100 text-yellow-700"
                       }`}>
-                        {job.status === "open" ? "募集中" : job.status === "matched" ? "マッチング済" : "進行中"}
+                        {job.status === "open" ? "募集中" : job.status === "matched" ? "手伝い手が決定" : "進行中"}
                       </span>
                     </div>
                     <h3 className="font-bold text-yui-green-800">{job.title}</h3>
@@ -132,7 +132,7 @@ export default function SchedulePage() {
                   {pendingApps.length > 0 && (
                     <div className="p-4">
                       <p className="text-sm font-bold text-yui-green-800 mb-2">
-                        承認待ち ({pendingApps.length}名)
+                        返事待ち ({pendingApps.length}名)
                       </p>
                       <div className="space-y-2">
                         {pendingApps.map((app) => (
@@ -166,12 +166,12 @@ export default function SchedulePage() {
                   {/* 承認済み作業者 */}
                   {approvedApps.length > 0 && (
                     <div className="p-4 border-t border-yui-green-50">
-                      <p className="text-sm font-bold text-yui-green-800 mb-2">承認済み</p>
+                      <p className="text-sm font-bold text-yui-green-800 mb-2">お願い済み</p>
                       {approvedApps.map((app) => (
                         <div key={app.id} className="flex items-center justify-between bg-green-50 rounded-lg p-3 mb-2">
                           <div>
                             <p className="font-bold text-sm text-green-800">{app.applicantName}</p>
-                            <p className="text-xs text-green-600">✅ 承認済み</p>
+                            <p className="text-xs text-green-600">✅ お願い済み</p>
                           </div>
                           <button
                             onClick={() => handleComplete(app.id, job.id)}
@@ -216,7 +216,7 @@ export default function SchedulePage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span>{getJobTypeEmoji(job.type)}</span>
                         <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">
-                          承認済み
+                          お願い済み
                         </span>
                       </div>
                       <h3 className="font-bold text-yui-green-800">{job.title}</h3>

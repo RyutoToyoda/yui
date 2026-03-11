@@ -1,1 +1,3 @@
-// This file intentionally left empty.
+// デモデータは削除されました。
+// `--isolatedModules` エラーを回避するため、空のモジュールとしてエクスポートします。
+export {};

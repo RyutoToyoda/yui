@@ -1,15 +1,37 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { demoGetTransactionsByUser } from "@/lib/demo-data";
+import { fsGetTransactionsByUser } from "@/lib/firestore-service";
+import type { Transaction } from "@/types/firestore";
 import { Coins, TrendingUp, TrendingDown } from "lucide-react";
 import Link from "next/link";
 
 export default function WalletPage() {
   const { user } = useAuth();
-  if (!user) return null;
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const transactions = demoGetTransactionsByUser(user.uid);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fsGetTransactionsByUser(user.uid).then((txns) => {
+      if (!cancelled) {
+        setTransactions(txns);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <p className="text-yui-earth-500">読み込み中...</p>
+      </div>
+    );
+  }
 
   const totalEarned = transactions
     .filter((t) => t.toUserId === user.uid)

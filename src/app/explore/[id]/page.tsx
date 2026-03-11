@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { demoGetJob, demoCreateApplication, demoGetApplicationsByJob, generateId, getJobTypeEmoji, getJobTypeLabel } from "@/lib/demo-data";
+import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
 import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import type { Job, Application } from "@/types/firestore";
 
 export default function JobDetailPage() {
   const { user } = useAuth();
@@ -16,9 +17,36 @@ export default function JobDetailPage() {
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [job, setJob] = useState<Job | null>(null);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const jobId = params.id as string;
-  const job = demoGetJob(jobId);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    async function loadData() {
+      const [jobData, apps] = await Promise.all([
+        fsGetJob(jobId),
+        fsGetApplicationsByJob(jobId),
+      ]);
+      if (cancelled) return;
+      setJob(jobData);
+      setAlreadyApplied(apps.some((a) => a.applicantId === user!.uid));
+      setLoading(false);
+    }
+    loadData();
+    return () => { cancelled = true; };
+  }, [user, jobId]);
+
+  if (loading) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <p className="text-yui-earth-500">読み込み中...</p>
+      </div>
+    );
+  }
 
   if (!user || !job) {
     return (
@@ -31,8 +59,6 @@ export default function JobDetailPage() {
     );
   }
 
-  const existingApplications = demoGetApplicationsByJob(jobId);
-  const alreadyApplied = existingApplications.some((a) => a.applicantId === user.uid);
   const isOwner = job.creatorId === user.uid;
 
   const handlePreApply = () => {
@@ -44,14 +70,23 @@ export default function JobDetailPage() {
     setShowConfirm(true);
   };
 
-  const handleApply = () => {
-    demoCreateApplication({
-      id: generateId(),
+  const handleApply = async () => {
+    await fsCreateApplication({
       jobId: job.id,
       applicantId: user.uid,
       applicantName: user.name,
       isAgreedToRules: true,
       status: "pending",
+      createdAt: new Date(),
+    });
+    // 募集者に通知
+    await fsCreateNotification({
+      userId: job.creatorId,
+      type: "application",
+      title: "✋ 手を挙げてくれた方がいます",
+      message: `${user.name}さんが「${job.title}」に手を挙げました。`,
+      jobId: job.id,
+      isRead: false,
       createdAt: new Date(),
     });
     setShowConfirm(false);

@@ -1,16 +1,25 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { demoGetUnreadCountByUser } from "@/lib/demo-data";
+import { fsGetUnreadCountByUser } from "@/lib/firestore-service";
 import { Coins, Bell } from "lucide-react";
 
 export default function Header() {
   const { user, isLoggedIn } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user) return;
+    let cancelled = false;
+    fsGetUnreadCountByUser(user.uid).then((count) => {
+      if (!cancelled) setUnreadCount(count);
+    });
+    return () => { cancelled = true; };
+  }, [isLoggedIn, user]);
 
   if (!isLoggedIn || !user) return null;
-
-  const unreadCount = demoGetUnreadCountByUser(user.uid);
 
   return (
     <>

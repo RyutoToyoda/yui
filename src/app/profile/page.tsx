@@ -1,18 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  demoUpdateUser,
-  demoGetAvailabilitiesByUser,
-  demoCreateAvailability,
-  demoDeleteAvailability,
-  demoUpdateAvailability,
-  generateId,
-} from "@/lib/demo-data";
+  fsUpdateUser,
+  fsGetAvailabilitiesByUser,
+  fsCreateAvailability,
+  fsDeleteAvailability,
+  fsUpdateAvailability,
+} from "@/lib/firestore-service";
+import type { Availability, DayOfWeek } from "@/types/firestore";
 import { useRouter } from "next/navigation";
-import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Calendar, Settings } from "lucide-react";
-import type { DayOfWeek } from "@/types/firestore";
+import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -28,38 +27,55 @@ export default function ProfilePage() {
   const [availStart, setAvailStart] = useState("09:00");
   const [availEnd, setAvailEnd] = useState("12:00");
   const [availNote, setAvailNote] = useState("");
-  const [, forceUpdate] = useState(0);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
+  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadAvailabilities = async () => {
+    if (!user) return;
+    const avails = await fsGetAvailabilitiesByUser(user.uid);
+    setAvailabilities(avails);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadAvailabilities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   if (!user) return null;
-
-  const availabilities = demoGetAvailabilitiesByUser(user.uid);
+  if (loading) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <p className="text-yui-earth-500">読み込み中...</p>
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     logout();
     router.push("/login");
   };
 
-  const handleAddEquipment = () => {
+  const handleAddEquipment = async () => {
     if (!newEquipment.trim()) return;
     const updated = [...user.equipmentList, newEquipment.trim()];
-    demoUpdateUser(user.uid, { equipmentList: updated });
+    await fsUpdateUser(user.uid, { equipmentList: updated });
     refreshUser();
     setNewEquipment("");
     setShowAddEquipment(false);
   };
 
-  const handleRemoveEquipment = (index: number) => {
+  const handleRemoveEquipment = async (index: number) => {
     const updated = user.equipmentList.filter((_, i) => i !== index);
-    demoUpdateUser(user.uid, { equipmentList: updated });
+    await fsUpdateUser(user.uid, { equipmentList: updated });
     refreshUser();
     setConfirmDelete(null);
   };
 
-  const handleAddAvailability = () => {
-    demoCreateAvailability({
-      id: generateId(),
+  const handleAddAvailability = async () => {
+    await fsCreateAvailability({
       userId: user.uid,
       dayOfWeek: availDay,
       startTime: availStart,
@@ -70,17 +86,17 @@ export default function ProfilePage() {
     });
     setShowAddAvailability(false);
     setAvailNote("");
-    forceUpdate((n) => n + 1);
+    await loadAvailabilities();
   };
 
-  const handleToggleAvailability = (id: string, isActive: boolean) => {
-    demoUpdateAvailability(id, { isActive: !isActive });
-    forceUpdate((n) => n + 1);
+  const handleToggleAvailability = async (id: string, isActive: boolean) => {
+    await fsUpdateAvailability(id, { isActive: !isActive });
+    await loadAvailabilities();
   };
 
-  const handleDeleteAvailability = (id: string) => {
-    demoDeleteAvailability(id);
-    forceUpdate((n) => n + 1);
+  const handleDeleteAvailability = async (id: string) => {
+    await fsDeleteAvailability(id);
+    await loadAvailabilities();
     setConfirmDelete(null);
   };
 

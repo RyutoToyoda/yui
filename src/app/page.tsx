@@ -1,36 +1,81 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  demoGetJobs,
-  demoGetTransactionsByUser,
-  demoGetApplicationsByUser,
-  demoGetMatchedJobsForUser,
-  demoGetAvailabilitiesByUser,
+  fsGetJobs,
+  fsGetTransactionsByUser,
+  fsGetApplicationsByUser,
+  fsGetMatchedJobsForUser,
+  fsGetAvailabilitiesByUser,
+  fsGetJob,
   getJobTypeEmoji,
   getJobTypeLabel,
-} from "@/lib/demo-data";
+} from "@/lib/firestore-service";
+import type { Job, Application, Transaction, Availability } from "@/types/firestore";
 import { Coins, CalendarDays, ArrowRight, TrendingUp, TrendingDown, Sparkles, Zap, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
   const { user } = useAuth();
-  if (!user) return null;
+  const [openJobs, setOpenJobs] = useState<Job[]>([]);
+  const [matchedJobs, setMatchedJobs] = useState<Job[]>([]);
+  const [myAvailabilities, setMyAvailabilities] = useState<Availability[]>([]);
+  const [myUpcoming, setMyUpcoming] = useState<{ app: Application; job: Job }[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const openJobs = demoGetJobs("open").filter((j) => j.creatorId !== user.uid).slice(0, 3);
-  const matchedJobs = demoGetMatchedJobsForUser(user.uid);
-  const myAvailabilities = demoGetAvailabilitiesByUser(user.uid);
-  const myApplications = demoGetApplicationsByUser(user.uid);
-  const myUpcoming = myApplications
-    .filter((a) => a.status === "approved")
-    .slice(0, 2);
-  const transactions = demoGetTransactionsByUser(user.uid).slice(0, 3);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    async function loadData() {
+      const [jobs, matched, avails, apps, txns] = await Promise.all([
+        fsGetJobs("open"),
+        fsGetMatchedJobsForUser(user!.uid),
+        fsGetAvailabilitiesByUser(user!.uid),
+        fsGetApplicationsByUser(user!.uid),
+        fsGetTransactionsByUser(user!.uid),
+      ]);
+
+      if (cancelled) return;
+
+      setOpenJobs(jobs.filter((j) => j.creatorId !== user!.uid).slice(0, 3));
+      setMatchedJobs(matched);
+      setMyAvailabilities(avails);
+      setTransactions(txns.slice(0, 3));
+
+      // 承認済みの応募 + ジョブ詳細取得
+      const approvedApps = apps.filter((a) => a.status === "approved").slice(0, 2);
+      const upcomingWithJobs = await Promise.all(
+        approvedApps.map(async (app) => {
+          const job = await fsGetJob(app.jobId);
+          return job ? { app, job } : null;
+        })
+      );
+      if (!cancelled) {
+        setMyUpcoming(upcomingWithJobs.filter(Boolean) as { app: Application; job: Job }[]);
+        setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <p className="text-yui-earth-500">読み込み中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-5 space-y-6">
       {/* ポイント残高カード */}
       <div className="gradient-primary rounded-3xl p-6 text-white shadow-lg shadow-yui-green-900/20 relative overflow-hidden">
-        {/* 背景装飾 */}
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" aria-hidden="true" />
         <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full" aria-hidden="true" />
         <p className="text-sm text-white/70 font-bold mb-1.5 relative z-10">ポイント残高</p>
@@ -129,19 +174,15 @@ export default function HomePage() {
         </div>
         {myUpcoming.length > 0 ? (
           <div className="space-y-2">
-            {myUpcoming.map((app) => {
-              const job = demoGetJobs().find((j) => j.id === app.jobId);
-              if (!job) return null;
-              return (
-                <div key={app.id} className="card-premium rounded-2xl p-5">
-                  <p className="font-bold text-yui-green-800">{job.title}</p>
-                  <p className="text-sm text-yui-earth-600 mt-1 flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                    {job.date} {job.startTime}〜{job.endTime}
-                  </p>
-                </div>
-              );
-            })}
+            {myUpcoming.map(({ app, job }) => (
+              <div key={app.id} className="card-premium rounded-2xl p-5">
+                <p className="font-bold text-yui-green-800">{job.title}</p>
+                <p className="text-sm text-yui-earth-600 mt-1 flex items-center gap-1">
+                  <CalendarDays className="w-4 h-4" aria-hidden="true" />
+                  {job.date} {job.startTime}〜{job.endTime}
+                </p>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="card-premium rounded-2xl p-6 text-center">

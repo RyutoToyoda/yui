@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { demoGetJobs, getJobTypeEmoji, getJobTypeLabel } from "@/lib/demo-data";
+import { fsGetJobs, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
 import { Coins, ChevronLeft, ChevronRight, List, CalendarDays, Users } from "lucide-react";
 import Link from "next/link";
 import type { Job } from "@/types/firestore";
@@ -16,9 +16,29 @@ export default function ExplorePage() {
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  if (!user) return null;
+  const [openJobs, setOpenJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const openJobs = demoGetJobs("open");
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fsGetJobs("open").then((jobs) => {
+      if (!cancelled) {
+        setOpenJobs(jobs);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <p className="text-yui-earth-500">読み込み中...</p>
+      </div>
+    );
+  }
 
   // カレンダー用
   const daysInMonth = new Date(currentMonth.year, currentMonth.month + 1, 0).getDate();

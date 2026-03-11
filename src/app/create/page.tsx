@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { demoCreateJob, generateId } from "@/lib/demo-data";
+import { fsCreateJob } from "@/lib/firestore-service";
 import { useRouter } from "next/navigation";
 import { Users, Wrench, Truck, Coins, CheckCircle2, AlertTriangle } from "lucide-react";
 import type { JobType } from "@/types/firestore";
@@ -84,11 +84,10 @@ export default function CreatePage() {
     setShowConfirm(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const totalTokens = calculateTotalTokens();
 
-    demoCreateJob({
-      id: generateId(),
+    await fsCreateJob({
       creatorId: user.uid,
       creatorName: user.name,
       type: selectedType!,

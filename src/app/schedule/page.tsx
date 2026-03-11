@@ -1,66 +1,135 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  demoGetJobsByUser,
-  demoGetApplicationsByUser,
-  demoGetApplicationsByJob,
-  demoGetJob,
-  demoUpdateApplication,
-  demoUpdateJob,
-  demoTransferTokens,
+  fsGetJobsByUser,
+  fsGetApplicationsByUser,
+  fsGetApplicationsByJob,
+  fsGetJob,
+  fsUpdateApplication,
+  fsUpdateJob,
+  fsTransferTokens,
+  fsCreateNotification,
   getJobTypeEmoji,
   getJobTypeLabel,
-} from "@/lib/demo-data";
+} from "@/lib/firestore-service";
+import type { Job, Application } from "@/types/firestore";
 import { CheckCircle2, XCircle, Clock, Coins, ChevronRight, CalendarDays, CircleDot, CircleCheck, Loader } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 type Tab = "managing" | "upcoming" | "history";
 
+interface JobWithApps {
+  job: Job;
+  applications: Application[];
+}
+
 export default function SchedulePage() {
   const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("managing");
   const [confirmAction, setConfirmAction] = useState<{ type: string; appId: string; jobId: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [managingJobsWithApps, setManagingJobsWithApps] = useState<JobWithApps[]>([]);
+  const [upcomingApps, setUpcomingApps] = useState<{ app: Application; job: Job }[]>([]);
+  const [completedApps, setCompletedApps] = useState<Application[]>([]);
+  const [completedJobs, setCompletedJobs] = useState<Job[]>([]);
+
+  const loadData = async () => {
+    if (!user) return;
+    const [myJobs, myApps] = await Promise.all([
+      fsGetJobsByUser(user.uid),
+      fsGetApplicationsByUser(user.uid),
+    ]);
+
+    // 管理中のジョブ + 応募者
+    const managing = myJobs.filter((j) => j.status === "open" || j.status === "matched" || j.status === "in_progress");
+    const managingWithApps = await Promise.all(
+      managing.map(async (job) => {
+        const apps = await fsGetApplicationsByJob(job.id);
+        return { job, applications: apps };
+      })
+    );
+    setManagingJobsWithApps(managingWithApps);
+
+    // 予定
+    const approved = myApps.filter((a) => a.status === "approved");
+    const upcomingWithJobs = await Promise.all(
+      approved.map(async (app) => {
+        const job = await fsGetJob(app.jobId);
+        return job ? { app, job } : null;
+      })
+    );
+    setUpcomingApps(upcomingWithJobs.filter(Boolean) as { app: Application; job: Job }[]);
+
+    // 履歴
+    setCompletedApps(myApps.filter((a) => a.status === "completed"));
+    setCompletedJobs(myJobs.filter((j) => j.status === "completed"));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   if (!user) return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <p className="text-yui-earth-500">読み込み中...</p>
+      </div>
+    );
+  }
 
-  const myJobs = demoGetJobsByUser(user.uid);
-  const myApplications = demoGetApplicationsByUser(user.uid);
-
-  const managingJobs = myJobs.filter((j) => j.status === "open" || j.status === "matched" || j.status === "in_progress");
-  const upcomingApps = myApplications.filter((a) => a.status === "approved");
-  const completedApps = myApplications.filter((a) => a.status === "completed");
-  const completedJobs = myJobs.filter((j) => j.status === "completed");
-
-  const handleApprove = (applicationId: string, jobId: string) => {
-    demoUpdateApplication(applicationId, { status: "approved" });
-    demoUpdateJob(jobId, { status: "matched" });
+  const handleApprove = async (applicationId: string, jobId: string) => {
+    await fsUpdateApplication(applicationId, { status: "approved" });
+    await fsUpdateJob(jobId, { status: "matched" });
+    // 応募者に通知
+    const apps = await fsGetApplicationsByJob(jobId);
+    const app = apps.find((a) => a.id === applicationId);
+    const job = await fsGetJob(jobId);
+    if (app && job) {
+      await fsCreateNotification({
+        userId: app.applicantId,
+        type: "approved",
+        title: "✅ お手伝いが決まりました！",
+        message: `${user.name}さんの「${job.title}」のお手伝いが決まりました。当日よろしくお願いします。`,
+        jobId: jobId,
+        isRead: false,
+        createdAt: new Date(),
+      });
+    }
     setConfirmAction(null);
+    await loadData();
   };
 
-  const handleReject = (applicationId: string) => {
-    demoUpdateApplication(applicationId, { status: "rejected" });
+  const handleReject = async (applicationId: string) => {
+    await fsUpdateApplication(applicationId, { status: "rejected" });
     setConfirmAction(null);
+    await loadData();
   };
 
-  const handleComplete = (applicationId: string, jobId: string) => {
-    const job = demoGetJob(jobId);
-    const app = demoGetApplicationsByJob(jobId).find((a) => a.id === applicationId);
+  const handleComplete = async (applicationId: string, jobId: string) => {
+    const job = await fsGetJob(jobId);
+    const apps = await fsGetApplicationsByJob(jobId);
+    const app = apps.find((a) => a.id === applicationId);
     if (!job || !app) return;
 
-    demoTransferTokens(
+    await fsTransferTokens(
       job.creatorId,
       app.applicantId,
       job.totalTokens,
       jobId,
       job.title
     );
-    demoUpdateApplication(applicationId, { status: "completed" });
-    demoUpdateJob(jobId, { status: "completed" });
+    await fsUpdateApplication(applicationId, { status: "completed" });
+    await fsUpdateJob(jobId, { status: "completed" });
     refreshUser();
     setConfirmAction(null);
+    await loadData();
   };
 
   const getStatusBadge = (status: string) => {
@@ -87,7 +156,7 @@ export default function SchedulePage() {
   };
 
   const tabs = [
-    { key: "managing" as Tab, label: "自分の募集", count: managingJobs.length },
+    { key: "managing" as Tab, label: "自分の募集", count: managingJobsWithApps.length },
     { key: "upcoming" as Tab, label: "お手伝い予定", count: upcomingApps.length },
     { key: "history" as Tab, label: "おわった作業", count: completedApps.length + completedJobs.length },
   ];
@@ -126,11 +195,10 @@ export default function SchedulePage() {
       {/* 管理中タブ */}
       {activeTab === "managing" && (
         <div className="space-y-4">
-          {managingJobs.length === 0 ? (
+          {managingJobsWithApps.length === 0 ? (
             <EmptyState message="出した募集はありません" />
           ) : (
-            managingJobs.map((job) => {
-              const applications = demoGetApplicationsByJob(job.id);
+            managingJobsWithApps.map(({ job, applications }) => {
               const pendingApps = applications.filter((a) => a.status === "pending");
               const approvedApps = applications.filter((a) => a.status === "approved");
 
@@ -234,40 +302,36 @@ export default function SchedulePage() {
           {upcomingApps.length === 0 ? (
             <EmptyState message="予定はありません" link="/explore" linkText="お手伝い募集を探す" />
           ) : (
-            upcomingApps.map((app) => {
-              const job = demoGetJob(app.jobId);
-              if (!job) return null;
-              return (
-                <Link
-                  key={app.id}
-                  href={`/explore/${job.id}`}
-                  className="block bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100 no-underline hover:border-yui-green-300 transition-colors"
-                  aria-label={`${job.title} ${job.date}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                        <span className="ud-status-badge bg-green-100 text-green-800 border border-green-300">
-                          <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> お願い済み
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-yui-green-800">{job.title}</h3>
-                      <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
-                        <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                        {job.date} {job.startTime}〜{job.endTime}
-                      </p>
-                      <p className="text-sm text-yui-earth-600 mt-0.5">{job.creatorName}さん</p>
+            upcomingApps.map(({ app, job }) => (
+              <Link
+                key={app.id}
+                href={`/explore/${job.id}`}
+                className="block bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100 no-underline hover:border-yui-green-300 transition-colors"
+                aria-label={`${job.title} ${job.date}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+                      <span className="ud-status-badge bg-green-100 text-green-800 border border-green-300">
+                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> お願い済み
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Coins className="w-4 h-4 text-yui-accent" aria-hidden="true" />
-                      <span className="font-bold text-yui-green-800">{job.totalTokens}P</span>
-                      <ChevronRight className="w-5 h-5 text-yui-earth-400" aria-hidden="true" />
-                    </div>
+                    <h3 className="font-bold text-yui-green-800">{job.title}</h3>
+                    <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
+                      <CalendarDays className="w-4 h-4" aria-hidden="true" />
+                      {job.date} {job.startTime}〜{job.endTime}
+                    </p>
+                    <p className="text-sm text-yui-earth-600 mt-0.5">{job.creatorName}さん</p>
                   </div>
-                </Link>
-              );
-            })
+                  <div className="flex items-center gap-1">
+                    <Coins className="w-4 h-4 text-yui-accent" aria-hidden="true" />
+                    <span className="font-bold text-yui-green-800">{job.totalTokens}P</span>
+                    <ChevronRight className="w-5 h-5 text-yui-earth-400" aria-hidden="true" />
+                  </div>
+                </div>
+              </Link>
+            ))
           )}
         </div>
       )}

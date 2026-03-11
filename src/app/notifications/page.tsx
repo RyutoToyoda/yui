@@ -2,32 +2,55 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  demoGetNotificationsByUser,
-  demoMarkNotificationRead,
-  demoMarkAllNotificationsRead,
-  demoGetUnreadCountByUser,
-} from "@/lib/demo-data";
+  fsGetNotificationsByUser,
+  fsMarkNotificationRead,
+  fsMarkAllNotificationsRead,
+  fsGetUnreadCountByUser,
+} from "@/lib/firestore-service";
+import type { Notification } from "@/types/firestore";
 import { Bell, CheckCheck, Zap, UserCheck, CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
-  const [, forceUpdate] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) return null;
-
-  const notifications = demoGetNotificationsByUser(user.uid);
-  const unreadCount = demoGetUnreadCountByUser(user.uid);
-
-  const handleMarkAllRead = () => {
-    demoMarkAllNotificationsRead(user.uid);
-    forceUpdate((n) => n + 1);
+  const loadData = async () => {
+    if (!user) return;
+    const [notifs, count] = await Promise.all([
+      fsGetNotificationsByUser(user.uid),
+      fsGetUnreadCountByUser(user.uid),
+    ]);
+    setNotifications(notifs);
+    setUnreadCount(count);
+    setLoading(false);
   };
 
-  const handleMarkRead = (id: string) => {
-    demoMarkNotificationRead(id);
-    forceUpdate((n) => n + 1);
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <p className="text-yui-earth-500">読み込み中...</p>
+      </div>
+    );
+  }
+
+  const handleMarkAllRead = async () => {
+    await fsMarkAllNotificationsRead(user.uid);
+    await loadData();
+  };
+
+  const handleMarkRead = async (id: string) => {
+    await fsMarkNotificationRead(id);
+    await loadData();
   };
 
   const getNotificationIcon = (type: string) => {

@@ -35,11 +35,19 @@ export default function LoginPage() {
       setError("お名前と農園名は必ず入力してください");
       return;
     }
-    const success = await register(name, farmName, location, ageGroup);
+    if (!email || !password) {
+      setError("メールアドレスとパスワードは必ず入力してください");
+      return;
+    }
+    if (password.length < 6) {
+      setError("パスワードは6文字以上にしてください");
+      return;
+    }
+    const success = await register(email, password, name, farmName, location, ageGroup);
     if (success) {
       router.push("/");
     } else {
-      setError("登録できませんでした。もう一度お試しください。");
+      setError("登録できませんでした。メールアドレスが既に使われているかもしれません。");
     }
   };
 

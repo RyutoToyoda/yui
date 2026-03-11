@@ -2,14 +2,22 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types/firestore";
-import { demoGetCurrentUser, demoSetCurrentUser, demoGetUser, demoCreateUser, demoUpdateUser } from "@/lib/demo-data";
+import { auth } from "@/lib/firebase";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  type UserCredential,
+} from "firebase/auth";
+import { fsGetUser, fsCreateUser, fsUpdateUser } from "@/lib/firestore-service";
 
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, farmName: string, location: string, ageGroup: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string, farmName: string, location: string, ageGroup: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => void;
 }
@@ -20,63 +28,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Firebase Auth の状態を監視
   useEffect(() => {
-    // デモモード: localStorageからログイン状態を復元
-    const savedUid = localStorage.getItem("yui-demo-uid");
-    if (savedUid) {
-      const u = demoGetUser(savedUid);
-      if (u) {
-        demoSetCurrentUser(savedUid);
-        setUser(u);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Firestore からユーザープロフィールを取得
+        const profile = await fsGetUser(firebaseUser.uid);
+        if (profile) {
+          setUser(profile);
+        } else {
+          // Auth にはいるが Firestore にはない場合（エッジケース）
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const refreshUser = () => {
-    const u = demoGetCurrentUser();
-    setUser({ ...u });
-  };
-
-  const login = async (email: string, _password: string): Promise<boolean> => {
-    // デモモード: メールアドレスからデモユーザーを特定
-    // tanaka@demo.com → demo-user-1, yamada@demo.com → demo-user-2, sato@demo.com → demo-user-3
-    let uid = "demo-user-1";
-    if (email.includes("yamada")) uid = "demo-user-2";
-    else if (email.includes("sato")) uid = "demo-user-3";
-
-    const u = demoGetUser(uid);
-    if (u) {
-      demoSetCurrentUser(uid);
-      localStorage.setItem("yui-demo-uid", uid);
-      setUser(u);
-      return true;
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      const profile = await fsGetUser(auth.currentUser.uid);
+      if (profile) setUser({ ...profile });
     }
-    return false;
   };
 
-  const register = async (name: string, farmName: string, location: string, ageGroup: string): Promise<boolean> => {
-    const uid = `user-${Date.now()}`;
-    const newUser: User = {
-      uid,
-      name,
-      farmName,
-      location,
-      ageGroup,
-      tokenBalance: 10,
-      equipmentList: [],
-      createdAt: new Date(),
-    };
-    demoCreateUser(newUser);
-    demoSetCurrentUser(uid);
-    localStorage.setItem("yui-demo-uid", uid);
-    setUser(newUser);
-    return true;
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const cred: UserCredential = await signInWithEmailAndPassword(auth, email, password);
+      const profile = await fsGetUser(cred.user.uid);
+      if (profile) {
+        setUser(profile);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Login failed:", error);
+      return false;
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem("yui-demo-uid");
-    setUser(null);
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    farmName: string,
+    location: string,
+    ageGroup: string
+  ): Promise<boolean> => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+      const newUser: User = {
+        uid: cred.user.uid,
+        name,
+        farmName,
+        location,
+        ageGroup,
+        tokenBalance: 10,
+        equipmentList: [],
+        createdAt: new Date(),
+      };
+
+      await fsCreateUser(newUser);
+      setUser(newUser);
+      return true;
+    } catch (error) {
+      console.error("Registration failed:", error);
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (

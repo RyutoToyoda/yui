@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --color-yui-green-900: #1a3a17;
+  --color-yui-green-800: #2d5a27;
+  --color-yui-green-700: #3a7233;
+  --color-yui-green-600: #48903f;
+  --color-yui-green-500: #56ae4b;
+  --color-yui-green-400: #6bc460;
+  --color-yui-green-300: #86d47d;
+  --color-yui-green-200: #a8e3a1;
+  --color-yui-green-100: #d0f0cd;
+  --color-yui-green-50: #eef8ed;
+
+  --color-yui-earth-800: #5c4033;
+  --color-yui-earth-700: #7a5c4f;
+  --color-yui-earth-600: #8b6f5e;
+  --color-yui-earth-500: #a0877a;
+  --color-yui-earth-400: #b5a196;
+  --color-yui-earth-300: #cbbcb3;
+  --color-yui-earth-200: #e0d5cf;
+  --color-yui-earth-100: #f0ebe7;
+  --color-yui-earth-50: #f8f5f3;
+
+  --color-yui-accent: #f59e0b;
+  --color-yui-accent-light: #fbbf24;
+  --color-yui-danger: #ef4444;
+
+  --font-sans: "Noto Sans JP", sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-yui-green-900);
+    background-color: var(--color-yui-earth-50);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

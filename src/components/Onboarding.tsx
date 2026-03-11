@@ -22,23 +22,23 @@ const slides = [
     iconColor: "text-orange-600",
     title: "手伝ってほしい時",
     line1: "「募集」から作業内容と日時を登録",
-    line2: "人手・機具・機具+人の3タイプで依頼できます",
+    line2: "人手・機具・機具+人の3タイプでお願いできます",
   },
   {
     icon: Clock,
     iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
+    iconColor: "text-blue-700",
     title: "手伝いたい時",
-    line1: "「スキマ時間」を登録しておくと\nぴったりの募集を自動でお知らせ",
-    line2: "「探す」から直接応募もOK",
+    line1: "「手伝える時間」を登録しておくと\nぴったりの募集を自動でお知らせ",
+    line2: "「探す」から直接手を挙げることもできます",
   },
   {
     icon: Coins,
     iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
-    title: "トークンの仕組み",
-    line1: "作業完了 → トークンが自動で受け取れる",
-    line2: "貯めたトークンで、次はあなたがヘルプを依頼！",
+    iconColor: "text-amber-700",
+    title: "ポイントのしくみ",
+    line1: "お手伝い完了 → ポイントがもらえる",
+    line2: "貯めたポイントで、次はあなたがお手伝いをお願い！",
   },
 ];
 
@@ -49,13 +49,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const Icon = slide.icon;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white flex flex-col">
+    <div
+      className="fixed inset-0 z-[100] bg-white flex flex-col"
+      role="dialog"
+      aria-modal="true"
+      aria-label="はじめての方へ"
+    >
       {/* スキップ */}
       <div className="flex justify-end px-6 pt-5">
         {!isLast && (
           <button
             onClick={onComplete}
-            className="text-sm text-yui-earth-400 font-medium hover:text-yui-earth-600 transition-colors px-2 py-1"
+            className="text-base text-yui-earth-500 font-bold hover:text-yui-earth-700 transition-colors px-4 py-2"
+            style={{ minHeight: "48px" }}
+            aria-label="説明をスキップしてはじめる"
           >
             スキップ
           </button>
@@ -63,10 +70,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       </div>
 
       {/* メインコンテンツ */}
-      <div className="flex-1 flex flex-col items-center justify-center px-10 max-w-[430px] mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center px-8 max-w-[430px] mx-auto w-full">
         {/* アイコン */}
         <div className={`w-32 h-32 rounded-[28px] ${slide.iconBg} flex items-center justify-center mb-10 shadow-sm`}>
-          <Icon className={`w-16 h-16 ${slide.iconColor}`} />
+          <Icon className={`w-16 h-16 ${slide.iconColor}`} aria-hidden="true" />
         </div>
 
         {/* タイトル */}
@@ -76,10 +83,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
         {/* 説明文 */}
         <div className="text-center space-y-3">
-          <p className="text-base text-yui-earth-700 font-bold leading-relaxed whitespace-pre-line">
+          <p className="text-base text-yui-earth-700 font-bold leading-relaxed whitespace-pre-line" style={{ lineHeight: "1.8" }}>
             {slide.line1}
           </p>
-          <p className="text-sm text-yui-earth-400 leading-relaxed">
+          <p className="text-sm text-yui-earth-500 leading-relaxed" style={{ lineHeight: "1.8" }}>
             {slide.line2}
           </p>
         </div>
@@ -88,15 +95,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       {/* ナビゲーション */}
       <div className="px-8 pb-12 pt-4 max-w-[430px] mx-auto w-full">
         {/* ドットインジケーター */}
-        <div className="flex justify-center gap-2 mb-7">
+        <div className="flex justify-center gap-2.5 mb-7" role="group" aria-label={`${slides.length}ページ中${current + 1}ページ目`}>
           {slides.map((_, i) => (
             <div
               key={i}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2.5 rounded-full transition-all duration-300 ${
                 i === current
-                  ? "w-7 bg-yui-green-600"
-                  : "w-2 bg-yui-earth-200"
+                  ? "w-8 bg-yui-green-600"
+                  : "w-2.5 bg-yui-earth-300"
               }`}
+              aria-hidden="true"
             />
           ))}
         </div>
@@ -106,9 +114,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           {current > 0 && (
             <button
               onClick={() => setCurrent(current - 1)}
-              className="w-14 h-14 rounded-2xl border border-yui-earth-200 flex items-center justify-center text-yui-earth-500 hover:bg-yui-earth-50 transition-colors shrink-0"
+              className="w-16 h-16 rounded-2xl border-2 border-yui-earth-200 flex items-center justify-center text-yui-earth-600 hover:bg-yui-earth-50 transition-colors shrink-0"
+              aria-label="前のページへ"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-6 h-6" aria-hidden="true" />
             </button>
           )}
           <button
@@ -119,16 +128,13 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 setCurrent(current + 1);
               }
             }}
-            className={`flex-1 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 ${
-              isLast
-                ? "gradient-primary text-white shadow-lg shadow-yui-green-900/20"
-                : "gradient-primary text-white shadow-md shadow-yui-green-900/15"
-            }`}
+            className="flex-1 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 gradient-primary text-white shadow-lg shadow-yui-green-900/20"
+            style={{ minHeight: "56px" }}
           >
             {isLast ? (
               <>はじめる 🚀</>
             ) : (
-              <>次へ <ArrowRight className="w-5 h-5" /></>
+              <>次へ <ArrowRight className="w-5 h-5" aria-hidden="true" /></>
             )}
           </button>
         </div>

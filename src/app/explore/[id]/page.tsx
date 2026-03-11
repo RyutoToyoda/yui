@@ -6,6 +6,7 @@ import { demoGetJob, demoCreateApplication, demoGetApplicationsByJob, generateId
 import { useParams, useRouter } from "next/navigation";
 import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function JobDetailPage() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function JobDetailPage() {
   const [isAgreed, setIsAgreed] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const jobId = params.id as string;
   const job = demoGetJob(jobId);
@@ -21,9 +23,9 @@ export default function JobDetailPage() {
   if (!user || !job) {
     return (
       <div className="px-4 py-10 text-center">
-        <p className="text-yui-earth-400">募集が見つかりませんでした</p>
-        <Link href="/explore" className="text-yui-green-600 font-medium mt-2 inline-block no-underline">
-          ← 募集一覧に戻る
+        <p className="text-yui-earth-500 text-base">募集が見つかりませんでした</p>
+        <Link href="/explore" className="text-yui-green-600 font-bold mt-2 inline-block no-underline" style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}>
+          ← 募集の一覧にもどる
         </Link>
       </div>
     );
@@ -33,12 +35,16 @@ export default function JobDetailPage() {
   const alreadyApplied = existingApplications.some((a) => a.applicantId === user.uid);
   const isOwner = job.creatorId === user.uid;
 
-  const handleApply = () => {
+  const handlePreApply = () => {
     setError("");
     if (!isAgreed) {
-      setError("同意チェックボックスにチェックを入れてください");
+      setError("チェックボックスにチェックを入れてください");
       return;
     }
+    setShowConfirm(true);
+  };
+
+  const handleApply = () => {
     demoCreateApplication({
       id: generateId(),
       jobId: job.id,
@@ -48,6 +54,7 @@ export default function JobDetailPage() {
       status: "pending",
       createdAt: new Date(),
     });
+    setShowConfirm(false);
     setApplied(true);
   };
 
@@ -56,133 +63,135 @@ export default function JobDetailPage() {
       {/* 戻るボタン */}
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-1 text-yui-green-600 font-medium text-sm hover:text-yui-green-800 transition-colors"
+        className="flex items-center gap-1 text-yui-green-600 font-bold text-base hover:text-yui-green-800 transition-colors"
+        style={{ minHeight: "48px" }}
       >
-        <ArrowLeft className="w-4 h-4" /> 戻る
+        <ArrowLeft className="w-5 h-5" aria-hidden="true" /> もどる
       </button>
 
       {/* ジョブ詳細カード */}
-      <div className="bg-white rounded-2xl shadow-sm border border-yui-green-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 overflow-hidden">
         {/* ヘッダー */}
-        <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 p-5 text-white">
+        <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 p-6 text-white">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">{getJobTypeEmoji(job.type)}</span>
-            <span className="text-xs bg-white/20 font-bold px-2.5 py-1 rounded-full">
+            <span className="text-2xl" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+            <span className="text-sm bg-white/20 font-bold px-3 py-1 rounded-full">
               {getJobTypeLabel(job.type)}
             </span>
           </div>
           <h1 className="text-xl font-bold">{job.title}</h1>
-          <p className="text-yui-green-200 mt-1">{job.creatorName}</p>
+          <p className="text-yui-green-200 mt-1 font-medium">{job.creatorName}さん</p>
         </div>
 
         {/* 詳細情報 */}
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-yui-green-50 rounded-xl p-3">
+            <div className="bg-yui-green-50 rounded-xl p-4">
               <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
-                <CalendarDays className="w-4 h-4" />
-                <span className="text-xs font-bold">作業日</span>
+                <CalendarDays className="w-5 h-5" aria-hidden="true" />
+                <span className="text-xs font-bold">作業する日</span>
               </div>
               <p className="text-sm font-bold text-yui-green-800">{job.date}</p>
             </div>
-            <div className="bg-yui-green-50 rounded-xl p-3">
+            <div className="bg-yui-green-50 rounded-xl p-4">
               <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-5 h-5" aria-hidden="true" />
                 <span className="text-xs font-bold">時間</span>
               </div>
               <p className="text-sm font-bold text-yui-green-800">{job.startTime}〜{job.endTime}</p>
             </div>
             {job.requiredPeople > 0 && (
-              <div className="bg-yui-green-50 rounded-xl p-3">
+              <div className="bg-yui-green-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
-                  <Users className="w-4 h-4" />
-                  <span className="text-xs font-bold">必要人数</span>
+                  <Users className="w-5 h-5" aria-hidden="true" />
+                  <span className="text-xs font-bold">必要な人数</span>
                 </div>
                 <p className="text-sm font-bold text-yui-green-800">{job.requiredPeople}名</p>
               </div>
             )}
             {job.equipmentNeeded && (
-              <div className="bg-yui-green-50 rounded-xl p-3">
+              <div className="bg-yui-green-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
-                  <Wrench className="w-4 h-4" />
-                  <span className="text-xs font-bold">機具</span>
+                  <Wrench className="w-5 h-5" aria-hidden="true" />
+                  <span className="text-xs font-bold">農機具</span>
                 </div>
                 <p className="text-sm font-bold text-yui-green-800">{job.equipmentNeeded}</p>
               </div>
             )}
           </div>
 
-          {/* トークン情報 */}
-          <div className="bg-yui-accent/10 rounded-xl p-4 flex items-center justify-between">
+          {/* ポイント情報 */}
+          <div className="bg-yui-accent/10 rounded-xl p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-yui-earth-600 mb-1">報酬</p>
+              <p className="text-xs font-bold text-yui-earth-700 mb-1">お礼のポイント</p>
               <div className="flex items-center gap-2">
-                <Coins className="w-6 h-6 text-yui-accent" />
+                <Coins className="w-6 h-6 text-yui-accent" aria-hidden="true" />
                 <span className="text-2xl font-black text-yui-green-800">{job.totalTokens}</span>
-                <span className="text-sm text-yui-earth-500">トークン</span>
+                <span className="text-sm text-yui-earth-600 font-medium">ポイント</span>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-yui-earth-400">レート</p>
-              <p className="text-sm font-bold text-yui-green-800">{job.tokenRatePerHour} / 時間</p>
+              <p className="text-xs text-yui-earth-500 font-medium">1時間あたり</p>
+              <p className="text-sm font-bold text-yui-green-800">{job.tokenRatePerHour}P</p>
             </div>
           </div>
 
           {/* 説明 */}
           <div>
-            <h3 className="text-sm font-bold text-yui-green-800 mb-2">作業内容</h3>
-            <p className="text-sm text-yui-earth-600 leading-relaxed">{job.description}</p>
+            <h3 className="text-sm font-bold text-yui-green-800 mb-2">作業の内容</h3>
+            <p className="text-sm text-yui-earth-600 leading-relaxed" style={{ lineHeight: "1.8" }}>{job.description}</p>
           </div>
         </div>
       </div>
 
       {/* 応募セクション */}
       {!isOwner && job.status === "open" && (
-        <div className="bg-white rounded-2xl shadow-sm border border-yui-green-100 p-5">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
           {applied || alreadyApplied ? (
             <div className="text-center py-4">
-              <CheckCircle2 className="w-12 h-12 text-yui-green-500 mx-auto mb-2" />
-              <p className="text-lg font-bold text-yui-green-700">応募しました！</p>
-              <p className="text-sm text-yui-earth-500 mt-1">
-                募集者の承認をお待ちください
+              <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
+              <p className="text-lg font-bold text-yui-green-700">手を挙げました！</p>
+              <p className="text-sm text-yui-earth-600 mt-1">
+                募集した方からの連絡をお待ちください
               </p>
             </div>
           ) : (
             <>
-              <h3 className="text-base font-bold text-yui-green-800 mb-3">このヘルプに応募する</h3>
+              <h3 className="text-base font-bold text-yui-green-800 mb-3">このお手伝いに手を挙げる</h3>
 
               {/* 同意チェックボックス */}
-              <div className="bg-yui-earth-50 rounded-xl p-4 mb-4">
-                <label className="flex items-start gap-3 cursor-pointer">
+              <div className="bg-yui-earth-50 rounded-xl p-5 mb-4">
+                <label className="flex items-start gap-3 cursor-pointer" style={{ minHeight: "48px" }}>
                   <input
                     type="checkbox"
                     checked={isAgreed}
                     onChange={(e) => setIsAgreed(e.target.checked)}
-                    className="w-5 h-5 mt-0.5 rounded border-2 border-yui-green-400 text-yui-green-600 focus:ring-yui-green-500 shrink-0 accent-yui-green-600"
+                    className="w-6 h-6 mt-0.5 rounded border-2 border-yui-green-400 text-yui-green-600 focus:ring-yui-green-500 shrink-0 accent-yui-green-600"
                   />
                   <div>
                     <p className="text-sm font-bold text-yui-green-800">
-                      相手の農園のやり方を尊重することに同意します
+                      相手の農園のやり方を大切にすることに同意します
                     </p>
-                    <p className="text-xs text-yui-earth-500 mt-1">
-                      作業方法や手順は募集者の指示に従い、お互いを尊重して作業を行います。
+                    <p className="text-xs text-yui-earth-600 mt-1" style={{ lineHeight: "1.7" }}>
+                      作業のやり方は募集した方にしたがい、おたがいを大切にして作業します。
                     </p>
                   </div>
                 </label>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-yui-danger text-sm mb-3 bg-red-50 p-3 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  {error}
+                <div className="flex items-center gap-2 text-yui-danger text-sm mb-3 bg-red-50 p-4 rounded-xl border-2 border-red-200" role="alert">
+                  <AlertTriangle className="w-5 h-5 shrink-0" aria-hidden="true" />
+                  <span className="font-bold">{error}</span>
                 </div>
               )}
 
               <button
-                onClick={handleApply}
-                className="w-full py-3.5 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
+                onClick={handlePreApply}
+                className="w-full py-4 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
+                style={{ minHeight: "56px" }}
               >
-                応募する
+                手を挙げる
               </button>
             </>
           )}
@@ -190,16 +199,27 @@ export default function JobDetailPage() {
       )}
 
       {isOwner && (
-        <div className="bg-yui-earth-100 rounded-xl p-4 text-center">
-          <p className="text-sm text-yui-earth-500">これはあなたが作成した募集です</p>
+        <div className="bg-yui-earth-100 rounded-xl p-5 text-center">
+          <p className="text-sm text-yui-earth-600 font-medium">これはあなたが作った募集です</p>
           <Link
             href="/schedule"
-            className="text-sm text-yui-green-600 font-medium mt-1 inline-block no-underline"
+            className="text-sm text-yui-green-600 font-bold mt-2 inline-block no-underline"
+            style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}
           >
-            応募者の管理は「予定」から →
+            手を挙げてくれた方の確認は「予定」から →
           </Link>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showConfirm}
+        title="手を挙げますか？"
+        message={`「${job.title}」（${job.date}）に手を挙げます。相手に通知が届きます。`}
+        confirmLabel="手を挙げる"
+        cancelLabel="やめておく"
+        onConfirm={handleApply}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   );
 }

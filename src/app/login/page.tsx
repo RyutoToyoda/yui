@@ -81,11 +81,10 @@ export default function LoginPage() {
         <div className="flex bg-yui-earth-100 rounded-2xl p-1 mb-6" role="tablist" aria-label="ログインまたは新規登録">
           <button
             onClick={() => { setIsRegister(false); setError(""); }}
-            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${
-              !isRegister
+            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${!isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
                 : "text-yui-earth-500 hover:text-yui-earth-700"
-            }`}
+              }`}
             role="tab"
             aria-selected={!isRegister}
             style={{ minHeight: "48px" }}
@@ -94,11 +93,10 @@ export default function LoginPage() {
           </button>
           <button
             onClick={() => { setIsRegister(true); setError(""); }}
-            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${
-              isRegister
+            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
                 : "text-yui-earth-500 hover:text-yui-earth-700"
-            }`}
+              }`}
             role="tab"
             aria-selected={isRegister}
             style={{ minHeight: "48px" }}
@@ -156,13 +154,43 @@ export default function LoginPage() {
 
             <div className="text-center pt-1 space-y-1">
               <p className="text-sm text-yui-earth-500 font-medium">
-                お試し用: tanaka@demo.com / yamada@demo.com / sato@demo.com
+                ご登録のメールアドレス・パスワードを入力してください。
               </p>
-              <p className="text-xs text-yui-earth-400">パスワードは何でもOK</p>
             </div>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-5">
+            <div>
+              <label htmlFor="reg-email" className="block text-sm font-bold text-yui-earth-700 mb-2">
+                メールアドレス <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
+              </label>
+              <input
+                id="reg-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="yui@example.com"
+                className={inputClass}
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <label htmlFor="reg-password" className="block text-sm font-bold text-yui-earth-700 mb-2">
+                パスワード <span className="text-yui-danger text-xs font-bold">（6文字以上）</span>
+              </label>
+              <input
+                id="reg-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className={inputClass}
+                required
+                minLength={6}
+                autoComplete="new-password"
+              />
+            </div>
             <div>
               <label htmlFor="reg-name" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 お名前 <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>

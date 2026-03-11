@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
@@ -37,7 +38,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-yui-earth-50">
+      <div className="min-h-screen flex items-center justify-center bg-yui-earth-50" role="status" aria-label="読み込み中">
         <div className="text-center">
           <div className="text-5xl font-bold text-yui-green-700 mb-2">結</div>
           <p className="text-yui-green-600 text-lg">読み込み中...</p>
@@ -58,7 +59,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-yui-earth-50">
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Header />
-      <main className="max-w-[430px] mx-auto pb-20">
+      <main id="main-content" className="max-w-[430px] mx-auto pb-24" role="main">
         {children}
       </main>
       <BottomNav />
@@ -69,7 +70,9 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <LayoutInner>{children}</LayoutInner>
+      <AccessibilityProvider>
+        <LayoutInner>{children}</LayoutInner>
+      </AccessibilityProvider>
     </AuthProvider>
   );
 }

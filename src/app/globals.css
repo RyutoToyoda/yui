@@ -1,35 +1,99 @@
 @import "tailwindcss";
 
 @theme {
-  /* 深みのあるグリーンパレット */
-  --color-yui-green-900: #14291a;
-  --color-yui-green-800: #1e3f24;
-  --color-yui-green-700: #2a5930;
-  --color-yui-green-600: #357a3c;
-  --color-yui-green-500: #43964b;
-  --color-yui-green-400: #5aad62;
-  --color-yui-green-300: #7ec586;
-  --color-yui-green-200: #b0dbb5;
-  --color-yui-green-100: #daf0dc;
-  --color-yui-green-50: #f0f8f1;
+  /* ===================================
+   * UD配色（WCAG AAA準拠・CUD対応）
+   * =================================== */
+
+  /* 深みのあるグリーンパレット（高コントラスト調整済み） */
+  --color-yui-green-900: #0a1f0e;
+  --color-yui-green-800: #143a1c;
+  --color-yui-green-700: #1e5428;
+  --color-yui-green-600: #2a7035;
+  --color-yui-green-500: #358a42;
+  --color-yui-green-400: #4ba856;
+  --color-yui-green-300: #6ec47a;
+  --color-yui-green-200: #a3dba9;
+  --color-yui-green-100: #d4f0d7;
+  --color-yui-green-50: #eef8ef;
 
   /* 温かみのあるアースカラー */
-  --color-yui-earth-800: #4a3728;
-  --color-yui-earth-700: #6b5344;
-  --color-yui-earth-600: #806859;
-  --color-yui-earth-500: #968071;
-  --color-yui-earth-400: #aea196;
-  --color-yui-earth-300: #c7bdb5;
-  --color-yui-earth-200: #ddd6d0;
-  --color-yui-earth-100: #eeebe8;
-  --color-yui-earth-50: #f7f5f3;
+  --color-yui-earth-800: #3d2b1a;
+  --color-yui-earth-700: #5c4333;
+  --color-yui-earth-600: #73584a;
+  --color-yui-earth-500: #8c7264;
+  --color-yui-earth-400: #a08e82;
+  --color-yui-earth-300: #bfb3a9;
+  --color-yui-earth-200: #d9d1cb;
+  --color-yui-earth-100: #ece8e4;
+  --color-yui-earth-50: #f6f4f2;
 
-  /* アクセント & 危険色 */
-  --color-yui-accent: #d4920a;
-  --color-yui-accent-light: #f0b840;
-  --color-yui-danger: #dc3545;
+  /* CUD対応アクセント & 危険色（P型/D型色覚対応） */
+  --color-yui-accent: #c27d00;
+  --color-yui-accent-light: #e6a21e;
+  --color-yui-danger: #c4243b;
+  --color-yui-info: #0072b2;
+  --color-yui-success: #1a7431;
 
-  --font-sans: "Noto Sans JP", system-ui, sans-serif;
+  --font-sans: "BIZ UDPGothic", "Noto Sans JP", system-ui, sans-serif;
+}
+
+/* ===================================
+ * UD文字サイズシステム（CSS変数）
+ * =================================== */
+:root {
+  --ud-font-size-base: 18px;
+  --ud-font-size-sm: 15px;
+  --ud-font-size-xs: 13px;
+  --ud-font-size-lg: 20px;
+  --ud-font-size-xl: 24px;
+  --ud-font-size-2xl: 30px;
+  --ud-font-size-3xl: 36px;
+  --ud-line-height: 1.8;
+}
+
+/* 大きめ文字モード */
+html[data-font-size="large"] {
+  --ud-font-size-base: 20px;
+  --ud-font-size-sm: 17px;
+  --ud-font-size-xs: 15px;
+  --ud-font-size-lg: 23px;
+  --ud-font-size-xl: 28px;
+  --ud-font-size-2xl: 34px;
+  --ud-font-size-3xl: 40px;
+}
+
+/* とても大きい文字モード */
+html[data-font-size="xlarge"] {
+  --ud-font-size-base: 22px;
+  --ud-font-size-sm: 19px;
+  --ud-font-size-xs: 17px;
+  --ud-font-size-lg: 26px;
+  --ud-font-size-xl: 32px;
+  --ud-font-size-2xl: 38px;
+  --ud-font-size-3xl: 44px;
+}
+
+/* ===================================
+ * 高コントラストモード
+ * =================================== */
+html.ud-high-contrast {
+  --color-yui-green-900: #000000;
+  --color-yui-green-800: #0a2e10;
+  --color-yui-green-700: #145020;
+  --color-yui-earth-400: #5c4d42;
+  --color-yui-earth-500: #4a3d33;
+  --color-yui-earth-50: #ffffff;
+  --color-yui-earth-100: #f5f2ef;
+}
+
+html.ud-high-contrast body {
+  background: #ffffff;
+}
+
+html.ud-high-contrast .card-premium {
+  background: #ffffff;
+  border-color: #143a1c;
 }
 
 @layer base {
@@ -38,7 +102,7 @@
   }
 
   html {
-    font-size: 16px;
+    font-size: var(--ud-font-size-base);
     scroll-behavior: smooth;
   }
 
@@ -49,41 +113,92 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
+    line-height: var(--ud-line-height);
+    text-align: left;
   }
 
-  /* プレミアムなカードスタイル */
+  /* ===================================
+   * UD カード / グラデーション
+   * =================================== */
   .card-premium {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(218, 240, 220, 0.6);
-    box-shadow: 0 1px 3px rgba(30, 63, 36, 0.04), 0 4px 14px rgba(30, 63, 36, 0.06);
+    border: 1.5px solid rgba(212, 240, 215, 0.7);
+    box-shadow: 0 1px 3px rgba(20, 58, 28, 0.06), 0 4px 14px rgba(20, 58, 28, 0.08);
   }
 
   .card-premium:hover {
-    box-shadow: 0 2px 6px rgba(30, 63, 36, 0.06), 0 8px 24px rgba(30, 63, 36, 0.1);
+    box-shadow: 0 2px 6px rgba(20, 58, 28, 0.08), 0 8px 24px rgba(20, 58, 28, 0.12);
   }
 
-  /* 高級感のあるグリーングラデーション */
   .gradient-primary {
-    background: linear-gradient(135deg, #2a5930 0%, #1e3f24 50%, #14291a 100%);
+    background: linear-gradient(135deg, #1e5428 0%, #143a1c 50%, #0a1f0e 100%);
   }
 
-  /* ソフトなインプットスタイル */
+  /* ===================================
+   * UDフォーカスリング（キーボード操作対応）
+   * =================================== */
+  :focus-visible {
+    outline: 3px solid var(--color-yui-info);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ===================================
+   * フォーム要素のUD対応
+   * =================================== */
   input, select, textarea {
     transition: all 0.2s ease;
+    font-size: var(--ud-font-size-base);
   }
 
   input:focus, select:focus, textarea:focus {
-    box-shadow: 0 0 0 3px rgba(53, 122, 60, 0.15);
+    box-shadow: 0 0 0 3px rgba(0, 114, 178, 0.25);
+    outline: none;
   }
 
-  /* スムーズなボタンアニメーション */
+  /* ===================================
+   * ボタン / リンクのUD対応
+   * =================================== */
   button, a {
     transition: all 0.2s ease;
   }
 
   button:active {
     transform: scale(0.98);
+  }
+
+  /* ===================================
+   * Skip Link（スクリーンリーダー / キーボード対応）
+   * =================================== */
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 0;
+    background: var(--color-yui-info);
+    color: #fff;
+    padding: 12px 24px;
+    z-index: 200;
+    font-weight: bold;
+    font-size: var(--ud-font-size-base);
+    border-radius: 0 0 8px 0;
+  }
+
+  .skip-link:focus {
+    top: 0;
+  }
+
+  /* ===================================
+   * UDステータスバッジ（色＋アイコン＋ラベル併用）
+   * =================================== */
+  .ud-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: var(--ud-font-size-xs);
   }
 }

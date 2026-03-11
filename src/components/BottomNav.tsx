@@ -20,7 +20,11 @@ export default function BottomNav() {
   if (!isLoggedIn) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-yui-green-100/40 shadow-[0_-1px_12px_rgba(30,63,36,0.06)]">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t-2 border-yui-green-200/60 shadow-[0_-2px_16px_rgba(20,58,28,0.08)]"
+      aria-label="メインメニュー"
+      role="navigation"
+    >
       <div className="max-w-[430px] mx-auto flex">
         {tabs.map((tab) => {
           const isActive = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
@@ -29,19 +33,25 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center py-2 pt-2.5 no-underline transition-all ${
+              className={`flex-1 flex flex-col items-center py-2.5 pt-3 no-underline transition-all ${
                 isActive
                   ? "text-yui-green-700"
-                  : "text-yui-earth-400 hover:text-yui-green-500"
+                  : "text-yui-earth-500 hover:text-yui-green-500"
               }`}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={tab.label}
+              style={{ minHeight: "56px" }}
             >
-              <div className="relative">
+              <div className="relative" style={{ minWidth: "48px", minHeight: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {isActive && (
-                  <div className="absolute -inset-1.5 bg-yui-green-100/70 rounded-xl" />
+                  <div className="absolute -inset-1.5 bg-yui-green-100/80 rounded-xl" />
                 )}
-                <Icon className={`w-6 h-6 relative z-10 ${isActive ? "stroke-[2.5]" : ""}`} />
+                <Icon
+                  className={`w-7 h-7 relative z-10 ${isActive ? "stroke-[2.5]" : ""}`}
+                  aria-hidden="true"
+                />
               </div>
-              <span className={`text-[11px] mt-1 ${isActive ? "font-bold" : "font-medium"}`}>
+              <span className={`text-xs mt-1 ${isActive ? "font-bold" : "font-medium"}`}>
                 {tab.label}
               </span>
             </Link>

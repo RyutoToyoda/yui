@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
@@ -23,7 +24,7 @@ export default function LoginPage() {
     if (success) {
       router.push("/");
     } else {
-      setError("ログインに失敗しました");
+      setError("ログインできませんでした。メールアドレスを確認してください。");
     }
   };
 
@@ -31,125 +32,140 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     if (!name || !farmName) {
-      setError("お名前と農園名は必須です");
+      setError("お名前と農園名は必ず入力してください");
       return;
     }
     const success = await register(name, farmName, location, ageGroup);
     if (success) {
       router.push("/");
     } else {
-      setError("登録に失敗しました");
+      setError("登録できませんでした。もう一度お試しください。");
     }
   };
 
   const inputClass =
-    "w-full px-4 py-3.5 text-base border border-yui-earth-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-white/80 backdrop-blur-sm placeholder:text-yui-earth-300";
+    "w-full px-4 py-4 text-base border-2 border-yui-earth-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-white placeholder:text-yui-earth-300";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yui-green-800 via-yui-green-700 to-yui-green-900 flex flex-col items-center justify-center px-5">
       {/* ロゴ */}
       <div className="text-center mb-10">
-        <div className="w-20 h-20 mx-auto mb-3 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-black/10">
+        <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-black/10">
           <h1 className="text-5xl font-black text-white">結</h1>
         </div>
-        <p className="text-lg text-white/90 font-semibold tracking-widest">Yui</p>
-        <p className="text-sm text-white/50 mt-1.5 tracking-wide">農家のためのタイムバンク</p>
+        <p className="text-xl text-white/90 font-bold tracking-widest">Yui</p>
+        <p className="text-base text-white/60 mt-2 tracking-wide">農家のためのタイムバンク</p>
       </div>
 
       {/* フォームカード */}
-      <div className="w-full max-w-[380px] bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/15 p-7">
+      <div className="w-full max-w-[400px] bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/15 p-7">
         {/* タブ切り替え */}
-        <div className="flex bg-yui-earth-100 rounded-2xl p-1 mb-6">
+        <div className="flex bg-yui-earth-100 rounded-2xl p-1 mb-6" role="tablist" aria-label="ログインまたは新規登録">
           <button
             onClick={() => { setIsRegister(false); setError(""); }}
-            className={`flex-1 py-2.5 rounded-xl text-base font-bold transition-all ${
+            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${
               !isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
-                : "text-yui-earth-400 hover:text-yui-earth-600"
+                : "text-yui-earth-500 hover:text-yui-earth-700"
             }`}
+            role="tab"
+            aria-selected={!isRegister}
+            style={{ minHeight: "48px" }}
           >
             ログイン
           </button>
           <button
             onClick={() => { setIsRegister(true); setError(""); }}
-            className={`flex-1 py-2.5 rounded-xl text-base font-bold transition-all ${
+            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${
               isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
-                : "text-yui-earth-400 hover:text-yui-earth-600"
+                : "text-yui-earth-500 hover:text-yui-earth-700"
             }`}
+            role="tab"
+            aria-selected={isRegister}
+            style={{ minHeight: "48px" }}
           >
-            新規登録
+            はじめて使う
           </button>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 text-center font-medium border border-red-100">
-            {error}
+          <div className="flex items-center gap-2 bg-red-50 text-yui-danger text-sm p-4 rounded-xl mb-4 border-2 border-red-200" role="alert">
+            <AlertTriangle className="w-5 h-5 shrink-0" aria-hidden="true" />
+            <span className="font-bold">{error}</span>
           </div>
         )}
 
         {!isRegister ? (
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="login-email" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 メールアドレス
               </label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tanaka@example.com"
                 className={inputClass}
                 required
+                autoComplete="email"
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="login-password" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 パスワード
               </label>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className={inputClass}
                 required
+                autoComplete="current-password"
               />
             </div>
             <button
               type="submit"
               className="w-full py-4 gradient-primary text-white text-lg font-bold rounded-2xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20"
+              style={{ minHeight: "56px" }}
             >
-              ログイン
+              ログインする
             </button>
 
-            <div className="text-center pt-1 space-y-0.5">
-              <p className="text-xs text-yui-earth-400">
-                デモ用: tanaka@demo.com / yamada@demo.com / sato@demo.com
+            <div className="text-center pt-1 space-y-1">
+              <p className="text-sm text-yui-earth-500 font-medium">
+                お試し用: tanaka@demo.com / yamada@demo.com / sato@demo.com
               </p>
-              <p className="text-xs text-yui-earth-300">パスワードは任意の文字列</p>
+              <p className="text-xs text-yui-earth-400">パスワードは何でもOK</p>
             </div>
           </form>
         ) : (
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
-                お名前 <span className="text-yui-danger text-xs">必須</span>
+              <label htmlFor="reg-name" className="block text-sm font-bold text-yui-earth-700 mb-2">
+                お名前 <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
+                id="reg-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="田中 太郎"
                 className={inputClass}
                 required
+                autoComplete="name"
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
-                農園名 <span className="text-yui-danger text-xs">必須</span>
+              <label htmlFor="reg-farm" className="block text-sm font-bold text-yui-earth-700 mb-2">
+                農園名 <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
+                id="reg-farm"
                 type="text"
                 value={farmName}
                 onChange={(e) => setFarmName(e.target.value)}
@@ -159,22 +175,25 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
-                所在地
+              <label htmlFor="reg-location" className="block text-sm font-bold text-yui-earth-700 mb-2">
+                お住まいの地域
               </label>
               <input
+                id="reg-location"
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="長野県松本市"
                 className={inputClass}
+                autoComplete="address-level1"
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-age" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 年齢層
               </label>
               <select
+                id="reg-age"
                 value={ageGroup}
                 onChange={(e) => setAgeGroup(e.target.value)}
                 className={inputClass}
@@ -190,17 +209,18 @@ export default function LoginPage() {
             <button
               type="submit"
               className="w-full py-4 gradient-primary text-white text-lg font-bold rounded-2xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20"
+              style={{ minHeight: "56px" }}
             >
-              登録して始める
+              登録してはじめる
             </button>
-            <p className="text-center text-xs text-yui-earth-400">
-              登録すると 🪙 10 トークンがもらえます！
+            <p className="text-center text-sm text-yui-earth-500 font-medium">
+              登録すると 🪙 10 ポイントがもらえます！
             </p>
           </form>
         )}
       </div>
 
-      <p className="text-xs text-white/30 mt-8 tracking-wide">
+      <p className="text-sm text-white/40 mt-8 tracking-wide">
         © 2026 結 Yui — みんなで支え合う農業の未来
       </p>
     </div>

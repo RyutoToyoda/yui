@@ -11,8 +11,10 @@ import {
   generateId,
 } from "@/lib/demo-data";
 import { useRouter } from "next/navigation";
-import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Calendar } from "lucide-react";
+import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Calendar, Settings } from "lucide-react";
 import type { DayOfWeek } from "@/types/firestore";
+import Link from "next/link";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const DAYS_OF_WEEK: DayOfWeek[] = ["月", "火", "水", "木", "金", "土", "日"];
 
@@ -27,6 +29,8 @@ export default function ProfilePage() {
   const [availEnd, setAvailEnd] = useState("12:00");
   const [availNote, setAvailNote] = useState("");
   const [, forceUpdate] = useState(0);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
 
   if (!user) return null;
 
@@ -50,6 +54,7 @@ export default function ProfilePage() {
     const updated = user.equipmentList.filter((_, i) => i !== index);
     demoUpdateUser(user.uid, { equipmentList: updated });
     refreshUser();
+    setConfirmDelete(null);
   };
 
   const handleAddAvailability = () => {
@@ -76,34 +81,45 @@ export default function ProfilePage() {
   const handleDeleteAvailability = (id: string) => {
     demoDeleteAvailability(id);
     forceUpdate((n) => n + 1);
+    setConfirmDelete(null);
   };
 
   return (
     <div className="px-4 py-5 space-y-5">
-      <h1 className="text-xl font-bold text-yui-green-800">マイページ</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-yui-green-800">マイページ</h1>
+        <Link
+          href="/settings"
+          className="flex items-center gap-1.5 text-sm text-yui-green-600 font-bold no-underline hover:text-yui-green-800 transition-colors"
+          style={{ minHeight: "48px", display: "inline-flex", alignItems: "center" }}
+          aria-label="表示設定を変える"
+        >
+          <Settings className="w-5 h-5" aria-hidden="true" /> 表示設定
+        </Link>
+      </div>
 
       {/* プロフィールカード */}
-      <div className="bg-white rounded-2xl shadow-sm border border-yui-green-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 overflow-hidden">
         <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 px-5 py-6 text-white">
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
-            <User className="w-8 h-8 text-white" />
+            <User className="w-8 h-8 text-white" aria-hidden="true" />
           </div>
           <h2 className="text-xl font-bold">{user.name}</h2>
-          <p className="text-yui-green-200 text-sm">{user.farmName}</p>
+          <p className="text-yui-green-200 text-sm font-medium">{user.farmName}</p>
         </div>
 
         <div className="p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-yui-green-500 shrink-0" />
+            <MapPin className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
             <div>
-              <p className="text-xs text-yui-earth-400">所在地</p>
-              <p className="text-sm font-bold text-yui-green-800">{user.location || "未設定"}</p>
+              <p className="text-xs text-yui-earth-500 font-medium">お住まいの地域</p>
+              <p className="text-sm font-bold text-yui-green-800">{user.location || "まだ設定していません"}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-yui-green-500 shrink-0" />
+            <User className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
             <div>
-              <p className="text-xs text-yui-earth-400">年齢層</p>
+              <p className="text-xs text-yui-earth-500 font-medium">年齢層</p>
               <p className="text-sm font-bold text-yui-green-800">{user.ageGroup}</p>
             </div>
           </div>
@@ -111,76 +127,83 @@ export default function ProfilePage() {
       </div>
 
       {/* スキマ時間 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-yui-green-100 p-5">
+      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-500" /> スキマ時間（手伝える時間）
+            <Clock className="w-5 h-5 text-blue-700" aria-hidden="true" /> 手伝える時間
           </h2>
           <button
             onClick={() => setShowAddAvailability(!showAddAvailability)}
-            className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors"
+            className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center hover:bg-blue-200 transition-colors"
+            aria-label="手伝える時間を追加する"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
-        <p className="text-xs text-yui-earth-400 mb-3">
-          登録しておくと、ぴったりの募集が出た時に自動で通知されます ✨
+        <p className="text-xs text-yui-earth-500 mb-3" style={{ lineHeight: "1.7" }}>
+          登録しておくと、ぴったりの募集が出た時に自動でおしらせします ✨
         </p>
 
         {showAddAvailability && (
-          <div className="bg-blue-50 rounded-xl p-4 mb-3 space-y-3 border border-blue-200">
+          <div className="bg-blue-50 rounded-xl p-5 mb-3 space-y-3 border-2 border-blue-200">
             <div>
-              <label className="block text-xs font-bold text-blue-800 mb-1">曜日</label>
-              <div className="flex gap-1.5">
+              <label className="block text-xs font-bold text-blue-800 mb-2">曜日</label>
+              <div className="flex gap-1.5" role="radiogroup" aria-label="曜日を選ぶ">
                 {DAYS_OF_WEEK.map((day) => (
                   <button
                     key={day}
                     onClick={() => setAvailDay(day)}
-                    className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
+                    className={`w-11 h-11 rounded-lg text-sm font-bold transition-all ${
                       availDay === day
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-yui-earth-600 hover:bg-blue-100"
+                        ? "bg-blue-700 text-white"
+                        : "bg-white text-yui-earth-700 hover:bg-blue-100 border border-blue-200"
                     }`}
+                    role="radio"
+                    aria-checked={availDay === day}
                   >
                     {day}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-blue-800 mb-1">開始</label>
+                <label htmlFor="avail-start" className="block text-xs font-bold text-blue-800 mb-1">はじまり</label>
                 <input
+                  id="avail-start"
                   type="time"
                   value={availStart}
                   onChange={(e) => setAvailStart(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
+                  className="w-full px-3 py-3 text-base border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-blue-800 mb-1">終了</label>
+                <label htmlFor="avail-end" className="block text-xs font-bold text-blue-800 mb-1">おわり</label>
                 <input
+                  id="avail-end"
                   type="time"
                   value={availEnd}
                   onChange={(e) => setAvailEnd(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
+                  className="w-full px-3 py-3 text-base border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-bold text-blue-800 mb-1">メモ（任意）</label>
+              <label htmlFor="avail-note" className="block text-xs font-bold text-blue-800 mb-1">メモ（書かなくてもOK）</label>
               <input
+                id="avail-note"
                 type="text"
                 value={availNote}
                 onChange={(e) => setAvailNote(e.target.value)}
-                placeholder="例：午前中なら対応可能"
-                className="w-full px-3 py-2 text-sm border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
+                placeholder="例：午前中なら対応できます"
+                className="w-full px-3 py-3 text-base border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
               />
             </div>
             <button
               onClick={handleAddAvailability}
-              className="w-full py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors"
+              className="w-full py-3.5 bg-blue-700 text-white text-base font-bold rounded-xl hover:bg-blue-800 transition-colors"
+              style={{ minHeight: "52px" }}
             >
               登録する
             </button>
@@ -192,13 +215,13 @@ export default function ProfilePage() {
             {availabilities.map((avail) => (
               <div
                 key={avail.id}
-                className={`flex items-center justify-between rounded-xl px-4 py-3 transition-colors ${
-                  avail.isActive ? "bg-blue-50" : "bg-yui-earth-100 opacity-60"
+                className={`flex items-center justify-between rounded-xl px-4 py-4 transition-colors ${
+                  avail.isActive ? "bg-blue-50 border border-blue-200" : "bg-yui-earth-100 border border-yui-earth-200 opacity-70"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                    avail.isActive ? "bg-blue-600 text-white" : "bg-yui-earth-300 text-white"
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    avail.isActive ? "bg-blue-700 text-white" : "bg-yui-earth-300 text-white"
                   }`}>
                     {avail.dayOfWeek}
                   </div>
@@ -207,49 +230,53 @@ export default function ProfilePage() {
                       {avail.startTime}〜{avail.endTime}
                     </p>
                     {avail.note && (
-                      <p className="text-xs text-yui-earth-400">{avail.note}</p>
+                      <p className="text-xs text-yui-earth-500">{avail.note}</p>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleToggleAvailability(avail.id, avail.isActive)}
-                    className={`text-xs font-bold px-2 py-1 rounded-lg transition-colors ${
+                    className={`text-sm font-bold px-3 py-2 rounded-lg transition-colors ${
                       avail.isActive
-                        ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                        : "bg-yui-earth-200 text-yui-earth-500 hover:bg-yui-earth-300"
+                        ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300"
+                        : "bg-yui-earth-200 text-yui-earth-600 hover:bg-yui-earth-300 border border-yui-earth-300"
                     }`}
+                    style={{ minHeight: "40px" }}
+                    aria-label={avail.isActive ? "この時間帯をオフにする" : "この時間帯をオンにする"}
                   >
                     {avail.isActive ? "ON" : "OFF"}
                   </button>
                   <button
-                    onClick={() => handleDeleteAvailability(avail.id)}
-                    className="text-yui-earth-400 hover:text-yui-danger transition-colors"
+                    onClick={() => setConfirmDelete({ type: "availability", id: avail.id })}
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors"
+                    aria-label="この時間帯を削除する"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-5 h-5" aria-hidden="true" />
                   </button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-yui-earth-400 text-center py-2">
+          <p className="text-sm text-yui-earth-500 text-center py-3 font-medium">
             まだ登録されていません
           </p>
         )}
       </div>
 
       {/* 所有農機具 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-yui-green-100 p-5">
+      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2">
-            <Tractor className="w-5 h-5 text-yui-green-600" /> 所有農機具
+            <Tractor className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> もっている農機具
           </h2>
           <button
             onClick={() => setShowAddEquipment(!showAddEquipment)}
-            className="w-8 h-8 rounded-full bg-yui-green-100 text-yui-green-600 flex items-center justify-center hover:bg-yui-green-200 transition-colors"
+            className="w-12 h-12 rounded-full bg-yui-green-100 text-yui-green-600 flex items-center justify-center hover:bg-yui-green-200 transition-colors"
+            aria-label="農機具を追加する"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -260,7 +287,7 @@ export default function ProfilePage() {
               value={newEquipment}
               onChange={(e) => setNewEquipment(e.target.value)}
               placeholder="例：トラクター"
-              className="flex-1 px-3 py-2 text-sm border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none"
+              className="flex-1 px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -270,7 +297,8 @@ export default function ProfilePage() {
             />
             <button
               onClick={handleAddEquipment}
-              className="px-4 py-2 bg-yui-green-600 text-white text-sm font-bold rounded-xl hover:bg-yui-green-700 transition-colors"
+              className="px-5 py-3 bg-yui-green-600 text-white text-base font-bold rounded-xl hover:bg-yui-green-700 transition-colors"
+              style={{ minHeight: "48px" }}
             >
               追加
             </button>
@@ -280,33 +308,71 @@ export default function ProfilePage() {
         {user.equipmentList.length > 0 ? (
           <div className="space-y-2">
             {user.equipmentList.map((eq, i) => (
-              <div key={i} className="flex items-center justify-between bg-yui-green-50 rounded-xl px-4 py-3">
+              <div key={i} className="flex items-center justify-between bg-yui-green-50 rounded-xl px-4 py-4 border border-yui-green-100">
                 <div className="flex items-center gap-2">
-                  <Wrench className="w-4 h-4 text-yui-green-500" />
-                  <span className="text-sm font-medium text-yui-green-800">{eq}</span>
+                  <Wrench className="w-5 h-5 text-yui-green-500" aria-hidden="true" />
+                  <span className="text-sm font-bold text-yui-green-800">{eq}</span>
                 </div>
                 <button
-                  onClick={() => handleRemoveEquipment(i)}
-                  className="text-yui-earth-400 hover:text-yui-danger transition-colors"
+                  onClick={() => setConfirmDelete({ type: "equipment", index: i })}
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors"
+                  aria-label={`${eq}を削除する`}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-yui-earth-400 text-center py-2">農機具は登録されていません</p>
+          <p className="text-sm text-yui-earth-500 text-center py-3 font-medium">農機具は登録されていません</p>
         )}
       </div>
 
       {/* ログアウト */}
       <button
-        onClick={handleLogout}
-        className="w-full py-3.5 bg-white text-yui-danger font-bold rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+        onClick={() => setConfirmLogout(true)}
+        className="w-full py-4 bg-white text-yui-danger font-bold rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+        style={{ minHeight: "56px" }}
       >
-        <LogOut className="w-5 h-5" />
-        ログアウト
+        <LogOut className="w-5 h-5" aria-hidden="true" />
+        ログアウトする
       </button>
+
+      {/* 確認ダイアログ群 */}
+      <ConfirmDialog
+        isOpen={confirmLogout}
+        title="ログアウトしますか？"
+        message="ログアウトすると、もう一度ログインが必要になります。"
+        confirmLabel="ログアウトする"
+        cancelLabel="やめておく"
+        variant="danger"
+        onConfirm={handleLogout}
+        onCancel={() => setConfirmLogout(false)}
+      />
+      {confirmDelete?.type === "availability" && (
+        <ConfirmDialog
+          isOpen={true}
+          title="この時間帯を削除しますか？"
+          message="削除すると、この時間帯に合った募集のおしらせが届かなくなります。"
+          confirmLabel="削除する"
+          cancelLabel="やめておく"
+          variant="danger"
+          onConfirm={() => handleDeleteAvailability(confirmDelete.id!)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {confirmDelete?.type === "equipment" && (
+        <ConfirmDialog
+          isOpen={true}
+          title="この農機具を削除しますか？"
+          message="登録した農機具の情報が消えます。"
+          confirmLabel="削除する"
+          cancelLabel="やめておく"
+          variant="danger"
+          onConfirm={() => handleRemoveEquipment(confirmDelete.index!)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }

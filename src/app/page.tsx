@@ -1,8 +1,16 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { demoGetJobs, demoGetTransactionsByUser, demoGetApplicationsByUser, getJobTypeEmoji, getJobTypeLabel } from "@/lib/demo-data";
-import { Coins, CalendarDays, ArrowRight, TrendingUp, TrendingDown, Sparkles } from "lucide-react";
+import {
+  demoGetJobs,
+  demoGetTransactionsByUser,
+  demoGetApplicationsByUser,
+  demoGetMatchedJobsForUser,
+  demoGetAvailabilitiesByUser,
+  getJobTypeEmoji,
+  getJobTypeLabel,
+} from "@/lib/demo-data";
+import { Coins, CalendarDays, ArrowRight, TrendingUp, TrendingDown, Sparkles, Zap, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -10,6 +18,8 @@ export default function HomePage() {
   if (!user) return null;
 
   const openJobs = demoGetJobs("open").filter((j) => j.creatorId !== user.uid).slice(0, 3);
+  const matchedJobs = demoGetMatchedJobsForUser(user.uid);
+  const myAvailabilities = demoGetAvailabilitiesByUser(user.uid);
   const myApplications = demoGetApplicationsByUser(user.uid);
   const myUpcoming = myApplications
     .filter((a) => a.status === "approved")
@@ -33,6 +43,71 @@ export default function HomePage() {
           取引履歴を見る <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
+
+      {/* 🎯 ぴったりマッチ（スキマ時間と一致する募集） */}
+      {matchedJobs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-orange-500" /> ぴったりマッチ
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {matchedJobs.slice(0, 3).map((job) => (
+              <Link
+                key={job.id}
+                href={`/explore/${job.id}`}
+                className="block relative bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 shadow-sm border-2 border-orange-200 hover:border-orange-400 transition-colors no-underline"
+              >
+                <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
+                  🎯 ぴったり
+                </div>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{getJobTypeEmoji(job.type)}</span>
+                      <span className="text-xs bg-yui-green-100 text-yui-green-700 font-bold px-2 py-0.5 rounded-full">
+                        {getJobTypeLabel(job.type)}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-yui-green-800 text-base">{job.title}</h3>
+                    <p className="text-sm text-yui-earth-500 mt-1">{job.creatorName}</p>
+                    <p className="text-sm text-yui-earth-400 mt-0.5">
+                      📅 {job.date} {job.startTime}〜{job.endTime}
+                    </p>
+                  </div>
+                  <div className="text-right ml-3 shrink-0">
+                    <div className="flex items-center gap-1 bg-yui-accent/10 px-2.5 py-1 rounded-full">
+                      <Coins className="w-4 h-4 text-yui-accent" />
+                      <span className="font-bold text-yui-green-800">{job.totalTokens}</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* スキマ時間の登録促進 */}
+      {myAvailabilities.length === 0 && (
+        <Link
+          href="/profile"
+          className="block bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200 no-underline hover:border-blue-400 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-bold text-blue-800 text-sm">スキマ時間を登録しよう！</p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                手伝える時間を登録すると、ぴったりの募集を自動でお知らせします
+              </p>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* 直近の予定 */}
       <section>

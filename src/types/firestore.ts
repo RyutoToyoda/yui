@@ -57,3 +57,32 @@ export interface Transaction {
   description: string;
   createdAt: Date;
 }
+
+// 曜日
+export type DayOfWeek = "月" | "火" | "水" | "木" | "金" | "土" | "日";
+
+// スキマ時間（手伝える時間帯）
+export interface Availability {
+  id: string;
+  userId: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  note: string;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+// アプリ内通知
+export type NotificationType = "match" | "application" | "approved" | "completed";
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  jobId?: string;
+  isRead: boolean;
+  createdAt: Date;
+}

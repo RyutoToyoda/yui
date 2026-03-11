@@ -1,7 +1,7 @@
 // デモモード用のモックデータとストア
 // Firebase未設定時にローカルデータで動作させるためのモジュール
 
-import { User, Job, Application, Transaction, JobType, JobStatus } from "@/types/firestore";
+import { User, Job, Application, Transaction, JobType, JobStatus, Availability, Notification, DayOfWeek } from "@/types/firestore";
 
 // --- デモユーザー ---
 const DEMO_USERS: User[] = [
@@ -148,6 +148,53 @@ const DEMO_TRANSACTIONS: Transaction[] = [
   },
 ];
 
+// --- デモ スキマ時間 ---
+const DEMO_AVAILABILITIES: Availability[] = [
+  {
+    id: "avail-1",
+    userId: "demo-user-1",
+    dayOfWeek: "水",
+    startTime: "08:00",
+    endTime: "12:00",
+    note: "午前中なら対応可能",
+    isActive: true,
+    createdAt: new Date("2026-02-01"),
+  },
+  {
+    id: "avail-2",
+    userId: "demo-user-1",
+    dayOfWeek: "土",
+    startTime: "09:00",
+    endTime: "17:00",
+    note: "土曜は終日OK",
+    isActive: true,
+    createdAt: new Date("2026-02-01"),
+  },
+  {
+    id: "avail-3",
+    userId: "demo-user-2",
+    dayOfWeek: "火",
+    startTime: "13:00",
+    endTime: "17:00",
+    note: "午後から手伝えます",
+    isActive: true,
+    createdAt: new Date("2026-02-10"),
+  },
+  {
+    id: "avail-4",
+    userId: "demo-user-3",
+    dayOfWeek: "水",
+    startTime: "09:00",
+    endTime: "15:00",
+    note: "高所作業車持ち込み可",
+    isActive: true,
+    createdAt: new Date("2026-02-15"),
+  },
+];
+
+// --- デモ通知 ---
+const DEMO_NOTIFICATIONS: Notification[] = [];
+
 // ============================
 // デモストア（インメモリ状態管理）
 // ============================
@@ -157,6 +204,8 @@ let users = [...DEMO_USERS];
 let jobs = [...DEMO_JOBS];
 let applications = [...DEMO_APPLICATIONS];
 let transactions = [...DEMO_TRANSACTIONS];
+let availabilities = [...DEMO_AVAILABILITIES];
+let notifications = [...DEMO_NOTIFICATIONS];
 
 // ユーザー
 export function demoGetCurrentUser(): User {
@@ -195,6 +244,8 @@ export function demoGetJobsByUser(uid: string): Job[] {
 
 export function demoCreateJob(job: Job) {
   jobs = [job, ...jobs];
+  // 自動マッチング: 新しい募集が作成されたらスキマ時間と照合
+  runAutoMatch(job);
 }
 
 export function demoUpdateJob(id: string, updates: Partial<Job>) {
@@ -252,6 +303,134 @@ export function demoTransferTokens(fromUid: string, toUid: string, amount: numbe
   });
 
   return true;
+}
+
+// ============================
+// スキマ時間（Availability）
+// ============================
+
+export function demoGetAvailabilitiesByUser(uid: string): Availability[] {
+  return availabilities.filter((a) => a.userId === uid);
+}
+
+export function demoCreateAvailability(avail: Availability) {
+  availabilities = [avail, ...availabilities];
+}
+
+export function demoUpdateAvailability(id: string, updates: Partial<Availability>) {
+  availabilities = availabilities.map((a) => (a.id === id ? { ...a, ...updates } : a));
+}
+
+export function demoDeleteAvailability(id: string) {
+  availabilities = availabilities.filter((a) => a.id !== id);
+}
+
+// ============================
+// 通知
+// ============================
+
+export function demoGetNotificationsByUser(uid: string): Notification[] {
+  return notifications
+    .filter((n) => n.userId === uid)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export function demoGetUnreadCountByUser(uid: string): number {
+  return notifications.filter((n) => n.userId === uid && !n.isRead).length;
+}
+
+export function demoMarkNotificationRead(id: string) {
+  notifications = notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+}
+
+export function demoMarkAllNotificationsRead(uid: string) {
+  notifications = notifications.map((n) =>
+    n.userId === uid ? { ...n, isRead: true } : n
+  );
+}
+
+export function demoCreateNotification(notif: Notification) {
+  notifications = [notif, ...notifications];
+}
+
+// ============================
+// 自動マッチングエンジン
+// ============================
+
+const DAY_MAP: Record<number, DayOfWeek> = {
+  0: "日", 1: "月", 2: "火", 3: "水", 4: "木", 5: "金", 6: "土",
+};
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function hasTimeOverlap(
+  aStart: string, aEnd: string,
+  bStart: string, bEnd: string
+): boolean {
+  const a0 = timeToMinutes(aStart);
+  const a1 = timeToMinutes(aEnd);
+  const b0 = timeToMinutes(bStart);
+  const b1 = timeToMinutes(bEnd);
+  return a0 < b1 && b0 < a1;
+}
+
+function runAutoMatch(job: Job) {
+  // 募集の日付から曜日を取得
+  const jobDate = new Date(job.date);
+  const jobDayOfWeek = DAY_MAP[jobDate.getDay()];
+
+  // 全ユーザーの有効なスキマ時間をチェック
+  const activeAvailabilities = availabilities.filter(
+    (a) => a.isActive && a.userId !== job.creatorId
+  );
+
+  for (const avail of activeAvailabilities) {
+    // 曜日が一致するか
+    if (avail.dayOfWeek !== jobDayOfWeek) continue;
+    // 時間帯が重なるか
+    if (!hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)) continue;
+
+    // マッチ！通知を作成
+    const user = users.find((u) => u.uid === avail.userId);
+    if (!user) continue;
+
+    demoCreateNotification({
+      id: generateId(),
+      userId: avail.userId,
+      type: "match",
+      title: "🎯 ぴったりの募集が見つかりました！",
+      message: `${job.creatorName}さんの「${job.title}」があなたの${avail.dayOfWeek}曜日のスキマ時間と一致しています。`,
+      jobId: job.id,
+      isRead: false,
+      createdAt: new Date(),
+    });
+  }
+}
+
+// マッチした募集を取得（ホーム画面おすすめ用）
+export function demoGetMatchedJobsForUser(uid: string): Job[] {
+  const userAvailabilities = availabilities.filter(
+    (a) => a.userId === uid && a.isActive
+  );
+
+  if (userAvailabilities.length === 0) return [];
+
+  return jobs.filter((job) => {
+    if (job.creatorId === uid) return false;
+    if (job.status !== "open") return false;
+
+    const jobDate = new Date(job.date);
+    const jobDayOfWeek = DAY_MAP[jobDate.getDay()];
+
+    return userAvailabilities.some(
+      (avail) =>
+        avail.dayOfWeek === jobDayOfWeek &&
+        hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)
+    );
+  });
 }
 
 // ユーティリティ

@@ -2,17 +2,35 @@
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { demoUpdateUser } from "@/lib/demo-data";
+import {
+  demoUpdateUser,
+  demoGetAvailabilitiesByUser,
+  demoCreateAvailability,
+  demoDeleteAvailability,
+  demoUpdateAvailability,
+  generateId,
+} from "@/lib/demo-data";
 import { useRouter } from "next/navigation";
-import { LogOut, Plus, X, Wrench, MapPin, User, Tractor } from "lucide-react";
+import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Calendar } from "lucide-react";
+import type { DayOfWeek } from "@/types/firestore";
+
+const DAYS_OF_WEEK: DayOfWeek[] = ["月", "火", "水", "木", "金", "土", "日"];
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const router = useRouter();
   const [newEquipment, setNewEquipment] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [showAddAvailability, setShowAddAvailability] = useState(false);
+  const [availDay, setAvailDay] = useState<DayOfWeek>("月");
+  const [availStart, setAvailStart] = useState("09:00");
+  const [availEnd, setAvailEnd] = useState("12:00");
+  const [availNote, setAvailNote] = useState("");
+  const [, forceUpdate] = useState(0);
 
   if (!user) return null;
+
+  const availabilities = demoGetAvailabilitiesByUser(user.uid);
 
   const handleLogout = () => {
     logout();
@@ -25,13 +43,39 @@ export default function ProfilePage() {
     demoUpdateUser(user.uid, { equipmentList: updated });
     refreshUser();
     setNewEquipment("");
-    setShowAddForm(false);
+    setShowAddEquipment(false);
   };
 
   const handleRemoveEquipment = (index: number) => {
     const updated = user.equipmentList.filter((_, i) => i !== index);
     demoUpdateUser(user.uid, { equipmentList: updated });
     refreshUser();
+  };
+
+  const handleAddAvailability = () => {
+    demoCreateAvailability({
+      id: generateId(),
+      userId: user.uid,
+      dayOfWeek: availDay,
+      startTime: availStart,
+      endTime: availEnd,
+      note: availNote,
+      isActive: true,
+      createdAt: new Date(),
+    });
+    setShowAddAvailability(false);
+    setAvailNote("");
+    forceUpdate((n) => n + 1);
+  };
+
+  const handleToggleAvailability = (id: string, isActive: boolean) => {
+    demoUpdateAvailability(id, { isActive: !isActive });
+    forceUpdate((n) => n + 1);
+  };
+
+  const handleDeleteAvailability = (id: string) => {
+    demoDeleteAvailability(id);
+    forceUpdate((n) => n + 1);
   };
 
   return (
@@ -66,6 +110,135 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* スキマ時間 */}
+      <div className="bg-white rounded-2xl shadow-sm border border-yui-green-100 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-500" /> スキマ時間（手伝える時間）
+          </h2>
+          <button
+            onClick={() => setShowAddAvailability(!showAddAvailability)}
+            className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-xs text-yui-earth-400 mb-3">
+          登録しておくと、ぴったりの募集が出た時に自動で通知されます ✨
+        </p>
+
+        {showAddAvailability && (
+          <div className="bg-blue-50 rounded-xl p-4 mb-3 space-y-3 border border-blue-200">
+            <div>
+              <label className="block text-xs font-bold text-blue-800 mb-1">曜日</label>
+              <div className="flex gap-1.5">
+                {DAYS_OF_WEEK.map((day) => (
+                  <button
+                    key={day}
+                    onClick={() => setAvailDay(day)}
+                    className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
+                      availDay === day
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-yui-earth-600 hover:bg-blue-100"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-bold text-blue-800 mb-1">開始</label>
+                <input
+                  type="time"
+                  value={availStart}
+                  onChange={(e) => setAvailStart(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-blue-800 mb-1">終了</label>
+                <input
+                  type="time"
+                  value={availEnd}
+                  onChange={(e) => setAvailEnd(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-blue-800 mb-1">メモ（任意）</label>
+              <input
+                type="text"
+                value={availNote}
+                onChange={(e) => setAvailNote(e.target.value)}
+                placeholder="例：午前中なら対応可能"
+                className="w-full px-3 py-2 text-sm border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
+              />
+            </div>
+            <button
+              onClick={handleAddAvailability}
+              className="w-full py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              登録する
+            </button>
+          </div>
+        )}
+
+        {availabilities.length > 0 ? (
+          <div className="space-y-2">
+            {availabilities.map((avail) => (
+              <div
+                key={avail.id}
+                className={`flex items-center justify-between rounded-xl px-4 py-3 transition-colors ${
+                  avail.isActive ? "bg-blue-50" : "bg-yui-earth-100 opacity-60"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    avail.isActive ? "bg-blue-600 text-white" : "bg-yui-earth-300 text-white"
+                  }`}>
+                    {avail.dayOfWeek}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-yui-green-800">
+                      {avail.startTime}〜{avail.endTime}
+                    </p>
+                    {avail.note && (
+                      <p className="text-xs text-yui-earth-400">{avail.note}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggleAvailability(avail.id, avail.isActive)}
+                    className={`text-xs font-bold px-2 py-1 rounded-lg transition-colors ${
+                      avail.isActive
+                        ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                        : "bg-yui-earth-200 text-yui-earth-500 hover:bg-yui-earth-300"
+                    }`}
+                  >
+                    {avail.isActive ? "ON" : "OFF"}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAvailability(avail.id)}
+                    className="text-yui-earth-400 hover:text-yui-danger transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-yui-earth-400 text-center py-2">
+            まだ登録されていません
+          </p>
+        )}
+      </div>
+
       {/* 所有農機具 */}
       <div className="bg-white rounded-2xl shadow-sm border border-yui-green-100 p-5">
         <div className="flex items-center justify-between mb-3">
@@ -73,14 +246,14 @@ export default function ProfilePage() {
             <Tractor className="w-5 h-5 text-yui-green-600" /> 所有農機具
           </h2>
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => setShowAddEquipment(!showAddEquipment)}
             className="w-8 h-8 rounded-full bg-yui-green-100 text-yui-green-600 flex items-center justify-center hover:bg-yui-green-200 transition-colors"
           >
             <Plus className="w-4 h-4" />
           </button>
         </div>
 
-        {showAddForm && (
+        {showAddEquipment && (
           <div className="flex gap-2 mb-3">
             <input
               type="text"

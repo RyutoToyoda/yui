@@ -3,20 +3,37 @@
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
+import Onboarding from "@/components/Onboarding";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn && pathname !== "/login") {
       router.push("/login");
     }
   }, [isLoggedIn, isLoading, pathname, router]);
+
+  // 初回ログイン時にオンボーディングを表示
+  useEffect(() => {
+    if (isLoggedIn && !isLoading) {
+      const seen = localStorage.getItem("yui-onboarding-seen");
+      if (!seen) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [isLoggedIn, isLoading]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("yui-onboarding-seen", "true");
+    setShowOnboarding(false);
+  };
 
   if (isLoading) {
     return (
@@ -39,6 +56,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-yui-earth-50">
+      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Header />
       <main className="max-w-[430px] mx-auto pb-20">
         {children}

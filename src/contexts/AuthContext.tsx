@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
   signOut,
   type UserCredential,
 } from "firebase/auth";
@@ -17,6 +18,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  loginAsGuest: () => Promise<boolean>;
   register: (email: string, password: string, name: string, farmName: string, location: string, ageGroup: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => void;
@@ -101,6 +103,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginAsGuest = async (): Promise<boolean> => {
+    try {
+      const cred = await signInAnonymously(auth);
+      
+      // ゲストログイン時、ユーザーが存在しない場合は作成する
+      let profile = await fsGetUser(cred.user.uid);
+      if (!profile) {
+        profile = {
+          uid: cred.user.uid,
+          name: "ゲスト農家",
+          farmName: "おためし農園",
+          location: "長野県",
+          ageGroup: "30代",
+          tokenBalance: 10,
+          equipmentList: [],
+          createdAt: new Date(),
+        };
+        await fsCreateUser(profile);
+      }
+      setUser(profile);
+      return true;
+    } catch (error) {
+      console.error("Guest login failed:", error);
+      return false;
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -111,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading, login, loginAsGuest, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

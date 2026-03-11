@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [location, setLocation] = useState("");
   const [ageGroup, setAgeGroup] = useState("30代");
   const [error, setError] = useState("");
-  const { login, register } = useAuth();
+  const { login, register, loginAsGuest } = useAuth();
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -48,6 +48,16 @@ export default function LoginPage() {
       router.push("/");
     } else {
       setError("登録できませんでした。メールアドレスが既に使われているかもしれません。");
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setError("");
+    const success = await loginAsGuest();
+    if (success) {
+      router.push("/");
+    } else {
+      setError("テストログインに失敗しました。時間をおいて再度お試しください。");
     }
   };
 
@@ -226,6 +236,23 @@ export default function LoginPage() {
             </p>
           </form>
         )}
+
+        <div className="relative mt-8 mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t flex-1 border-yui-earth-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-3 bg-white text-yui-earth-500 font-medium">または</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleGuestLogin}
+          className="w-full py-4 bg-white text-yui-green-700 text-lg font-bold rounded-2xl border-2 border-yui-green-200 hover:bg-yui-green-50 active:bg-yui-green-100 transition-colors shadow-sm"
+          style={{ minHeight: "56px" }}
+        >
+          アカウント登録なしで試す
+        </button>
       </div>
 
       <p className="text-sm text-white/40 mt-8 tracking-wide">

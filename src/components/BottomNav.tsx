@@ -20,7 +20,7 @@ export default function BottomNav() {
   if (!isLoggedIn) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-yui-green-100 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-yui-green-100/40 shadow-[0_-1px_12px_rgba(30,63,36,0.06)]">
       <div className="max-w-[430px] mx-auto flex">
         {tabs.map((tab) => {
           const isActive = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
@@ -29,15 +29,15 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center py-2 pt-2.5 no-underline transition-colors ${
+              className={`flex-1 flex flex-col items-center py-2 pt-2.5 no-underline transition-all ${
                 isActive
                   ? "text-yui-green-700"
                   : "text-yui-earth-400 hover:text-yui-green-500"
               }`}
             >
-              <div className={`relative ${isActive ? "" : ""}`}>
+              <div className="relative">
                 {isActive && (
-                  <div className="absolute -inset-1.5 bg-yui-green-100 rounded-full" />
+                  <div className="absolute -inset-1.5 bg-yui-green-100/70 rounded-xl" />
                 )}
                 <Icon className={`w-6 h-6 relative z-10 ${isActive ? "stroke-[2.5]" : ""}`} />
               </div>
@@ -48,6 +48,8 @@ export default function BottomNav() {
           );
         })}
       </div>
+      {/* Safe area bottom padding for iPhones */}
+      <div className="h-[env(safe-area-inset-bottom)]" />
     </nav>
   );
 }

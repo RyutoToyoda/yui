@@ -42,33 +42,40 @@ export default function LoginPage() {
     }
   };
 
+  const inputClass =
+    "w-full px-4 py-3.5 text-base border border-yui-earth-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-white/80 backdrop-blur-sm placeholder:text-yui-earth-300";
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-yui-green-700 to-yui-green-900 flex flex-col items-center justify-center px-4">
-      <div className="text-center mb-8">
-        <h1 className="text-6xl font-black text-white mb-2 drop-shadow-lg">結</h1>
-        <p className="text-xl text-yui-green-200 font-medium">Yui</p>
-        <p className="text-sm text-yui-green-300 mt-2">農家のためのタイムバンク</p>
+    <div className="min-h-screen bg-gradient-to-b from-yui-green-800 via-yui-green-700 to-yui-green-900 flex flex-col items-center justify-center px-5">
+      {/* ロゴ */}
+      <div className="text-center mb-10">
+        <div className="w-20 h-20 mx-auto mb-3 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-black/10">
+          <h1 className="text-5xl font-black text-white">結</h1>
+        </div>
+        <p className="text-lg text-white/90 font-semibold tracking-widest">Yui</p>
+        <p className="text-sm text-white/50 mt-1.5 tracking-wide">農家のためのタイムバンク</p>
       </div>
 
-      <div className="w-full max-w-[380px] bg-white rounded-2xl shadow-2xl p-6">
+      {/* フォームカード */}
+      <div className="w-full max-w-[380px] bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/15 p-7">
         {/* タブ切り替え */}
-        <div className="flex bg-yui-green-50 rounded-xl p-1 mb-6">
+        <div className="flex bg-yui-earth-100 rounded-2xl p-1 mb-6">
           <button
             onClick={() => { setIsRegister(false); setError(""); }}
-            className={`flex-1 py-2.5 rounded-lg text-base font-bold transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-base font-bold transition-all ${
               !isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
-                : "text-yui-earth-500"
+                : "text-yui-earth-400 hover:text-yui-earth-600"
             }`}
           >
             ログイン
           </button>
           <button
             onClick={() => { setIsRegister(true); setError(""); }}
-            className={`flex-1 py-2.5 rounded-lg text-base font-bold transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-base font-bold transition-all ${
               isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
-                : "text-yui-earth-500"
+                : "text-yui-earth-400 hover:text-yui-earth-600"
             }`}
           >
             新規登録
@@ -76,16 +83,15 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 text-center">
+          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 text-center font-medium border border-red-100">
             {error}
           </div>
         )}
 
         {!isRegister ? (
-          /* ログインフォーム */
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-yui-green-800 mb-1.5">
+              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
                 メールアドレス
               </label>
               <input
@@ -93,12 +99,12 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tanaka@example.com"
-                className="w-full px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none transition-colors bg-yui-green-50/50"
+                className={inputClass}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-green-800 mb-1.5">
+              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
                 パスワード
               </label>
               <input
@@ -106,55 +112,54 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none transition-colors bg-yui-green-50/50"
+                className={inputClass}
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full py-3.5 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
+              className="w-full py-4 gradient-primary text-white text-lg font-bold rounded-2xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20"
             >
               ログイン
             </button>
 
-            <div className="text-center pt-2">
+            <div className="text-center pt-1 space-y-0.5">
               <p className="text-xs text-yui-earth-400">
                 デモ用: tanaka@demo.com / yamada@demo.com / sato@demo.com
               </p>
-              <p className="text-xs text-yui-earth-400">パスワードは任意の文字列</p>
+              <p className="text-xs text-yui-earth-300">パスワードは任意の文字列</p>
             </div>
           </form>
         ) : (
-          /* 新規登録フォーム */
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-yui-green-800 mb-1.5">
-                お名前 <span className="text-yui-danger">*</span>
+              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
+                お名前 <span className="text-yui-danger text-xs">必須</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="田中 太郎"
-                className="w-full px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none transition-colors bg-yui-green-50/50"
+                className={inputClass}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-green-800 mb-1.5">
-                農園名 <span className="text-yui-danger">*</span>
+              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
+                農園名 <span className="text-yui-danger text-xs">必須</span>
               </label>
               <input
                 type="text"
                 value={farmName}
                 onChange={(e) => setFarmName(e.target.value)}
                 placeholder="田中農園"
-                className="w-full px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none transition-colors bg-yui-green-50/50"
+                className={inputClass}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-green-800 mb-1.5">
+              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
                 所在地
               </label>
               <input
@@ -162,17 +167,17 @@ export default function LoginPage() {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="長野県松本市"
-                className="w-full px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none transition-colors bg-yui-green-50/50"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-yui-green-800 mb-1.5">
+              <label className="block text-sm font-bold text-yui-earth-700 mb-2">
                 年齢層
               </label>
               <select
                 value={ageGroup}
                 onChange={(e) => setAgeGroup(e.target.value)}
-                className="w-full px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none transition-colors bg-yui-green-50/50"
+                className={inputClass}
               >
                 <option value="20代">20代</option>
                 <option value="30代">30代</option>
@@ -184,7 +189,7 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
-              className="w-full py-3.5 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
+              className="w-full py-4 gradient-primary text-white text-lg font-bold rounded-2xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20"
             >
               登録して始める
             </button>
@@ -195,7 +200,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="text-xs text-yui-green-400 mt-6">
+      <p className="text-xs text-white/30 mt-8 tracking-wide">
         © 2026 結 Yui — みんなで支え合う農業の未来
       </p>
     </div>

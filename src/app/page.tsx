@@ -27,24 +27,27 @@ export default function HomePage() {
   const transactions = demoGetTransactionsByUser(user.uid).slice(0, 3);
 
   return (
-    <div className="px-4 py-5 space-y-6">
+    <div className="px-4 py-5 space-y-5">
       {/* トークン残高カード */}
-      <div className="bg-gradient-to-br from-yui-green-600 to-yui-green-800 rounded-2xl p-5 text-white shadow-lg">
-        <p className="text-sm text-yui-green-200 font-medium mb-1">トークン残高</p>
-        <div className="flex items-center gap-3">
+      <div className="gradient-primary rounded-3xl p-6 text-white shadow-lg shadow-yui-green-900/20 relative overflow-hidden">
+        {/* 背景装飾 */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" />
+        <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full" />
+        <p className="text-sm text-white/60 font-medium mb-1.5 relative z-10">トークン残高</p>
+        <div className="flex items-center gap-3 relative z-10">
           <Coins className="w-10 h-10 text-yui-accent-light" />
-          <span className="text-4xl font-black">{user.tokenBalance}</span>
-          <span className="text-lg text-yui-green-200 mt-1">トークン</span>
+          <span className="text-5xl font-black tracking-tight">{user.tokenBalance}</span>
+          <span className="text-lg text-white/60 mt-2">トークン</span>
         </div>
         <Link
           href="/wallet"
-          className="inline-flex items-center gap-1 mt-3 text-sm text-yui-green-200 hover:text-white transition-colors no-underline"
+          className="relative z-10 inline-flex items-center gap-1 mt-4 text-sm text-white/50 hover:text-white/80 transition-colors no-underline"
         >
           取引履歴を見る <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
 
-      {/* 🎯 ぴったりマッチ（スキマ時間と一致する募集） */}
+      {/* 🎯 ぴったりマッチ */}
       {matchedJobs.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-3">
@@ -57,16 +60,16 @@ export default function HomePage() {
               <Link
                 key={job.id}
                 href={`/explore/${job.id}`}
-                className="block relative bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 shadow-sm border-2 border-orange-200 hover:border-orange-400 transition-colors no-underline"
+                className="block relative card-premium rounded-2xl p-4 border-orange-200/80 hover:border-orange-300 no-underline bg-gradient-to-r from-orange-50/60 to-amber-50/40"
               >
-                <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md">
                   🎯 ぴったり
                 </div>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1.5">
                       <span className="text-lg">{getJobTypeEmoji(job.type)}</span>
-                      <span className="text-xs bg-yui-green-100 text-yui-green-700 font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-yui-green-100/80 text-yui-green-700 font-bold px-2 py-0.5 rounded-full">
                         {getJobTypeLabel(job.type)}
                       </span>
                     </div>
@@ -77,9 +80,9 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div className="text-right ml-3 shrink-0">
-                    <div className="flex items-center gap-1 bg-yui-accent/10 px-2.5 py-1 rounded-full">
+                    <div className="flex items-center gap-1 bg-amber-100/80 px-2.5 py-1 rounded-full">
                       <Coins className="w-4 h-4 text-yui-accent" />
-                      <span className="font-bold text-yui-green-800">{job.totalTokens}</span>
+                      <span className="font-bold text-yui-earth-800 tabular-nums">{job.totalTokens}</span>
                     </div>
                   </div>
                 </div>
@@ -93,16 +96,16 @@ export default function HomePage() {
       {myAvailabilities.length === 0 && (
         <Link
           href="/profile"
-          className="block bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200 no-underline hover:border-blue-400 transition-colors"
+          className="block card-premium rounded-2xl p-4 border-blue-200/60 no-underline hover:border-blue-300 bg-gradient-to-r from-blue-50/50 to-indigo-50/30"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
               <Clock className="w-5 h-5 text-blue-600" />
             </div>
             <div>
               <p className="font-bold text-blue-800 text-sm">スキマ時間を登録しよう！</p>
-              <p className="text-xs text-blue-600 mt-0.5">
-                手伝える時間を登録すると、ぴったりの募集を自動でお知らせします
+              <p className="text-xs text-blue-500 mt-0.5">
+                手伝える時間を登録すると、ぴったりの募集を自動でお知らせ
               </p>
             </div>
           </div>
@@ -113,9 +116,9 @@ export default function HomePage() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5" /> 直近の予定
+            <CalendarDays className="w-5 h-5 text-yui-green-600" /> 直近の予定
           </h2>
-          <Link href="/schedule" className="text-sm text-yui-green-600 font-medium no-underline hover:underline">
+          <Link href="/schedule" className="text-sm text-yui-green-500 font-semibold no-underline hover:text-yui-green-600">
             すべて見る
           </Link>
         </div>
@@ -125,7 +128,7 @@ export default function HomePage() {
               const job = demoGetJobs().find((j) => j.id === app.jobId);
               if (!job) return null;
               return (
-                <div key={app.id} className="bg-white rounded-xl p-4 shadow-sm border border-yui-green-100">
+                <div key={app.id} className="card-premium rounded-2xl p-4">
                   <p className="font-bold text-yui-green-800">{job.title}</p>
                   <p className="text-sm text-yui-earth-500 mt-1">
                     {job.date} {job.startTime}〜{job.endTime}
@@ -135,9 +138,9 @@ export default function HomePage() {
             })}
           </div>
         ) : (
-          <div className="bg-white rounded-xl p-4 text-center text-yui-earth-400 shadow-sm border border-yui-green-100">
-            <p className="text-base">まだ予定はありません</p>
-            <Link href="/explore" className="text-sm text-yui-green-600 font-medium mt-1 inline-block no-underline">
+          <div className="card-premium rounded-2xl p-5 text-center">
+            <p className="text-base text-yui-earth-400">まだ予定はありません</p>
+            <Link href="/explore" className="text-sm text-yui-green-500 font-semibold mt-1.5 inline-block no-underline hover:text-yui-green-600">
               ヘルプ募集を探す →
             </Link>
           </div>
@@ -150,7 +153,7 @@ export default function HomePage() {
           <h2 className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-yui-accent" /> おすすめ募集
           </h2>
-          <Link href="/explore" className="text-sm text-yui-green-600 font-medium no-underline hover:underline">
+          <Link href="/explore" className="text-sm text-yui-green-500 font-semibold no-underline hover:text-yui-green-600">
             すべて見る
           </Link>
         </div>
@@ -159,13 +162,13 @@ export default function HomePage() {
             <Link
               key={job.id}
               href={`/explore/${job.id}`}
-              className="block bg-white rounded-xl p-4 shadow-sm border border-yui-green-100 hover:border-yui-green-300 transition-colors no-underline"
+              className="block card-premium rounded-2xl p-4 hover:border-yui-green-200 no-underline"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-lg">{getJobTypeEmoji(job.type)}</span>
-                    <span className="text-xs bg-yui-green-100 text-yui-green-700 font-bold px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-yui-green-100/80 text-yui-green-700 font-bold px-2 py-0.5 rounded-full">
                       {getJobTypeLabel(job.type)}
                     </span>
                   </div>
@@ -176,9 +179,9 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="text-right ml-3 shrink-0">
-                  <div className="flex items-center gap-1 bg-yui-accent/10 px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/50">
                     <Coins className="w-4 h-4 text-yui-accent" />
-                    <span className="font-bold text-yui-green-800">{job.totalTokens}</span>
+                    <span className="font-bold text-yui-earth-800 tabular-nums">{job.totalTokens}</span>
                   </div>
                 </div>
               </div>
@@ -191,18 +194,18 @@ export default function HomePage() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-yui-green-800">💰 最近の取引</h2>
-          <Link href="/wallet" className="text-sm text-yui-green-600 font-medium no-underline hover:underline">
+          <Link href="/wallet" className="text-sm text-yui-green-500 font-semibold no-underline hover:text-yui-green-600">
             すべて見る
           </Link>
         </div>
         {transactions.length > 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-yui-green-100 divide-y divide-yui-green-50">
+          <div className="card-premium rounded-2xl divide-y divide-yui-earth-100/60">
             {transactions.map((txn) => {
               const isIncome = txn.toUserId === user.uid;
               return (
-                <div key={txn.id} className="px-4 py-3 flex items-center justify-between">
+                <div key={txn.id} className="px-4 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isIncome ? "bg-green-100" : "bg-orange-100"}`}>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isIncome ? "bg-green-50" : "bg-orange-50"}`}>
                       {isIncome ? (
                         <TrendingUp className="w-4 h-4 text-green-600" />
                       ) : (
@@ -216,7 +219,7 @@ export default function HomePage() {
                       </p>
                     </div>
                   </div>
-                  <span className={`font-bold text-base ${isIncome ? "text-green-600" : "text-orange-600"}`}>
+                  <span className={`font-bold text-base tabular-nums ${isIncome ? "text-green-600" : "text-orange-500"}`}>
                     {isIncome ? "+" : "-"}{txn.amount}
                   </span>
                 </div>
@@ -224,8 +227,8 @@ export default function HomePage() {
             })}
           </div>
         ) : (
-          <div className="bg-white rounded-xl p-4 text-center text-yui-earth-400 shadow-sm border border-yui-green-100">
-            取引履歴はまだありません
+          <div className="card-premium rounded-2xl p-5 text-center">
+            <p className="text-yui-earth-400">取引履歴はまだありません</p>
           </div>
         )}
       </section>

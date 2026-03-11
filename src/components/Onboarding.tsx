@@ -12,7 +12,6 @@ const slides = [
     icon: Sprout,
     iconBg: "bg-yui-green-100",
     iconColor: "text-yui-green-600",
-    emoji: "🌾",
     title: "ようこそ 結 Yui へ",
     line1: "農家同士で助け合うアプリです",
     line2: "同じ地域の幅広い年齢の人と交流しましょう",
@@ -21,7 +20,6 @@ const slides = [
     icon: Megaphone,
     iconBg: "bg-orange-100",
     iconColor: "text-orange-600",
-    emoji: "📣",
     title: "手伝ってほしい時",
     line1: "「募集」から作業内容と日時を登録",
     line2: "人手・機具・機具+人の3タイプで依頼できます",
@@ -30,7 +28,6 @@ const slides = [
     icon: Clock,
     iconBg: "bg-blue-100",
     iconColor: "text-blue-600",
-    emoji: "🕐",
     title: "手伝いたい時",
     line1: "「スキマ時間」を登録しておくと\nぴったりの募集を自動でお知らせ",
     line2: "「探す」から直接応募もOK",
@@ -39,7 +36,6 @@ const slides = [
     icon: Coins,
     iconBg: "bg-amber-100",
     iconColor: "text-amber-600",
-    emoji: "💰",
     title: "トークンの仕組み",
     line1: "作業完了 → トークンが自動で受け取れる",
     line2: "貯めたトークンで、次はあなたがヘルプを依頼！",
@@ -55,11 +51,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className="fixed inset-0 z-[100] bg-white flex flex-col">
       {/* スキップ */}
-      <div className="flex justify-end px-5 pt-4">
+      <div className="flex justify-end px-6 pt-5">
         {!isLast && (
           <button
             onClick={onComplete}
-            className="text-sm text-yui-earth-400 font-medium hover:text-yui-earth-600 transition-colors"
+            className="text-sm text-yui-earth-400 font-medium hover:text-yui-earth-600 transition-colors px-2 py-1"
           >
             スキップ
           </button>
@@ -67,39 +63,39 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       </div>
 
       {/* メインコンテンツ */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 max-w-[430px] mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center px-10 max-w-[430px] mx-auto w-full">
         {/* アイコン */}
-        <div className={`w-28 h-28 rounded-3xl ${slide.iconBg} flex items-center justify-center mb-8 shadow-sm`}>
-          <Icon className={`w-14 h-14 ${slide.iconColor}`} />
+        <div className={`w-32 h-32 rounded-[28px] ${slide.iconBg} flex items-center justify-center mb-10 shadow-sm`}>
+          <Icon className={`w-16 h-16 ${slide.iconColor}`} />
         </div>
 
         {/* タイトル */}
-        <h1 className="text-2xl font-black text-yui-green-800 mb-6 text-center">
+        <h1 className="text-2xl font-black text-yui-green-800 mb-6 text-center tracking-tight">
           {slide.title}
         </h1>
 
         {/* 説明文 */}
         <div className="text-center space-y-3">
-          <p className="text-base text-yui-green-700 font-bold leading-relaxed whitespace-pre-line">
+          <p className="text-base text-yui-earth-700 font-bold leading-relaxed whitespace-pre-line">
             {slide.line1}
           </p>
-          <p className="text-sm text-yui-earth-500 leading-relaxed">
+          <p className="text-sm text-yui-earth-400 leading-relaxed">
             {slide.line2}
           </p>
         </div>
       </div>
 
       {/* ナビゲーション */}
-      <div className="px-8 pb-10 pt-4 max-w-[430px] mx-auto w-full">
+      <div className="px-8 pb-12 pt-4 max-w-[430px] mx-auto w-full">
         {/* ドットインジケーター */}
-        <div className="flex justify-center gap-2 mb-6">
+        <div className="flex justify-center gap-2 mb-7">
           {slides.map((_, i) => (
             <div
               key={i}
               className={`h-2 rounded-full transition-all duration-300 ${
                 i === current
-                  ? "w-6 bg-yui-green-600"
-                  : "w-2 bg-yui-green-200"
+                  ? "w-7 bg-yui-green-600"
+                  : "w-2 bg-yui-earth-200"
               }`}
             />
           ))}
@@ -110,7 +106,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           {current > 0 && (
             <button
               onClick={() => setCurrent(current - 1)}
-              className="w-12 h-12 rounded-xl border-2 border-yui-green-200 flex items-center justify-center text-yui-green-600 hover:bg-yui-green-50 transition-colors shrink-0"
+              className="w-14 h-14 rounded-2xl border border-yui-earth-200 flex items-center justify-center text-yui-earth-500 hover:bg-yui-earth-50 transition-colors shrink-0"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -123,10 +119,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 setCurrent(current + 1);
               }
             }}
-            className={`flex-1 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 ${
               isLast
-                ? "bg-yui-green-600 text-white hover:bg-yui-green-700 shadow-lg"
-                : "bg-yui-green-600 text-white hover:bg-yui-green-700"
+                ? "gradient-primary text-white shadow-lg shadow-yui-green-900/20"
+                : "gradient-primary text-white shadow-md shadow-yui-green-900/15"
             }`}
           >
             {isLast ? (

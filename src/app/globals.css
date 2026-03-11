@@ -1,32 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  --color-yui-green-900: #1a3a17;
-  --color-yui-green-800: #2d5a27;
-  --color-yui-green-700: #3a7233;
-  --color-yui-green-600: #48903f;
-  --color-yui-green-500: #56ae4b;
-  --color-yui-green-400: #6bc460;
-  --color-yui-green-300: #86d47d;
-  --color-yui-green-200: #a8e3a1;
-  --color-yui-green-100: #d0f0cd;
-  --color-yui-green-50: #eef8ed;
+  /* 深みのあるグリーンパレット */
+  --color-yui-green-900: #14291a;
+  --color-yui-green-800: #1e3f24;
+  --color-yui-green-700: #2a5930;
+  --color-yui-green-600: #357a3c;
+  --color-yui-green-500: #43964b;
+  --color-yui-green-400: #5aad62;
+  --color-yui-green-300: #7ec586;
+  --color-yui-green-200: #b0dbb5;
+  --color-yui-green-100: #daf0dc;
+  --color-yui-green-50: #f0f8f1;
 
-  --color-yui-earth-800: #5c4033;
-  --color-yui-earth-700: #7a5c4f;
-  --color-yui-earth-600: #8b6f5e;
-  --color-yui-earth-500: #a0877a;
-  --color-yui-earth-400: #b5a196;
-  --color-yui-earth-300: #cbbcb3;
-  --color-yui-earth-200: #e0d5cf;
-  --color-yui-earth-100: #f0ebe7;
-  --color-yui-earth-50: #f8f5f3;
+  /* 温かみのあるアースカラー */
+  --color-yui-earth-800: #4a3728;
+  --color-yui-earth-700: #6b5344;
+  --color-yui-earth-600: #806859;
+  --color-yui-earth-500: #968071;
+  --color-yui-earth-400: #aea196;
+  --color-yui-earth-300: #c7bdb5;
+  --color-yui-earth-200: #ddd6d0;
+  --color-yui-earth-100: #eeebe8;
+  --color-yui-earth-50: #f7f5f3;
 
-  --color-yui-accent: #f59e0b;
-  --color-yui-accent-light: #fbbf24;
-  --color-yui-danger: #ef4444;
+  /* アクセント & 危険色 */
+  --color-yui-accent: #d4920a;
+  --color-yui-accent-light: #f0b840;
+  --color-yui-danger: #dc3545;
 
-  --font-sans: "Noto Sans JP", sans-serif;
+  --font-sans: "Noto Sans JP", system-ui, sans-serif;
 }
 
 @layer base {
@@ -36,13 +39,51 @@
 
   html {
     font-size: 16px;
+    scroll-behavior: smooth;
   }
 
   body {
     font-family: var(--font-sans);
     color: var(--color-yui-green-900);
-    background-color: var(--color-yui-earth-50);
+    background: linear-gradient(180deg, var(--color-yui-earth-50) 0%, #f2efe9 100%);
+    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0.02em;
+  }
+
+  /* プレミアムなカードスタイル */
+  .card-premium {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(218, 240, 220, 0.6);
+    box-shadow: 0 1px 3px rgba(30, 63, 36, 0.04), 0 4px 14px rgba(30, 63, 36, 0.06);
+  }
+
+  .card-premium:hover {
+    box-shadow: 0 2px 6px rgba(30, 63, 36, 0.06), 0 8px 24px rgba(30, 63, 36, 0.1);
+  }
+
+  /* 高級感のあるグリーングラデーション */
+  .gradient-primary {
+    background: linear-gradient(135deg, #2a5930 0%, #1e3f24 50%, #14291a 100%);
+  }
+
+  /* ソフトなインプットスタイル */
+  input, select, textarea {
+    transition: all 0.2s ease;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    box-shadow: 0 0 0 3px rgba(53, 122, 60, 0.15);
+  }
+
+  /* スムーズなボタンアニメーション */
+  button, a {
+    transition: all 0.2s ease;
+  }
+
+  button:active {
+    transform: scale(0.98);
   }
 }

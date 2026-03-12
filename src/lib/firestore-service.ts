@@ -49,6 +49,7 @@ function docToUser(data: any, uid: string): User {
     ageGroup: data.ageGroup ?? "",
     tokenBalance: data.tokenBalance ?? 0,
     equipmentList: data.equipmentList ?? [],
+    crops: data.crops ?? [],
     createdAt: toDate(data.createdAt),
   };
 }
@@ -150,6 +151,7 @@ export async function fsCreateUser(user: User): Promise<void> {
     ageGroup: user.ageGroup,
     tokenBalance: user.tokenBalance,
     equipmentList: user.equipmentList,
+    crops: user.crops,
     createdAt: Timestamp.fromDate(user.createdAt),
   });
 }

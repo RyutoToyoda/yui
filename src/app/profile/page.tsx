@@ -346,6 +346,7 @@ export default function ProfilePage() {
                   placeholder="例：耕うん機"
                   className="flex-1 px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
                   onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing) return;
                     if (e.key === "Enter") {
                       e.preventDefault();
                       handleAddEquipment();
@@ -430,6 +431,7 @@ export default function ProfilePage() {
                   placeholder="例：アスパラガス"
                   className="flex-1 px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
                   onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing) return;
                     if (e.key === "Enter") {
                       e.preventDefault();
                       handleAddCrop();

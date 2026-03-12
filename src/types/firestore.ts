@@ -65,7 +65,8 @@ export type DayOfWeek = "月" | "火" | "水" | "木" | "金" | "土" | "日";
 export interface Availability {
   id: string;
   userId: string;
-  dayOfWeek: DayOfWeek;
+  date?: string; // YYYY-MM-DD
+  dayOfWeek?: DayOfWeek; // 過去のデータ互換性用
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   note: string;

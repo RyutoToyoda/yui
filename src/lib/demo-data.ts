@@ -153,7 +153,7 @@ const DEMO_AVAILABILITIES: Availability[] = [
   {
     id: "avail-1",
     userId: "demo-user-1",
-    dayOfWeek: "水",
+    dayOfWeek: "水", // 旧データ
     startTime: "08:00",
     endTime: "12:00",
     note: "午前中なら対応可能",
@@ -163,7 +163,7 @@ const DEMO_AVAILABILITIES: Availability[] = [
   {
     id: "avail-2",
     userId: "demo-user-1",
-    dayOfWeek: "土",
+    dayOfWeek: "土", // 旧データ
     startTime: "09:00",
     endTime: "17:00",
     note: "土曜は終日OK",
@@ -173,17 +173,17 @@ const DEMO_AVAILABILITIES: Availability[] = [
   {
     id: "avail-3",
     userId: "demo-user-2",
-    dayOfWeek: "火",
+    date: "2026-03-25", // 新データ
     startTime: "13:00",
     endTime: "17:00",
-    note: "午後から手伝えます",
+    note: "午後から手伝えます（指定日のみ）",
     isActive: true,
     createdAt: new Date("2026-02-10"),
   },
   {
     id: "avail-4",
     userId: "demo-user-3",
-    dayOfWeek: "水",
+    dayOfWeek: "水", // 旧データ
     startTime: "09:00",
     endTime: "15:00",
     note: "高所作業車持ち込み可",
@@ -378,7 +378,8 @@ function hasTimeOverlap(
 }
 
 function runAutoMatch(job: Job) {
-  // 募集の日付から曜日を取得
+  // 募集の日付と曜日を取得
+  const jobDateString = job.date; // YYYY-MM-DD
   const jobDate = new Date(job.date);
   const jobDayOfWeek = DAY_MAP[jobDate.getDay()];
 
@@ -388,8 +389,15 @@ function runAutoMatch(job: Job) {
   );
 
   for (const avail of activeAvailabilities) {
-    // 曜日が一致するか
-    if (avail.dayOfWeek !== jobDayOfWeek) continue;
+    // 日付指定がある場合は完全一致、ない場合は曜日が一致するか
+    if (avail.date) {
+      if (avail.date !== jobDateString) continue;
+    } else if (avail.dayOfWeek) {
+      if (avail.dayOfWeek !== jobDayOfWeek) continue;
+    } else {
+      continue; // エラーデータ回避
+    }
+
     // 時間帯が重なるか
     if (!hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)) continue;
 
@@ -397,12 +405,14 @@ function runAutoMatch(job: Job) {
     const user = users.find((u) => u.uid === avail.userId);
     if (!user) continue;
 
+    const matchReason = avail.date ? `${avail.date}の` : `${avail.dayOfWeek}曜日の`;
+
     demoCreateNotification({
       id: generateId(),
       userId: avail.userId,
       type: "match",
       title: "🎯 ぴったりの募集が見つかりました！",
-      message: `${job.creatorName}さんの「${job.title}」があなたの${avail.dayOfWeek}曜日のスキマ時間と一致しています。`,
+      message: `${job.creatorName}さんの「${job.title}」があなたの${matchReason}スキマ時間と一致しています。`,
       jobId: job.id,
       isRead: false,
       createdAt: new Date(),
@@ -422,13 +432,15 @@ export function demoGetMatchedJobsForUser(uid: string): Job[] {
     if (job.creatorId === uid) return false;
     if (job.status !== "open") return false;
 
+    const jobDateString = job.date;
     const jobDate = new Date(job.date);
     const jobDayOfWeek = DAY_MAP[jobDate.getDay()];
 
     return userAvailabilities.some(
-      (avail) =>
-        avail.dayOfWeek === jobDayOfWeek &&
-        hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)
+      (avail) => {
+        const isDateMatch = avail.date ? avail.date === jobDateString : avail.dayOfWeek === jobDayOfWeek;
+        return isDateMatch && hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime);
+      }
     );
   });
 }

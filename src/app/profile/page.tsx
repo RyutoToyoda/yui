@@ -43,7 +43,8 @@ export default function ProfilePage() {
 
   const handleAddEquipment = () => {
     if (!newEquipment.trim()) return;
-    const updated = [...user.equipmentList, newEquipment.trim()];
+    const currentEquipment = user.equipmentList || [];
+    const updated = [...currentEquipment, newEquipment.trim()];
     demoUpdateUser(user.uid, { equipmentList: updated });
     refreshUser();
     setNewEquipment("");
@@ -51,17 +52,20 @@ export default function ProfilePage() {
   };
 
   const handleRemoveEquipment = (index: number) => {
-    const updated = user.equipmentList.filter((_, i) => i !== index);
+    const currentEquipment = user.equipmentList || [];
+    const updated = currentEquipment.filter((_, i) => i !== index);
     demoUpdateUser(user.uid, { equipmentList: updated });
     refreshUser();
     setConfirmDelete(null);
   };
 
   const handleAddAvailability = () => {
+    if (!availDate) return;
+
     demoCreateAvailability({
       id: generateId(),
       userId: user.uid,
-      dayOfWeek: availDay,
+      date: availDate,
       startTime: availStart,
       endTime: availEnd,
       note: availNote,
@@ -148,24 +152,15 @@ export default function ProfilePage() {
         {showAddAvailability && (
           <div className="bg-blue-50 rounded-xl p-5 mb-3 space-y-3 border-2 border-blue-200">
             <div>
-              <label className="block text-xs font-bold text-blue-800 mb-2">曜日</label>
-              <div className="flex gap-1.5" role="radiogroup" aria-label="曜日を選ぶ">
-                {DAYS_OF_WEEK.map((day) => (
-                  <button
-                    key={day}
-                    onClick={() => setAvailDay(day)}
-                    className={`w-11 h-11 rounded-lg text-sm font-bold transition-all ${
-                      availDay === day
-                        ? "bg-blue-700 text-white"
-                        : "bg-white text-yui-earth-700 hover:bg-blue-100 border border-blue-200"
-                    }`}
-                    role="radio"
-                    aria-checked={availDay === day}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
+              <label htmlFor="avail-date" className="block text-xs font-bold text-blue-800 mb-2">日付</label>
+              <input
+                id="avail-date"
+                type="date"
+                value={availDate}
+                onChange={(e) => setAvailDate(e.target.value)}
+                className="w-full px-3 py-3 text-base border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white font-bold"
+                required
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -212,51 +207,71 @@ export default function ProfilePage() {
 
         {availabilities.length > 0 ? (
           <div className="space-y-2">
-            {availabilities.map((avail) => (
-              <div
-                key={avail.id}
-                className={`flex items-center justify-between rounded-xl px-4 py-4 transition-colors ${
-                  avail.isActive ? "bg-blue-50 border border-blue-200" : "bg-yui-earth-100 border border-yui-earth-200 opacity-70"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${
-                    avail.isActive ? "bg-blue-700 text-white" : "bg-yui-earth-300 text-white"
-                  }`}>
-                    {avail.dayOfWeek}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-yui-green-800">
-                      {avail.startTime}〜{avail.endTime}
-                    </p>
-                    {avail.note && (
-                      <p className="text-xs text-yui-earth-500">{avail.note}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleToggleAvailability(avail.id, avail.isActive)}
-                    className={`text-sm font-bold px-3 py-2 rounded-lg transition-colors ${
-                      avail.isActive
-                        ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300"
-                        : "bg-yui-earth-200 text-yui-earth-600 hover:bg-yui-earth-300 border border-yui-earth-300"
+            {availabilities.map((avail) => {
+              // 日付の表示形式を整える
+              let displayDate = "";
+              let isOldData = false;
+              if (avail.date) {
+                const d = new Date(avail.date);
+                displayDate = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+              } else if (avail.dayOfWeek) {
+                displayDate = `毎週${avail.dayOfWeek}曜日`;
+                isOldData = true;
+              }
+
+              return (
+                <div
+                  key={avail.id}
+                  className={`flex items-center justify-between rounded-xl px-4 py-4 transition-colors ${avail.isActive ? "bg-blue-50 border border-blue-200" : "bg-yui-earth-100 border border-yui-earth-200 opacity-70"
                     }`}
-                    style={{ minHeight: "40px" }}
-                    aria-label={avail.isActive ? "この時間帯をオフにする" : "この時間帯をオンにする"}
-                  >
-                    {avail.isActive ? "ON" : "OFF"}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete({ type: "availability", id: avail.id })}
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors"
-                    aria-label="この時間帯を削除する"
-                  >
-                    <X className="w-5 h-5" aria-hidden="true" />
-                  </button>
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${avail.isActive ? "bg-blue-700 text-white" : "bg-yui-earth-300 text-white"
+                      }`}>
+                      <Calendar className="w-6 h-6" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-yui-green-800">
+                          {displayDate}
+                        </p>
+                        {isOldData && (
+                          <span className="text-[10px] font-bold bg-yui-earth-200 text-yui-earth-600 px-1.5 py-0.5 rounded-sm">
+                            旧設定
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-bold text-blue-800 mt-0.5">
+                        {avail.startTime}〜{avail.endTime}
+                      </p>
+                      {avail.note && (
+                        <p className="text-xs text-yui-earth-500">{avail.note}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleToggleAvailability(avail.id, avail.isActive)}
+                      className={`text-sm font-bold px-3 py-2 rounded-lg transition-colors ${avail.isActive
+                          ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300"
+                          : "bg-yui-earth-200 text-yui-earth-600 hover:bg-yui-earth-300 border border-yui-earth-300"
+                        }`}
+                      style={{ minHeight: "40px" }}
+                      aria-label={avail.isActive ? "この時間帯をオフにする" : "この時間帯をオンにする"}
+                    >
+                      {avail.isActive ? "ON" : "OFF"}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete({ type: "availability", id: avail.id })}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors"
+                      aria-label="この時間帯を削除する"
+                    >
+                      <X className="w-5 h-5" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-sm text-yui-earth-500 text-center py-3 font-medium">
@@ -305,9 +320,9 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {user.equipmentList.length > 0 ? (
+        {(user.equipmentList || []).length > 0 ? (
           <div className="space-y-2">
-            {user.equipmentList.map((eq, i) => (
+            {(user.equipmentList || []).map((eq, i) => (
               <div key={i} className="flex items-center justify-between bg-yui-green-50 rounded-xl px-4 py-4 border border-yui-green-100">
                 <div className="flex items-center gap-2">
                   <Wrench className="w-5 h-5 text-yui-green-500" aria-hidden="true" />

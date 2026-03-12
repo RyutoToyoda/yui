@@ -3,10 +3,20 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { demoGetUnreadCountByUser } from "@/lib/demo-data";
-import { Coins, Bell } from "lucide-react";
+import { Coins, Bell, CalendarDays } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Header() {
   const { user, isLoggedIn } = useAuth();
+  const [todayDate, setTodayDate] = useState<string>("");
+
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const date = today.getDate();
+    setTodayDate(`${year}年${month}月${date}日`);
+  }, []);
 
   if (!isLoggedIn || !user) return null;
 
@@ -24,10 +34,18 @@ export default function Header() {
         role="banner"
       >
         <div className="max-w-[430px] mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 no-underline group" aria-label="結 Yui ホームへ">
-            <span className="text-2xl font-black text-yui-green-700 tracking-tight group-hover:text-yui-green-600">結</span>
-            <span className="text-sm font-bold text-yui-green-500 mt-0.5 tracking-wide">Yui</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2 no-underline group" aria-label="結 Yui ホームへ">
+              <span className="text-2xl font-black text-yui-green-700 tracking-tight group-hover:text-yui-green-600">結</span>
+              <span className="text-sm font-bold text-yui-green-500 mt-0.5 tracking-wide">Yui</span>
+            </Link>
+            {todayDate && (
+              <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-yui-earth-600 bg-yui-earth-100 px-3 py-1.5 rounded-full" aria-label={`今日の日付: ${todayDate}`}>
+                <CalendarDays className="w-4 h-4 text-yui-green-600" aria-hidden="true" />
+                {todayDate}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             {/* 通知ベル */}
             <Link
@@ -59,6 +77,14 @@ export default function Header() {
             </div>
           </div>
         </div>
+        
+        {/* モバイル用日付表示（ヘッダー下部） */}
+        {todayDate && (
+          <div className="sm:hidden bg-yui-earth-50 border-b border-yui-green-100 px-4 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-yui-earth-600">
+            <CalendarDays className="w-4 h-4 text-yui-green-600" aria-hidden="true" />
+            本日: {todayDate}
+          </div>
+        )}
       </header>
     </>
   );

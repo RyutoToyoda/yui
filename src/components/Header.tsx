@@ -19,6 +19,9 @@ export default function Header() {
     return () => { cancelled = true; };
   }, [isLoggedIn, user]);
 
+  const now = new Date();
+  const dateStr = `${now.getMonth() + 1}月${now.getDate()}日(${["日", "月", "火", "水", "木", "金", "土"][now.getDay()]})`;
+
   if (!isLoggedIn || !user) return null;
 
   return (
@@ -35,7 +38,10 @@ export default function Header() {
         <div className="max-w-[430px] mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 no-underline group" aria-label="結 Yui ホームへ">
             <span className="text-2xl font-black text-yui-green-700 tracking-tight group-hover:text-yui-green-600">結</span>
-            <span className="text-sm font-bold text-yui-green-500 mt-0.5 tracking-wide">Yui</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-yui-green-500 tracking-wide leading-none">Yui</span>
+              <span className="text-[10px] font-bold text-yui-earth-500 mt-0.5 whitespace-nowrap">{dateStr}</span>
+            </div>
           </Link>
           <div className="flex items-center gap-3">
             {/* 通知ベル */}

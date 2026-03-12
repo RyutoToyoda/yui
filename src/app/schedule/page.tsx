@@ -223,6 +223,15 @@ export default function SchedulePage() {
     { key: "history" as Tab, label: "履歴", count: completedAppsWithJobs.length + completedJobs.length },
   ];
 
+  const formatDateJP = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr + "T00:00:00");
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
+    return `${month}月${day}日(${dayOfWeek})`;
+  };
+
   // カレンダー生成
   const getDaysInMonth = (year: number, month: number) => {
     const date = new Date(year, month, 1);
@@ -292,7 +301,7 @@ export default function SchedulePage() {
                     <h3 className="font-bold text-yui-green-800">{job.title}</h3>
                     <p className="text-sm text-yui-earth-500 mt-1 flex items-center gap-1">
                       <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                      {job.date} {job.startTime}〜{job.endTime}
+                      {formatDateJP(job.date)} {job.startTime}〜{job.endTime}
                     </p>
                   </div>
 
@@ -396,7 +405,7 @@ export default function SchedulePage() {
                     <h3 className="font-bold text-yui-green-800">{job.title}</h3>
                     <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
                       <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                      {job.date} {job.startTime}〜{job.endTime}
+                      {formatDateJP(job.date)} {job.startTime}〜{job.endTime}
                     </p>
                     <p className="text-sm text-yui-earth-600 mt-0.5">{job.creatorName}さん</p>
                   </div>
@@ -494,8 +503,8 @@ export default function SchedulePage() {
                       {avail.date?.split("-")[2]}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-yui-green-800">{avail.date}</p>
-                      <p className="text-xs text-yui-earth-500">8:00〜17:00 お手伝いできます</p>
+                      <p className="text-sm font-bold text-yui-green-800">{formatDateJP(avail.date!)}</p>
+                      <p className="text-xs text-yui-earth-500">{avail.startTime}〜{avail.endTime} お手伝いできます</p>
                     </div>
                   </div>
                   <button
@@ -534,7 +543,7 @@ export default function SchedulePage() {
                   </div>
                   <h3 className="font-bold text-yui-green-800">{job.title}</h3>
                   <p className="text-sm text-yui-earth-500 flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4" aria-hidden="true" /> {job.date}
+                    <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
                   </p>
                 </div>
               ))}
@@ -548,7 +557,7 @@ export default function SchedulePage() {
                   </div>
                   <h3 className="font-bold text-yui-green-800">{job.title}</h3>
                   <p className="text-sm text-yui-earth-500 flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4" aria-hidden="true" /> {job.date}
+                    <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
                   </p>
                   <p className="text-sm text-yui-earth-600 mt-1">{job.creatorName}さん</p>
                 </div>
@@ -625,14 +634,24 @@ function TimeSelectionDialog({
     { label: "午後のみ", start: "13:00", end: "17:00", icon: "🌇" },
   ];
 
+  const date = new Date(dateStr + "T00:00:00");
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
+  const formattedDate = `${month}月${day}日(${dayOfWeek})`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h3 className="text-xl font-black text-yui-green-800">何時ごろ行けますか？</h3>
-              <p className="text-sm text-yui-earth-500 font-bold mt-1">{dateStr}</p>
+              <p className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block mb-2">
+                お手伝いに行ける日を確認
+              </p>
+              <h3 className="text-2xl font-black text-yui-green-800">
+                {formattedDate} は<br />何時ごろ行けますか？
+              </h3>
             </div>
             <button
               onClick={onCancel}
@@ -648,17 +667,21 @@ function TimeSelectionDialog({
               <button
                 key={p.label}
                 onClick={() => onConfirm(p.start, p.end)}
-                className="w-full flex items-center justify-between p-5 bg-yui-green-50 rounded-2xl border-2 border-transparent hover:border-yui-green-200 transition-all text-left"
+                className="w-full flex items-center justify-between p-5 bg-yui-green-50 rounded-2xl border-2 border-transparent hover:border-yui-green-200 transition-all text-left group"
                 style={{ minHeight: "80px" }}
               >
                 <div className="flex items-center gap-4">
                   <span className="text-3xl" aria-hidden="true">{p.icon}</span>
                   <div>
-                    <p className="font-black text-yui-green-800 text-lg">{p.label}</p>
-                    <p className="text-sm font-bold text-yui-green-600">{p.start} 〜 {p.end}</p>
+                    <p className="font-black text-yui-green-800 text-lg">
+                      {p.label}
+                    </p>
+                    <p className="text-xs font-bold text-yui-green-600">
+                      {formattedDate} の {p.start} 〜 {p.end} を登録する
+                    </p>
                   </div>
                 </div>
-                <ChevronRight className="w-6 h-6 text-yui-green-400" />
+                <ChevronRight className="w-6 h-6 text-yui-green-400 group-hover:translate-x-1 transition-transform" />
               </button>
             ))}
           </div>

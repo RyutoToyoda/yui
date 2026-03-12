@@ -26,7 +26,6 @@ export default function ProfilePage() {
   const [showAddEquipment, setShowAddEquipment] = useState(false);
   const [newCrop, setNewCrop] = useState("");
   const [showAddCrop, setShowAddCrop] = useState(false);
-  const [confirmLogout, setConfirmLogout] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,10 +44,6 @@ export default function ProfilePage() {
     );
   }
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
 
   const handleAddEquipment = async (eqName: string = newEquipment) => {
     if (!eqName.trim()) return;
@@ -94,7 +89,7 @@ export default function ProfilePage() {
           style={{ minHeight: "48px", display: "inline-flex", alignItems: "center" }}
           aria-label="表示設定を変える"
         >
-          <Settings className="w-5 h-5" aria-hidden="true" /> 表示設定
+          <Settings className="w-5 h-5" aria-hidden="true" /> 設定
         </Link>
       </div>
 
@@ -317,27 +312,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* ログアウト */}
-      <button
-        onClick={() => setConfirmLogout(true)}
-        className="w-full py-4 bg-white text-yui-danger font-bold rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-        style={{ minHeight: "56px" }}
-      >
-        <LogOut className="w-5 h-5" aria-hidden="true" />
-        ログアウトする
-      </button>
-
       {/* 確認ダイアログ群 */}
-      <ConfirmDialog
-        isOpen={confirmLogout}
-        title="ログアウトしますか？"
-        message="ログアウトすると、もう一度ログインが必要になります。"
-        confirmLabel="ログアウトする"
-        cancelLabel="やめておく"
-        variant="danger"
-        onConfirm={handleLogout}
-        onCancel={() => setConfirmLogout(false)}
-      />
       {confirmDelete?.type === "equipment" && (
         <ConfirmDialog
           isOpen={true}

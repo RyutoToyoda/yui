@@ -1,8 +1,11 @@
 "use client";
 
 import { useAccessibility } from "@/contexts/AccessibilityContext";
-import { ArrowLeft, Type, Sun, Eye } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { ArrowLeft, Type, Sun, Eye, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const fontSizeOptions = [
   { value: "standard" as const, label: "ふつう", description: "標準のサイズです", sampleSize: "18px" },
@@ -12,7 +15,14 @@ const fontSizeOptions = [
 
 export default function SettingsPage() {
   const { fontSize, setFontSize, highContrast, setHighContrast } = useAccessibility();
+  const { logout } = useAuth();
   const router = useRouter();
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   return (
     <div className="px-4 py-5 space-y-6">
@@ -26,18 +36,17 @@ export default function SettingsPage() {
       </button>
 
       <h1 className="text-xl font-bold text-yui-green-800 flex items-center gap-2">
-        <Eye className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
-        表示設定
+        <SettingsIcon className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+        設定
       </h1>
 
       <p className="text-sm text-yui-earth-600" style={{ lineHeight: "1.8" }}>
-        お好みに合わせて画面の見え方を変えられます。
-        変更はすぐに反映されます。
+        お好みに合わせて画面の見え方を変えたり、ログアウトを行えます。
       </p>
 
       {/* 文字サイズ設定 */}
-      <section aria-labelledby="font-size-heading">
-        <h2 id="font-size-heading" className="text-base font-bold text-yui-green-800 mb-3 flex items-center gap-2">
+      <section aria-labelledby="font-size-heading" className="space-y-3">
+        <h2 id="font-size-heading" className="text-base font-bold text-yui-green-800 flex items-center gap-2">
           <Type className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
           文字の大きさ
         </h2>
@@ -84,8 +93,8 @@ export default function SettingsPage() {
       </section>
 
       {/* 高コントラストモード */}
-      <section aria-labelledby="contrast-heading">
-        <h2 id="contrast-heading" className="text-base font-bold text-yui-green-800 mb-3 flex items-center gap-2">
+      <section aria-labelledby="contrast-heading" className="space-y-3">
+        <h2 id="contrast-heading" className="text-base font-bold text-yui-green-800 flex items-center gap-2">
           <Sun className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
           画面のくっきりさ
         </h2>
@@ -117,37 +126,25 @@ export default function SettingsPage() {
         </button>
       </section>
 
-      {/* プレビュー */}
-      <section aria-labelledby="preview-heading">
-        <h2 id="preview-heading" className="text-base font-bold text-yui-green-800 mb-3">
-          見え方の確認
+      {/* アカウント設定 */}
+      <section aria-labelledby="account-heading" className="space-y-3">
+        <h2 id="account-heading" className="text-base font-bold text-yui-green-800 flex items-center gap-2">
+          <LogOut className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
+          アカウント
         </h2>
-        <div className="card-premium rounded-2xl p-5 space-y-3">
-          <p className="text-base font-bold text-yui-green-800">田植え作業のお手伝い募集</p>
-          <p className="text-sm text-yui-earth-600" style={{ lineHeight: "1.8" }}>
-            田中農園では来週の月曜日に田植え作業を行います。朝8時から12時までの作業で、2名の方にお手伝いをお願いしたいです。
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="ud-status-badge bg-blue-100 text-blue-800 border border-blue-300">
-              📢 募集中
-            </span>
-            <span className="ud-status-badge bg-green-100 text-green-800 border border-green-300">
-              ✅ お願い済み
-            </span>
-          </div>
-          <button
-            className="w-full py-3 bg-yui-green-600 text-white font-bold rounded-xl"
-            style={{ minHeight: "52px" }}
-            disabled
-          >
-            ボタンの見え方
-          </button>
-        </div>
+        <button
+          onClick={() => setConfirmLogout(true)}
+          className="w-full py-4 bg-white text-yui-danger font-bold rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+          style={{ minHeight: "56px" }}
+        >
+          <LogOut className="w-5 h-5" aria-hidden="true" />
+          ログアウトする
+        </button>
       </section>
 
       {/* 使い方ガイド */}
-      <section aria-labelledby="guide-heading">
-        <h2 id="guide-heading" className="text-base font-bold text-yui-green-800 mb-3 flex items-center gap-2">
+      <section aria-labelledby="guide-heading" className="space-y-3">
+        <h2 id="guide-heading" className="text-base font-bold text-yui-green-800 flex items-center gap-2">
           📖 使い方ガイド
         </h2>
         <button
@@ -167,6 +164,17 @@ export default function SettingsPage() {
           <ArrowLeft className="w-5 h-5 text-yui-earth-400 rotate-180 shrink-0 ml-3" aria-hidden="true" />
         </button>
       </section>
+
+      <ConfirmDialog
+        isOpen={confirmLogout}
+        title="ログアウトしますか？"
+        message="ログアウトすると、もう一度ログインが必要になります。"
+        confirmLabel="ログアウトする"
+        cancelLabel="やめておく"
+        variant="danger"
+        onConfirm={handleLogout}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </div>
   );
 }

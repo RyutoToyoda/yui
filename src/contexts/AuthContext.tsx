@@ -91,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ageGroup,
         tokenBalance: 10,
         equipmentList: [],
+        crops: [],
         createdAt: new Date(),
       };
 
@@ -118,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ageGroup: "30代",
           tokenBalance: 10,
           equipmentList: [],
+          crops: [],
           createdAt: new Date(),
         };
         await fsCreateUser(profile);

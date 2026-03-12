@@ -8,6 +8,7 @@ export interface User {
   ageGroup: string;
   tokenBalance: number;
   equipmentList: string[];
+  crops: string[];
   createdAt: Date;
 }
 

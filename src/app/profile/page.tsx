@@ -11,7 +11,7 @@ import {
 } from "@/lib/firestore-service";
 import type { Availability, DayOfWeek } from "@/types/firestore";
 import { useRouter } from "next/navigation";
-import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout } from "lucide-react";
+import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -26,26 +26,14 @@ export default function ProfilePage() {
   const [showAddEquipment, setShowAddEquipment] = useState(false);
   const [newCrop, setNewCrop] = useState("");
   const [showAddCrop, setShowAddCrop] = useState(false);
-  const [showAddAvailability, setShowAddAvailability] = useState(false);
-  const [availDay, setAvailDay] = useState<DayOfWeek>("月");
-  const [availStart, setAvailStart] = useState("09:00");
-  const [availEnd, setAvailEnd] = useState("12:00");
-  const [availNote, setAvailNote] = useState("");
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
-  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadAvailabilities = async () => {
-    if (!user) return;
-    const avails = await fsGetAvailabilitiesByUser(user.uid);
-    setAvailabilities(avails);
-    setLoading(false);
-  };
-
   useEffect(() => {
-    loadAvailabilities();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (user) {
+      setLoading(false);
+    }
   }, [user]);
 
   if (!user) return null;
@@ -96,32 +84,6 @@ export default function ProfilePage() {
     setConfirmDelete(null);
   };
 
-  const handleAddAvailability = async () => {
-    await fsCreateAvailability({
-      userId: user.uid,
-      dayOfWeek: availDay,
-      startTime: availStart,
-      endTime: availEnd,
-      note: availNote,
-      isActive: true,
-      createdAt: new Date(),
-    });
-    setShowAddAvailability(false);
-    setAvailNote("");
-    await loadAvailabilities();
-  };
-
-  const handleToggleAvailability = async (id: string, isActive: boolean) => {
-    await fsUpdateAvailability(id, { isActive: !isActive });
-    await loadAvailabilities();
-  };
-
-  const handleDeleteAvailability = async (id: string) => {
-    await fsDeleteAvailability(id);
-    await loadAvailabilities();
-    setConfirmDelete(null);
-  };
-
   return (
     <div className="px-4 py-5 space-y-5">
       <div className="flex items-center justify-between">
@@ -164,143 +126,25 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* スキマ時間 */}
-      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-700" aria-hidden="true" /> 手伝える時間
-          </h2>
-          <button
-            onClick={() => setShowAddAvailability(!showAddAvailability)}
-            className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center hover:bg-blue-200 transition-colors"
-            aria-label="手伝える時間を追加する"
-          >
-            <Plus className="w-5 h-5" aria-hidden="true" />
-          </button>
+      {/* お手伝い可能日の管理ボタン */}
+      <div className="bg-blue-50 border-2 border-blue-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center gap-3 mb-2">
+          <CalendarDays className="w-6 h-6 text-blue-600" aria-hidden="true" />
+          <h2 className="text-base font-bold text-yui-green-800">お手伝いに行ける日</h2>
         </div>
-
-        <p className="text-xs text-yui-earth-500 mb-3" style={{ lineHeight: "1.7" }}>
-          登録しておくと、ぴったりの募集が出た時に自動でおしらせします ✨
+        <p className="text-sm text-yui-earth-600 mb-4" style={{ lineHeight: "1.6" }}>
+          お手伝いに行ける日をカレンダーから選んで登録できます。予定に合わせて更新しましょう ✨
         </p>
-
-        {showAddAvailability && (
-          <div className="bg-blue-50 rounded-xl p-5 mb-3 space-y-3 border-2 border-blue-200">
-            <div>
-              <label className="block text-xs font-bold text-blue-800 mb-2">曜日</label>
-              <div className="flex gap-1.5" role="radiogroup" aria-label="曜日を選ぶ">
-                {DAYS_OF_WEEK.map((day) => (
-                  <button
-                    key={day}
-                    onClick={() => setAvailDay(day)}
-                    className={`w-11 h-11 rounded-lg text-sm font-bold transition-all ${
-                      availDay === day
-                        ? "bg-blue-700 text-white"
-                        : "bg-white text-yui-earth-700 hover:bg-blue-100 border border-blue-200"
-                    }`}
-                    role="radio"
-                    aria-checked={availDay === day}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="avail-start" className="block text-xs font-bold text-blue-800 mb-1">はじまり</label>
-                <input
-                  id="avail-start"
-                  type="time"
-                  value={availStart}
-                  onChange={(e) => setAvailStart(e.target.value)}
-                  className="w-full px-3 py-3 text-base border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
-                />
-              </div>
-              <div>
-                <label htmlFor="avail-end" className="block text-xs font-bold text-blue-800 mb-1">おわり</label>
-                <input
-                  id="avail-end"
-                  type="time"
-                  value={availEnd}
-                  onChange={(e) => setAvailEnd(e.target.value)}
-                  className="w-full px-3 py-3 text-base border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="avail-note" className="block text-xs font-bold text-blue-800 mb-1">メモ（書かなくてもOK）</label>
-              <input
-                id="avail-note"
-                type="text"
-                value={availNote}
-                onChange={(e) => setAvailNote(e.target.value)}
-                placeholder="例：午前中なら対応できます"
-                className="w-full px-3 py-3 text-base border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white"
-              />
-            </div>
-            <button
-              onClick={handleAddAvailability}
-              className="w-full py-3.5 bg-blue-700 text-white text-base font-bold rounded-xl hover:bg-blue-800 transition-colors"
-              style={{ minHeight: "52px" }}
-            >
-              登録する
-            </button>
-          </div>
-        )}
-
-        {availabilities.length > 0 ? (
-          <div className="space-y-2">
-            {availabilities.map((avail) => (
-              <div
-                key={avail.id}
-                className={`flex items-center justify-between rounded-xl px-4 py-4 transition-colors ${
-                  avail.isActive ? "bg-blue-50 border border-blue-200" : "bg-yui-earth-100 border border-yui-earth-200 opacity-70"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${
-                    avail.isActive ? "bg-blue-700 text-white" : "bg-yui-earth-300 text-white"
-                  }`}>
-                    {avail.dayOfWeek}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-yui-green-800">
-                      {avail.startTime}〜{avail.endTime}
-                    </p>
-                    {avail.note && (
-                      <p className="text-xs text-yui-earth-500">{avail.note}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleToggleAvailability(avail.id, avail.isActive)}
-                    className={`text-sm font-bold px-3 py-2 rounded-lg transition-colors ${
-                      avail.isActive
-                        ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300"
-                        : "bg-yui-earth-200 text-yui-earth-600 hover:bg-yui-earth-300 border border-yui-earth-300"
-                    }`}
-                    style={{ minHeight: "40px" }}
-                    aria-label={avail.isActive ? "この時間帯をオフにする" : "この時間帯をオンにする"}
-                  >
-                    {avail.isActive ? "ON" : "OFF"}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete({ type: "availability", id: avail.id })}
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors"
-                    aria-label="この時間帯を削除する"
-                  >
-                    <X className="w-5 h-5" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-yui-earth-500 text-center py-3 font-medium">
-            まだ登録されていません
-          </p>
-        )}
+        <Link
+          href="/schedule?tab=availability"
+          onClick={() => {
+            // タブを切り替えるためのヒントをlocalStorageなどに保存するか、URLパラメータで制御する（今回はシンプルにLink）
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors no-underline shadow-md shadow-blue-100"
+          style={{ minHeight: "52px" }}
+        >
+          カレンダーで登録する
+        </Link>
       </div>
 
       {/* 所有農機具 */}
@@ -494,18 +338,6 @@ export default function ProfilePage() {
         onConfirm={handleLogout}
         onCancel={() => setConfirmLogout(false)}
       />
-      {confirmDelete?.type === "availability" && (
-        <ConfirmDialog
-          isOpen={true}
-          title="この時間帯を削除しますか？"
-          message="削除すると、この時間帯に合った募集のおしらせが届かなくなります。"
-          confirmLabel="削除する"
-          cancelLabel="やめておく"
-          variant="danger"
-          onConfirm={() => handleDeleteAvailability(confirmDelete.id!)}
-          onCancel={() => setConfirmDelete(null)}
-        />
-      )}
       {confirmDelete?.type === "equipment" && (
         <ConfirmDialog
           isOpen={true}

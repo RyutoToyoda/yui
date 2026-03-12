@@ -110,7 +110,8 @@ function docToAvailability(data: any, id: string): Availability {
   return {
     id,
     userId: data.userId ?? "",
-    dayOfWeek: data.dayOfWeek ?? "月",
+    date: data.date,
+    dayOfWeek: data.dayOfWeek,
     startTime: data.startTime ?? "",
     endTime: data.endTime ?? "",
     note: data.note ?? "",
@@ -351,7 +352,8 @@ export async function fsGetAvailabilitiesByUser(uid: string): Promise<Availabili
 export async function fsCreateAvailability(avail: Omit<Availability, "id">): Promise<string> {
   const data = {
     userId: avail.userId,
-    dayOfWeek: avail.dayOfWeek,
+    date: avail.date ?? null,
+    dayOfWeek: avail.dayOfWeek ?? null,
     startTime: avail.startTime,
     endTime: avail.endTime,
     note: avail.note,
@@ -447,20 +449,19 @@ function hasTimeOverlap(
 }
 
 async function runAutoMatch(job: Job): Promise<void> {
-  const jobDate = new Date(job.date);
-  const jobDayOfWeek = DAY_MAP[jobDate.getDay()];
+  const jobDate = job.date;
 
   // 全ユーザーの有効なスキマ時間を取得
   const q = query(
     collection(db, "availabilities"),
-    where("isActive", "==", true)
+    where("isActive", "==", true),
+    where("date", "==", jobDate) // 日付で一致させる
   );
   const snap = await getDocs(q);
 
   for (const d of snap.docs) {
     const avail = docToAvailability(d.data(), d.id);
     if (avail.userId === job.creatorId) continue;
-    if (avail.dayOfWeek !== jobDayOfWeek) continue;
     if (!hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)) continue;
 
     // マッチ！通知を作成
@@ -468,7 +469,7 @@ async function runAutoMatch(job: Job): Promise<void> {
       userId: avail.userId,
       type: "match",
       title: "🎯 ぴったりの募集が見つかりました！",
-      message: `${job.creatorName}さんの「${job.title}」があなたの${avail.dayOfWeek}曜日の手伝える時間と一致しています。`,
+      message: `${job.creatorName}さんの「${job.title}」があなたの${job.date}の手伝い設定と一致しています。`,
       jobId: job.id,
       isRead: false,
       createdAt: new Date(),
@@ -479,18 +480,16 @@ async function runAutoMatch(job: Job): Promise<void> {
 // マッチした募集を取得
 export async function fsGetMatchedJobsForUser(uid: string): Promise<Job[]> {
   const userAvails = await fsGetAvailabilitiesByUser(uid);
-  const activeAvails = userAvails.filter((a) => a.isActive);
+  const activeAvails = userAvails.filter((a) => a.isActive && a.date);
   if (activeAvails.length === 0) return [];
 
   const openJobs = await fsGetJobs("open");
 
   return openJobs.filter((job) => {
     if (job.creatorId === uid) return false;
-    const jobDate = new Date(job.date);
-    const jobDayOfWeek = DAY_MAP[jobDate.getDay()];
     return activeAvails.some(
       (avail) =>
-        avail.dayOfWeek === jobDayOfWeek &&
+        avail.date === job.date &&
         hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)
     );
   });

@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokenBalance: 10,
         equipmentList: [],
         crops: [],
+        status: 'active',
         createdAt: new Date(),
       };
 
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           tokenBalance: 10,
           equipmentList: [],
           crops: [],
+          status: 'active',
           createdAt: new Date(),
         };
         await fsCreateUser(profile);

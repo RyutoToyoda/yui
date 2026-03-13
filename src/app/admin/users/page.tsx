@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { fsGetAllUsers, fsSetAdminRole } from "@/lib/firestore-service";
 import { Search, User as UserIcon, Shield, MapPin, Coins } from "lucide-react";

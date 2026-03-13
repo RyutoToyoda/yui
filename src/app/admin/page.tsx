@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { fsGetAllUsers, fsGetJobs } from "@/lib/firestore-service";
 import { Users, Briefcase, CheckCircle2, TrendingUp } from "lucide-react";

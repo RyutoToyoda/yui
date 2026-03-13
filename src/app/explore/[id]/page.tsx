@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsDeleteJob, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";

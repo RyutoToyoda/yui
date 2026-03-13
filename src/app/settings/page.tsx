@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useAccessibility } from "@/contexts/AccessibilityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, Type, Sun, Eye, LogOut, Settings as SettingsIcon } from "lucide-react";

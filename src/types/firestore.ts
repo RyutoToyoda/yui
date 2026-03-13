@@ -18,6 +18,20 @@ export interface User {
   equipmentList: string[];
   equipmentSpecs?: EquipmentSpec[]; // 仕様付き農機具（後方互換で optional）
   crops: string[];
+  role?: 'admin' | 'user';
+  status: 'active' | 'inactive';
+  createdAt: Date;
+}
+
+export interface Ad {
+  id: string;
+  companyName: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  displayOrder: number;
+  isActive: boolean;
+  viewCount: number;
   createdAt: Date;
 }
 

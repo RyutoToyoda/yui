@@ -12,6 +12,7 @@ import {
   getJobTypeEmoji,
   getJobTypeLabel,
 } from "@/lib/firestore-service";
+import AdSection from "@/components/AdSection";
 import type { Job, Application, Transaction, Availability } from "@/types/firestore";
 import { Coins, CalendarDays, ArrowRight, TrendingUp, TrendingDown, Sparkles, Zap, Clock } from "lucide-react";
 import Link from "next/link";
@@ -239,6 +240,9 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* 広告セクション */}
+      <AdSection />
 
       {/* 最近のやりとり */}
       <section aria-labelledby="recent-heading">

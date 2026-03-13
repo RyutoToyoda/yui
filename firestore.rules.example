@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ユーザー情報の基本ルール
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 募集（Jobs）のルール
+    match /jobs/{jobId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // 応募（Applications）のルール
+    match /applications/{appId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 取引（Transactions）のルール
+    match /transactions/{txId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // スキマ時間（Availabilities）のルール
+    match /availabilities/{availId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 通知（Notifications）のルール
+    match /notifications/{notifId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // 【新規】広告（Ads）のルール
+    match /ads/{adId} {
+      // 誰でも読み取り可能（またはログイン済みユーザーのみ）
+      allow read: if true; 
+      // 管理者のみ書き込み可能（今回は簡易的にID等で判定するか、開発中は auth != null に設定）
+      allow write: if request.auth != null; 
+    }
+    
+    // 【新規】全ユーザーリスト（管理者用）の取得を許可
+    match /{path=**}/users/{userDoc} {
+      allow list: if request.auth != null;
+    }
+  }
+}

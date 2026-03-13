@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { PREFECTURES, getMunicipalities, isKantoPrefecture } from "@/lib/region-data";
 
 
@@ -313,11 +314,20 @@ export default function LoginPage() {
 
         <button
           onClick={handleGuestLogin}
-          className="w-full py-4 bg-white text-yui-green-700 text-lg font-bold rounded-2xl border-2 border-yui-green-200 hover:bg-yui-green-50 active:bg-yui-green-100 transition-colors shadow-sm"
+          className="w-full py-4 bg-white text-yui-green-700 text-lg font-bold rounded-2xl border-2 border-yui-green-200 hover:bg-yui-green-50 active:bg-yui-green-100 transition-colors shadow-sm mb-4"
           style={{ minHeight: "56px" }}
         >
           アカウント登録なしで試す
         </button>
+
+        <div className="text-center">
+          <Link
+            href="/admin/login"
+            className="text-xs text-yui-earth-400 hover:text-yui-green-600 font-bold transition-colors"
+          >
+            管理者としてログイン
+          </Link>
+        </div>
       </div>
 
       <p className="text-sm text-white/40 mt-8 tracking-wide">

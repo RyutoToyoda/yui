@@ -15,11 +15,13 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  const isAdminPath = pathname?.startsWith("/admin");
+
   useEffect(() => {
-    if (!isLoading && !isLoggedIn && pathname !== "/login") {
+    if (!isLoading && !isLoggedIn && pathname !== "/login" && !isAdminPath) {
       router.push("/login");
     }
-  }, [isLoggedIn, isLoading, pathname, router]);
+  }, [isLoggedIn, isLoading, pathname, router, isAdminPath]);
 
   // 初回ログイン時にオンボーディングを表示
   useEffect(() => {
@@ -47,11 +49,11 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isLoggedIn && pathname !== "/login") {
+  if (!isLoggedIn && pathname !== "/login" && !isAdminPath) {
     return null;
   }
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || isAdminPath) {
     return <>{children}</>;
   }
 

@@ -1,0 +1,64 @@
+// ==========================================
+// 1. Firestore セキュリティルール (データベース用)
+// ==========================================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ユーザー情報
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 募集（ジョブ）
+    match /jobs/{jobId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 応募（アプリケーション）
+    match /applications/{appId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 決済履歴（トランザクション）
+    match /transactions/{txnId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // スケジュール（スキマ時間）
+    match /availabilities/{availId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 通知
+    match /notifications/{notifId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 広告（Ads）
+    match /ads/{adId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
+
+// ==========================================
+// 2. Storage セキュリティルール (ファイル/画像用)
+// ==========================================
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // 広告画像（adsフォルダ）
+    match /ads/{allPaths=**} {
+      allow read: if true; // 全員に公開
+      allow write: if request.auth != null; // ログイン済みユーザーが管理
+    }
+
+    // その他すべてのファイル
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

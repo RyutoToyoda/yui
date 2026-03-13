@@ -1,0 +1,11 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /ads/{allPaths=**} {
+      // 誰でも閲覧可能
+      allow read: if true;
+      // ログイン済みユーザーなら作成・更新可能（管理者用）
+      allow write: if request.auth != null;
+    }
+  }
+}

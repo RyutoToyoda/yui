@@ -1,7 +1,3 @@
-// Firestore CRUD サービスレイヤー
-// demo-data.ts と同じインターフェースを提供し、Firestore に接続
-
-import { db } from "./firebase";
 import {
   collection,
   doc,
@@ -20,6 +16,7 @@ import {
   writeBatch,
   getCountFromServer,
 } from "firebase/firestore";
+import { db } from "./firebase";
 import type {
   User,
   Job,
@@ -29,6 +26,7 @@ import type {
   Availability,
   Notification,
   DayOfWeek,
+  Ad,
 } from "@/types/firestore";
 
 // ============================
@@ -53,6 +51,8 @@ function docToUser(data: any, uid: string): User {
     equipmentList: data.equipmentList ?? [],
     equipmentSpecs: data.equipmentSpecs ?? [],
     crops: data.crops ?? [],
+    role: data.role ?? 'user',
+    status: data.status ?? 'active',
     createdAt: toDate(data.createdAt),
   };
 }
@@ -138,6 +138,21 @@ function docToNotification(data: any, id: string): Notification {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function docToAd(data: any, id: string): Ad {
+  return {
+    id,
+    companyName: data.companyName ?? "",
+    title: data.title ?? "",
+    imageUrl: data.imageUrl ?? "",
+    linkUrl: data.linkUrl ?? "",
+    displayOrder: data.displayOrder ?? 0,
+    isActive: data.isActive ?? true,
+    viewCount: data.viewCount ?? 0,
+    createdAt: toDate(data.createdAt),
+  };
+}
+
 // ============================
 // Users
 // ============================
@@ -170,19 +185,31 @@ export async function fsUpdateUser(uid: string, updates: Partial<User>): Promise
   await updateDoc(doc(db, "users", uid), data);
 }
 
+export async function fsGetAllUsers(): Promise<User[]> {
+  const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => docToUser(d.data(), d.id));
+}
+
+export async function fsSetAdminRole(uid: string): Promise<void> {
+  await updateDoc(doc(db, "users", uid), { role: 'admin' });
+}
+
 // ============================
 // Jobs
 // ============================
 
 export async function fsGetJobs(status?: JobStatus): Promise<Job[]> {
-  let q;
-  if (status) {
-    q = query(collection(db, "jobs"), where("status", "==", status), orderBy("createdAt", "desc"));
-  } else {
-    q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
-  }
+  // 全データを取得（createdAtでソート）
+  const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => docToJob(d.data(), d.id));
+  const jobs = snap.docs.map((d) => docToJob(d.data(), d.id));
+  
+  // クライアントサイドでフィルタリング（インデックスエラー回避）
+  if (status) {
+    return jobs.filter(j => j.status === status);
+  }
+  return jobs;
 }
 
 export async function fsGetJob(id: string): Promise<Job | null> {
@@ -652,6 +679,52 @@ export async function fsGetMatchedJobsForUser(uid: string): Promise<Job[]> {
         hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)
     );
   });
+}
+
+// ============================
+// Ads (管理者用)
+// ============================
+
+export async function fsGetAds(onlyActive: boolean = false): Promise<Ad[]> {
+  const q = query(collection(db, "ads"), orderBy("displayOrder", "asc"));
+  const snap = await getDocs(q);
+  const ads = snap.docs.map(d => docToAd(d.data(), d.id));
+  if (onlyActive) {
+    return ads.filter(ad => ad.isActive);
+  }
+  return ads;
+}
+
+export async function fsUpsertAd(ad: Partial<Ad>): Promise<string> {
+  const data = {
+    ...ad,
+    updatedAt: Timestamp.fromDate(new Date()),
+  };
+  delete data.id;
+  
+  if (!ad.id) {
+    (data as any).createdAt = Timestamp.fromDate(new Date());
+    (data as any).viewCount = 0;
+    const ref = await addDoc(collection(db, "ads"), data);
+    return ref.id;
+  } else {
+    await updateDoc(doc(db, "ads", ad.id), data);
+    return ad.id;
+  }
+}
+
+export async function fsIncrementAdView(id: string): Promise<void> {
+  // 簡易的なインクリメント（本来は increment() を使用すべき）
+  const ref = doc(db, "ads", id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const current = snap.data().viewCount ?? 0;
+    await updateDoc(ref, { viewCount: current + 1 });
+  }
+}
+
+export async function fsDeleteAd(id: string): Promise<void> {
+  await deleteDoc(doc(db, "ads", id));
 }
 
 // ============================

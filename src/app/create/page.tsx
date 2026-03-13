@@ -279,8 +279,11 @@ export default function CreatePage() {
             </label>
             <div className="flex flex-wrap gap-2 mb-3">
               {ratePresets.filter(preset => {
-                if (selectedType === "labor") return preset.label !== "農機具＋人";
-                if (selectedType === "equipment") return preset.label === "農機具＋人";
+                if (selectedType === "labor") {
+                  return preset.rate === 1 || preset.rate === 1.5 || preset.rate === 2;
+                } else if (selectedType === "equipment" || selectedType === "hybrid") {
+                  return preset.rate === 4;
+                }
                 return true;
               }).map((preset) => (
                 <button

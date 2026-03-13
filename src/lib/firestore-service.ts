@@ -230,6 +230,10 @@ export async function fsUpdateJob(id: string, updates: Partial<Job>): Promise<vo
   await updateDoc(doc(db, "jobs", id), data);
 }
 
+export async function fsDeleteJob(id: string): Promise<void> {
+  await deleteDoc(doc(db, "jobs", id));
+}
+
 // ============================
 // Applications
 // ============================
@@ -371,10 +375,16 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
       const creatorBalance = Number(creatorData.tokenBalance || 0);
 
       // 1人あたりの獲得ポイント = 基準レート(ポイント/時) × 作業時間(h)
+      // Note: form values store hours/mins sometimes as strings. Use String().split() guarantees.
       const tokenRate = Number(jobData.tokenRatePerHour || 1);
-      const start = (jobData.startTime as string).split(":").map(Number);
-      const end = (jobData.endTime as string).split(":").map(Number);
-      const hours = Number((end[0] * 60 + end[1] - start[0] * 60 - start[1]) / 60);
+      const start = String(jobData.startTime || "00:00").split(":").map(Number);
+      const end = String(jobData.endTime || "00:00").split(":").map(Number);
+      const startH = isNaN(start[0]) ? 0 : start[0];
+      const startM = isNaN(start[1]) ? 0 : start[1];
+      const endH = isNaN(end[0]) ? 0 : end[0];
+      const endM = isNaN(end[1]) ? 0 : end[1];
+      
+      const hours = Number((endH * 60 + endM - startH * 60 - startM) / 60);
       const pointsPerPerson = Math.max(0, Math.round(hours * tokenRate * 10) / 10);
       
       // 募集者の総支払ポイント = (基準レート × 作業時間) × 参加人数

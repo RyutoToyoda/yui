@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
+import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsDeleteJob, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
-import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Job, Application } from "@/types/firestore";
@@ -91,6 +91,19 @@ export default function JobDetailPage() {
     });
     setShowConfirm(false);
     setApplied(true);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm("本当にこの募集を削除しますか？")) {
+      try {
+        await fsDeleteJob(job.id);
+        alert("募集を削除しました");
+        router.push("/explore");
+      } catch (e) {
+        console.error(e);
+        alert("削除に失敗しました");
+      }
+    }
   };
 
   return (
@@ -236,13 +249,23 @@ export default function JobDetailPage() {
       {isOwner && (
         <div className="bg-yui-earth-100 rounded-xl p-5 text-center">
           <p className="text-sm text-yui-earth-600 font-medium">これはあなたが作った募集です</p>
-          <Link
-            href="/schedule"
-            className="text-sm text-yui-green-600 font-bold mt-2 inline-block no-underline"
-            style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}
-          >
-            手を挙げてくれた方の確認は「予定」から →
-          </Link>
+          <div className="flex flex-col gap-3 mt-4">
+            <Link
+              href="/schedule"
+              className="text-sm bg-white text-yui-green-600 border border-yui-green-200 font-bold px-4 py-3 rounded-xl no-underline hover:bg-yui-green-50 transition-colors"
+              style={{ minHeight: "44px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+            >
+              手を挙げてくれた方の確認は「予定」から →
+            </Link>
+            <button
+              onClick={handleDelete}
+              className="flex items-center justify-center gap-2 text-sm bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 border border-red-200 transition-colors"
+              style={{ minHeight: "44px" }}
+            >
+              <Trash2 className="w-5 h-5" aria-hidden="true" />
+              この募集を削除する
+            </button>
+          </div>
         </div>
       )}
 

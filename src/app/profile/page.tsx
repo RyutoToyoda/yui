@@ -9,11 +9,13 @@ import {
   fsDeleteAvailability,
   fsUpdateAvailability,
 } from "@/lib/firestore-service";
-import type { Availability, DayOfWeek } from "@/types/firestore";
+import type { Availability, DayOfWeek, EquipmentSpec } from "@/types/firestore";
 import { useRouter } from "next/navigation";
-import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout, CalendarDays } from "lucide-react";
+import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout, CalendarDays, ChevronDown, Check } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { EQUIPMENT_MASTER } from "@/lib/equipment-data";
+import { PREFECTURES, getMunicipalities } from "@/lib/region-data";
 
 const DAYS_OF_WEEK: DayOfWeek[] = ["月", "火", "水", "木", "金", "土", "日"];
 const EQUIPMENT_PRESETS = ["トラクター", "軽トラック", "草刈機", "コンバイン", "田植え機", "軽バン", "動噴"];
@@ -28,6 +30,17 @@ export default function ProfilePage() {
   const [showAddCrop, setShowAddCrop] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 農機具仕様入力用ステート
+  const [specTarget, setSpecTarget] = useState<string | null>(null); // 仕様入力中の農機具名
+  const [specHorsepower, setSpecHorsepower] = useState("");
+  const [specAttachments, setSpecAttachments] = useState<string[]>([]);
+
+  // 地域編集用ステート
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [editPrefecture, setEditPrefecture] = useState("");
+  const [editMunicipality, setEditMunicipality] = useState("");
+  const editMunicipalities = editPrefecture ? getMunicipalities(editPrefecture) : [];
 
   useEffect(() => {
     if (user) {
@@ -48,11 +61,37 @@ export default function ProfilePage() {
   const handleAddEquipment = async (eqName: string = newEquipment) => {
     if (!eqName.trim()) return;
     if (user.equipmentList?.includes(eqName.trim())) return;
+
+    // 仕様入力が必要な農機具かチェック
+    const master = EQUIPMENT_MASTER.find(m => m.name === eqName.trim());
+    if (master?.hasSpecs && !specTarget) {
+      // 仕様入力ダイアログを表示
+      setSpecTarget(eqName.trim());
+      setSpecHorsepower("");
+      setSpecAttachments([]);
+      return;
+    }
+
     const updated = [...(user.equipmentList || []), eqName.trim()];
     await fsUpdateUser(user.uid, { equipmentList: updated });
+
+    // 仕様があれば保存
+    if (specTarget && master?.hasSpecs) {
+      const newSpec: EquipmentSpec = {
+        equipmentId: master.id,
+        horsepower: specHorsepower || undefined,
+        attachments: specAttachments.length > 0 ? specAttachments : undefined,
+      };
+      const updatedSpecs = [...(user.equipmentSpecs || []), newSpec];
+      await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs as unknown as undefined });
+    }
+
     refreshUser();
     setNewEquipment("");
     setShowAddEquipment(false);
+    setSpecTarget(null);
+    setSpecHorsepower("");
+    setSpecAttachments([]);
   };
 
   const handleRemoveEquipment = async (index: number) => {
@@ -106,9 +145,71 @@ export default function ProfilePage() {
         <div className="p-5 space-y-4">
           <div className="flex items-center gap-3">
             <MapPin className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
-            <div>
+            <div className="flex-1">
               <p className="text-xs text-yui-earth-500 font-medium">お住まいの地域</p>
-              <p className="text-sm font-bold text-yui-green-800">{user.location || "まだ設定していません"}</p>
+              {editingLocation ? (
+                <div className="mt-1 space-y-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <select
+                      value={editPrefecture}
+                      onChange={(e) => { setEditPrefecture(e.target.value); setEditMunicipality(""); }}
+                      className="flex-1 px-3 py-2 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white"
+                    >
+                      <option value="">都道府県を選ぶ</option>
+                      {PREFECTURES.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <select
+                      value={editMunicipality}
+                      onChange={(e) => setEditMunicipality(e.target.value)}
+                      disabled={!editPrefecture || editMunicipalities.length === 0}
+                      className="flex-1 px-3 py-2 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                    >
+                      <option value="">{!editPrefecture ? "先に県を選ぶ" : editMunicipalities.length > 0 ? "市町村を選ぶ" : "データなし"}</option>
+                      {editMunicipalities.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        const loc = [editPrefecture, editMunicipality].filter(Boolean).join(" ");
+                        if (loc) {
+                          await fsUpdateUser(user.uid, { location: loc });
+                          refreshUser();
+                        }
+                        setEditingLocation(false);
+                      }}
+                      className="px-4 py-2 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors"
+                      style={{ minHeight: "40px" }}
+                    >
+                      保存
+                    </button>
+                    <button
+                      onClick={() => setEditingLocation(false)}
+                      className="px-4 py-2 bg-yui-earth-100 text-yui-earth-600 text-sm font-bold rounded-lg hover:bg-yui-earth-200 transition-colors"
+                      style={{ minHeight: "40px" }}
+                    >
+                      やめる
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-yui-green-800">{user.location || "まだ設定していません"}</p>
+                  <button
+                    onClick={() => {
+                      // 既存のlocationから都道府県と市町村をパース
+                      const parts = (user.location || "").split(" ");
+                      setEditPrefecture(parts[0] || "");
+                      setEditMunicipality(parts[1] || "");
+                      setEditingLocation(true);
+                    }}
+                    className="text-xs text-yui-green-600 font-bold hover:text-yui-green-800 transition-colors"
+                    style={{ minHeight: "32px", display: "inline-flex", alignItems: "center" }}
+                  >
+                    変更する
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -204,23 +305,107 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {user.equipmentList && user.equipmentList.length > 0 ? (
-          <div className="space-y-2">
-            {user.equipmentList.map((eq, i) => (
-              <div key={i} className="flex items-center justify-between bg-yui-green-50 rounded-xl px-4 py-4 border border-yui-green-100">
-                <div className="flex items-center gap-2">
-                  <Wrench className="w-5 h-5 text-yui-green-500" aria-hidden="true" />
-                  <span className="text-sm font-bold text-yui-green-800">{eq}</span>
+        {/* 仕様入力ダイアログ（トラクター等の場合） */}
+        {specTarget && (() => {
+          const master = EQUIPMENT_MASTER.find(m => m.name === specTarget);
+          if (!master) return null;
+          return (
+            <div className="bg-amber-50 p-4 rounded-xl border-2 border-amber-200 mb-4 space-y-3">
+              <p className="text-sm font-bold text-yui-green-800">
+                🔧 {specTarget} の仕様を入力
+              </p>
+              {master.horsepowerOptions && master.horsepowerOptions.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-yui-earth-600 mb-1">馬力・規格</p>
+                  <select
+                    value={specHorsepower}
+                    onChange={(e) => setSpecHorsepower(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border-2 border-yui-green-200 rounded-lg bg-white focus:border-yui-green-500 focus:outline-none"
+                  >
+                    <option value="">選択してください</option>
+                    {master.horsepowerOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 </div>
+              )}
+              {master.attachmentOptions && master.attachmentOptions.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-yui-earth-600 mb-1">アタッチメント</p>
+                  <div className="flex flex-wrap gap-2">
+                    {master.attachmentOptions.map(att => {
+                      const selected = specAttachments.includes(att);
+                      return (
+                        <button
+                          key={att}
+                          type="button"
+                          onClick={() => {
+                            setSpecAttachments(prev =>
+                              selected ? prev.filter(a => a !== att) : [...prev, att]
+                            );
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${
+                            selected
+                              ? "bg-yui-green-600 text-white border-yui-green-600"
+                              : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"
+                          }`}
+                        >
+                          {selected && <Check className="w-3 h-3 inline mr-1" />}{att}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => setConfirmDelete({ type: "equipment", index: i })}
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors"
-                  aria-label={`${eq}を削除する`}
+                  onClick={() => handleAddEquipment(specTarget)}
+                  className="px-5 py-2.5 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors"
+                  style={{ minHeight: "44px" }}
                 >
-                  <X className="w-5 h-5" aria-hidden="true" />
+                  この仕様で追加する
+                </button>
+                <button
+                  onClick={() => { setSpecTarget(null); setSpecHorsepower(""); setSpecAttachments([]); }}
+                  className="px-4 py-2.5 bg-yui-earth-100 text-yui-earth-600 text-sm font-bold rounded-lg hover:bg-yui-earth-200 transition-colors"
+                  style={{ minHeight: "44px" }}
+                >
+                  やめる
                 </button>
               </div>
-            ))}
+            </div>
+          );
+        })()}
+
+        {user.equipmentList && user.equipmentList.length > 0 ? (
+          <div className="space-y-2">
+            {user.equipmentList.map((eq, i) => {
+              // 仕様情報を取得
+              const master = EQUIPMENT_MASTER.find(m => m.name === eq);
+              const spec = user.equipmentSpecs?.find(s => s.equipmentId === master?.id);
+              return (
+                <div key={i} className="flex items-center justify-between bg-yui-green-50 rounded-xl px-4 py-4 border border-yui-green-100">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Wrench className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <span className="text-sm font-bold text-yui-green-800">{eq}</span>
+                      {spec && (spec.horsepower || (spec.attachments && spec.attachments.length > 0)) && (
+                        <p className="text-xs text-yui-earth-500 mt-0.5 truncate">
+                          {[spec.horsepower, spec.attachments?.join("・")].filter(Boolean).join(" / ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setConfirmDelete({ type: "equipment", index: i })}
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors shrink-0"
+                    aria-label={`${eq}を削除する`}
+                  >
+                    <X className="w-5 h-5" aria-hidden="true" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <p className="text-sm text-yui-earth-500 text-center py-3 font-medium">農機具は登録されていません</p>

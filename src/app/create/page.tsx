@@ -190,6 +190,16 @@ export default function CreatePage() {
             );
           })}
         </div>
+
+        {/* カテゴリ選択時の基準レート表示 */}
+        {selectedType && (
+          <div className="flex items-center gap-2 bg-yui-green-50 border border-yui-green-200 rounded-xl px-4 py-3">
+            <Coins className="w-5 h-5 text-yui-accent" aria-hidden="true" />
+            <span className="text-sm font-bold text-yui-green-800">
+              このカテゴリの基準レート: {jobTypes.find(jt => jt.type === selectedType)?.defaultRate ?? 1} P/時間
+            </span>
+          </div>
+        )}
       </section>
 
       {selectedType && (
@@ -224,8 +234,8 @@ export default function CreatePage() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
               <label htmlFor="job-start" className="block text-sm font-bold text-yui-green-800 mb-2">はじまり</label>
               <input
                 id="job-start"
@@ -235,7 +245,7 @@ export default function CreatePage() {
                 className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
               />
             </div>
-            <div>
+            <div className="flex-1">
               <label htmlFor="job-end" className="block text-sm font-bold text-yui-green-800 mb-2">おわり</label>
               <input
                 id="job-end"

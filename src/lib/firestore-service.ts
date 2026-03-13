@@ -73,6 +73,7 @@ function docToJob(data: any, id: string): Job {
     totalTokens: data.totalTokens ?? 0,
     requiredPeople: data.requiredPeople ?? 0,
     equipmentNeeded: data.equipmentNeeded ?? "",
+    location: data.location ?? "",
     status: data.status ?? "open",
     createdAt: toDate(data.createdAt),
   };
@@ -210,6 +211,7 @@ export async function fsCreateJob(job: Omit<Job, "id"> & { id?: string }): Promi
     totalTokens: job.totalTokens,
     requiredPeople: job.requiredPeople,
     equipmentNeeded: job.equipmentNeeded,
+    location: job.location,
     status: job.status,
     createdAt: Timestamp.fromDate(job.createdAt instanceof Date ? job.createdAt : new Date()),
   };

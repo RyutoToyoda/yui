@@ -38,6 +38,7 @@ export interface Job {
   totalTokens: number;
   requiredPeople: number;
   equipmentNeeded: string;
+  location: string;
   status: JobStatus;
   createdAt: Date;
 }

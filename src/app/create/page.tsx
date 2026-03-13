@@ -55,6 +55,7 @@ export default function CreatePage() {
   const [tokenRate, setTokenRate] = useState(1);
   const [requiredPeople, setRequiredPeople] = useState(1);
   const [equipmentNeeded, setEquipmentNeeded] = useState("");
+  const [location, setLocation] = useState(user?.location || "");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
@@ -76,8 +77,8 @@ export default function CreatePage() {
       setError("募集の種類を選んでください");
       return;
     }
-    if (!title || !date) {
-      setError("タイトルと日付は必ず入力してください");
+    if (!title || !date || !location) {
+      setError("タイトル、日付、作業場所は必ず入力してください");
       return;
     }
 
@@ -100,6 +101,7 @@ export default function CreatePage() {
       totalTokens,
       requiredPeople: selectedType === "equipment" ? 0 : requiredPeople,
       equipmentNeeded,
+      location,
       status: "open",
       createdAt: new Date(),
     });
@@ -190,7 +192,23 @@ export default function CreatePage() {
               required
             />
           </div>
-
+ 
+          {/* 作業場所 */}
+          <div>
+            <label htmlFor="job-location" className="block text-sm font-bold text-yui-green-800 mb-2">
+              作業場所 <span className="text-yui-danger font-bold">（必ず入力）</span>
+            </label>
+            <input
+              id="job-location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="例：〇〇農園の西側の田んぼ"
+              className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
+              required
+            />
+          </div>
+ 
           {/* 日付と時間 */}
           <div>
             <label htmlFor="job-date" className="block text-sm font-bold text-yui-green-800 mb-2">
@@ -363,7 +381,7 @@ export default function CreatePage() {
       <ConfirmDialog
         isOpen={showConfirm}
         title="この内容で募集しますか？"
-        message={`「${title}」を${date}に ${calculateTotalTokens()}ポイントで募集します。よろしいですか？`}
+        message={`「${title}」を${date}に${location ? `（場所：${location}）` : ""} ${calculateTotalTokens()}ポイントで募集します。よろしいですか？`}
         confirmLabel="募集を作成する"
         cancelLabel="もう一度たしかめる"
         onConfirm={handleSubmit}

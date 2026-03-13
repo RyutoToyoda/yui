@@ -157,7 +157,7 @@ export default function SchedulePage() {
       await loadData();
     } catch (e: any) {
       console.error("ポイント決済エラー:", e);
-      alert("ポイントの決済に失敗しました。残高が不足している可能性があります。");
+      alert(`ポイントの決済に失敗しました。\n原因: ${e.message || "残高が不足している可能性があります。"}`);
       setConfirmAction(null);
     }
   };

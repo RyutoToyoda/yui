@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
-import { PREFECTURES, getMunicipalities } from "@/lib/region-data";
+import { PREFECTURES, getMunicipalities, isKantoPrefecture } from "@/lib/region-data";
 
 
 export default function LoginPage() {
@@ -230,7 +230,7 @@ export default function LoginPage() {
               <label htmlFor="reg-prefecture" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 お住まいの地域
               </label>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="space-y-3">
                 <select
                   id="reg-prefecture"
                   value={prefecture}
@@ -245,18 +245,30 @@ export default function LoginPage() {
                     <option key={pref} value={pref}>{pref}</option>
                   ))}
                 </select>
-                <select
-                  id="reg-municipality"
-                  value={municipality}
-                  onChange={(e) => setMunicipality(e.target.value)}
-                  disabled={!prefecture || municipalities.length === 0}
-                  className={`${inputClass} disabled:bg-yui-earth-50 disabled:text-yui-earth-300`}
-                >
-                  <option value="">{!prefecture ? "先に都道府県を選ぶ" : municipalities.length > 0 ? "市町村を選ぶ" : "市町村データなし"}</option>
-                  {municipalities.map(muni => (
-                    <option key={muni} value={muni}>{muni}</option>
-                  ))}
-                </select>
+                {prefecture && (
+                  isKantoPrefecture(prefecture) ? (
+                    <select
+                      id="reg-municipality"
+                      value={municipality}
+                      onChange={(e) => setMunicipality(e.target.value)}
+                      className={`${inputClass} disabled:bg-yui-earth-50 disabled:text-yui-earth-300`}
+                    >
+                      <option value="">市町村を選ぶ</option>
+                      {municipalities.map(muni => (
+                        <option key={muni} value={muni}>{muni}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      id="reg-municipality"
+                      type="text"
+                      value={municipality}
+                      onChange={(e) => setMunicipality(e.target.value)}
+                      placeholder="（例）〇〇市"
+                      className={inputClass}
+                    />
+                  )
+                )}
               </div>
             </div>
             <div>

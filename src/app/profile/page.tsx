@@ -14,8 +14,9 @@ import { useRouter } from "next/navigation";
 import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout, CalendarDays, ChevronDown, Check } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import MultiSelectTag from "@/components/MultiSelectTag";
 import { EQUIPMENT_MASTER } from "@/lib/equipment-data";
-import { PREFECTURES, getMunicipalities } from "@/lib/region-data";
+import { PREFECTURES, getMunicipalities, isKantoPrefecture } from "@/lib/region-data";
 
 const DAYS_OF_WEEK: DayOfWeek[] = ["月", "火", "水", "木", "金", "土", "日"];
 const EQUIPMENT_PRESETS = ["トラクター", "軽トラック", "草刈機", "コンバイン", "田植え機", "軽バン", "動噴"];
@@ -24,10 +25,6 @@ const CROP_PRESETS = ["米", "トマト", "きゅうり", "ナス", "キャベ�
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const router = useRouter();
-  const [newEquipment, setNewEquipment] = useState("");
-  const [showAddEquipment, setShowAddEquipment] = useState(false);
-  const [newCrop, setNewCrop] = useState("");
-  const [showAddCrop, setShowAddCrop] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,14 +55,13 @@ export default function ProfilePage() {
   }
 
 
-  const handleAddEquipment = async (eqName: string = newEquipment) => {
+  const handleAddEquipment = async (eqName: string) => {
     if (!eqName.trim()) return;
     if (user.equipmentList?.includes(eqName.trim())) return;
 
     // 仕様入力が必要な農機具かチェック
     const master = EQUIPMENT_MASTER.find(m => m.name === eqName.trim());
     if (master?.hasSpecs && !specTarget) {
-      // 仕様入力ダイアログを表示
       setSpecTarget(eqName.trim());
       setSpecHorsepower("");
       setSpecAttachments([]);
@@ -75,47 +71,49 @@ export default function ProfilePage() {
     const updated = [...(user.equipmentList || []), eqName.trim()];
     await fsUpdateUser(user.uid, { equipmentList: updated });
 
-    // 仕様があれば保存
     if (specTarget && master?.hasSpecs) {
-      const newSpec: EquipmentSpec = {
+      const newSpec = {
         equipmentId: master.id,
-        horsepower: specHorsepower || undefined,
-        attachments: specAttachments.length > 0 ? specAttachments : undefined,
+        horsepower: specHorsepower || null,
+        attachments: specAttachments.length > 0 ? specAttachments : null,
       };
       const updatedSpecs = [...(user.equipmentSpecs || []), newSpec];
-      await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs as unknown as undefined });
+      await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs } as Record<string, unknown>);
     }
 
     refreshUser();
-    setNewEquipment("");
-    setShowAddEquipment(false);
     setSpecTarget(null);
     setSpecHorsepower("");
     setSpecAttachments([]);
   };
 
   const handleRemoveEquipment = async (index: number) => {
+    const eq = user.equipmentList?.[index];
     const updated = (user.equipmentList || []).filter((_, i) => i !== index);
     await fsUpdateUser(user.uid, { equipmentList: updated });
+    // 対応する仕様も削除
+    if (eq) {
+      const master = EQUIPMENT_MASTER.find(m => m.name === eq);
+      if (master && user.equipmentSpecs) {
+        const updatedSpecs = user.equipmentSpecs.filter(s => s.equipmentId !== master.id);
+        await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs } as Record<string, unknown>);
+      }
+    }
     refreshUser();
-    setConfirmDelete(null);
   };
 
-  const handleAddCrop = async (cropName: string = newCrop) => {
+  const handleAddCrop = async (cropName: string) => {
     if (!cropName.trim()) return;
     if (user.crops?.includes(cropName.trim())) return;
     const updated = [...(user.crops || []), cropName.trim()];
     await fsUpdateUser(user.uid, { crops: updated });
     refreshUser();
-    setNewCrop("");
-    setShowAddCrop(false);
   };
 
   const handleRemoveCrop = async (index: number) => {
     const updated = (user.crops || []).filter((_, i) => i !== index);
     await fsUpdateUser(user.uid, { crops: updated });
     refreshUser();
-    setConfirmDelete(null);
   };
 
   return (
@@ -148,25 +146,36 @@ export default function ProfilePage() {
             <div className="flex-1">
               <p className="text-xs text-yui-earth-500 font-medium">お住まいの地域</p>
               {editingLocation ? (
-                <div className="mt-1 space-y-2">
-                  <div className="flex flex-col sm:flex-row gap-2">
+                <div className="mt-1 space-y-3">
+                  <div className="space-y-2">
                     <select
                       value={editPrefecture}
                       onChange={(e) => { setEditPrefecture(e.target.value); setEditMunicipality(""); }}
-                      className="flex-1 px-3 py-2 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white"
+                      className="w-full px-3 py-3 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white"
                     >
                       <option value="">都道府県を選ぶ</option>
                       {PREFECTURES.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <select
-                      value={editMunicipality}
-                      onChange={(e) => setEditMunicipality(e.target.value)}
-                      disabled={!editPrefecture || editMunicipalities.length === 0}
-                      className="flex-1 px-3 py-2 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white disabled:bg-gray-50 disabled:text-gray-400"
-                    >
-                      <option value="">{!editPrefecture ? "先に県を選ぶ" : editMunicipalities.length > 0 ? "市町村を選ぶ" : "データなし"}</option>
-                      {editMunicipalities.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                    {editPrefecture && (
+                      isKantoPrefecture(editPrefecture) ? (
+                        <select
+                          value={editMunicipality}
+                          onChange={(e) => setEditMunicipality(e.target.value)}
+                          className="w-full px-3 py-3 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white"
+                        >
+                          <option value="">市町村を選ぶ</option>
+                          {editMunicipalities.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={editMunicipality}
+                          onChange={(e) => setEditMunicipality(e.target.value)}
+                          placeholder="（例）〇〇市"
+                          className="w-full px-3 py-3 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white"
+                        />
+                      )
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -245,72 +254,25 @@ export default function ProfilePage() {
 
       {/* 所有農機具 */}
       <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2">
-            <Tractor className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> もっている農機具
-          </h2>
-          <button
-            onClick={() => setShowAddEquipment(!showAddEquipment)}
-            className="w-12 h-12 rounded-full bg-yui-green-100 text-yui-green-600 flex items-center justify-center hover:bg-yui-green-200 transition-colors"
-            aria-label="農機具を追加する"
-          >
-            <Plus className="w-5 h-5" aria-hidden="true" />
-          </button>
-        </div>
+        <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2 mb-3">
+          <Tractor className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> もっている農機具
+        </h2>
 
-        {showAddEquipment && (
-          <div className="bg-yui-green-50/50 p-4 rounded-xl border border-yui-green-100 mb-4 space-y-4">
-            <div>
-              <p className="text-xs font-bold text-yui-green-800 mb-2">よく使われる農機具からえらぶ</p>
-              <div className="flex flex-wrap gap-2">
-                {EQUIPMENT_PRESETS.map(eq => (
-                  <button
-                    key={eq}
-                    onClick={() => handleAddEquipment(eq)}
-                    disabled={user.equipmentList?.includes(eq)}
-                    className="px-3 py-1.5 bg-white border border-yui-green-200 text-sm font-bold text-yui-green-700 rounded-lg hover:bg-yui-green-50 transition-colors disabled:opacity-50 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200"
-                  >
-                    {eq}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <p className="text-xs font-bold text-yui-green-800 mb-2">その他（自由入力）</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newEquipment}
-                  onChange={(e) => setNewEquipment(e.target.value)}
-                  placeholder="例：耕うん機"
-                  className="flex-1 px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
-                  onKeyDown={(e) => {
-                    if (e.nativeEvent.isComposing) return;
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddEquipment();
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => handleAddEquipment(newEquipment)}
-                  className="px-5 py-3 bg-yui-green-600 text-white text-base font-bold rounded-xl hover:bg-yui-green-700 transition-colors shrink-0"
-                  style={{ minHeight: "48px" }}
-                >
-                  追加
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <MultiSelectTag
+          selectedItems={user.equipmentList || []}
+          presetOptions={EQUIPMENT_PRESETS}
+          placeholder="例：耕うん機"
+          label="農機具"
+          onAdd={handleAddEquipment}
+          onRemove={handleRemoveEquipment}
+        />
 
         {/* 仕様入力ダイアログ（トラクター等の場合） */}
         {specTarget && (() => {
           const master = EQUIPMENT_MASTER.find(m => m.name === specTarget);
           if (!master) return null;
           return (
-            <div className="bg-amber-50 p-4 rounded-xl border-2 border-amber-200 mb-4 space-y-3">
+            <div className="bg-amber-50 p-4 rounded-xl border-2 border-amber-200 mt-3 space-y-3">
               <p className="text-sm font-bold text-yui-green-800">
                 🔧 {specTarget} の仕様を入力
               </p>
@@ -376,125 +338,22 @@ export default function ProfilePage() {
             </div>
           );
         })()}
-
-        {user.equipmentList && user.equipmentList.length > 0 ? (
-          <div className="space-y-2">
-            {user.equipmentList.map((eq, i) => {
-              // 仕様情報を取得
-              const master = EQUIPMENT_MASTER.find(m => m.name === eq);
-              const spec = user.equipmentSpecs?.find(s => s.equipmentId === master?.id);
-              return (
-                <div key={i} className="flex items-center justify-between bg-yui-green-50 rounded-xl px-4 py-4 border border-yui-green-100">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Wrench className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
-                    <div className="min-w-0">
-                      <span className="text-sm font-bold text-yui-green-800">{eq}</span>
-                      {spec && (spec.horsepower || (spec.attachments && spec.attachments.length > 0)) && (
-                        <p className="text-xs text-yui-earth-500 mt-0.5 truncate">
-                          {[spec.horsepower, spec.attachments?.join("・")].filter(Boolean).join(" / ")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setConfirmDelete({ type: "equipment", index: i })}
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors shrink-0"
-                    aria-label={`${eq}を削除する`}
-                  >
-                    <X className="w-5 h-5" aria-hidden="true" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-yui-earth-500 text-center py-3 font-medium">農機具は登録されていません</p>
-        )}
       </div>
 
       {/* 育てている作物 */}
       <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2">
-            <Sprout className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> 育てている作物
-          </h2>
-          <button
-            onClick={() => setShowAddCrop(!showAddCrop)}
-            className="w-12 h-12 rounded-full bg-yui-green-100 text-yui-green-600 flex items-center justify-center hover:bg-yui-green-200 transition-colors"
-            aria-label="作物を追加する"
-          >
-            <Plus className="w-5 h-5" aria-hidden="true" />
-          </button>
-        </div>
+        <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2 mb-3">
+          <Sprout className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> 育てている作物
+        </h2>
 
-        {showAddCrop && (
-          <div className="bg-yui-green-50/50 p-4 rounded-xl border border-yui-green-100 mb-4 space-y-4">
-            <div>
-              <p className="text-xs font-bold text-yui-green-800 mb-2">よく栽培される作物からえらぶ</p>
-              <div className="flex flex-wrap gap-2">
-                {CROP_PRESETS.map(crop => (
-                  <button
-                    key={crop}
-                    onClick={() => handleAddCrop(crop)}
-                    disabled={user.crops?.includes(crop)}
-                    className="px-3 py-1.5 bg-white border border-yui-green-200 text-sm font-bold text-yui-green-700 rounded-lg hover:bg-yui-green-50 transition-colors disabled:opacity-50 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200"
-                  >
-                    {crop}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <p className="text-xs font-bold text-yui-green-800 mb-2">その他（自由入力）</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newCrop}
-                  onChange={(e) => setNewCrop(e.target.value)}
-                  placeholder="例：アスパラガス"
-                  className="flex-1 px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
-                  onKeyDown={(e) => {
-                    if (e.nativeEvent.isComposing) return;
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCrop();
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => handleAddCrop(newCrop)}
-                  className="px-5 py-3 bg-yui-green-600 text-white text-base font-bold rounded-xl hover:bg-yui-green-700 transition-colors shrink-0"
-                  style={{ minHeight: "48px" }}
-                >
-                  追加
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {user.crops && user.crops.length > 0 ? (
-          <div className="space-y-2">
-            {user.crops.map((crop, i) => (
-              <div key={i} className="flex items-center justify-between bg-yui-green-50 rounded-xl px-4 py-4 border border-yui-green-100">
-                <div className="flex items-center gap-2">
-                  <Sprout className="w-5 h-5 text-yui-green-500" aria-hidden="true" />
-                  <span className="text-sm font-bold text-yui-green-800">{crop}</span>
-                </div>
-                <button
-                  onClick={() => setConfirmDelete({ type: "crop", index: i })}
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-yui-earth-500 hover:bg-red-50 hover:text-yui-danger transition-colors"
-                  aria-label={`${crop}を削除する`}
-                >
-                  <X className="w-5 h-5" aria-hidden="true" />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-yui-earth-500 text-center py-3 font-medium">作物は登録されていません</p>
-        )}
+        <MultiSelectTag
+          selectedItems={user.crops || []}
+          presetOptions={CROP_PRESETS}
+          placeholder="例：アスパラガス"
+          label="作物"
+          onAdd={handleAddCrop}
+          onRemove={handleRemoveCrop}
+        />
       </div>
 
       {/* 確認ダイアログ群 */}
@@ -506,7 +365,7 @@ export default function ProfilePage() {
           confirmLabel="削除する"
           cancelLabel="やめておく"
           variant="danger"
-          onConfirm={() => handleRemoveEquipment(confirmDelete.index!)}
+          onConfirm={() => { handleRemoveEquipment(confirmDelete.index!); setConfirmDelete(null); }}
           onCancel={() => setConfirmDelete(null)}
         />
       )}
@@ -518,7 +377,7 @@ export default function ProfilePage() {
           confirmLabel="削除する"
           cancelLabel="やめておく"
           variant="danger"
-          onConfirm={() => handleRemoveCrop(confirmDelete.index!)}
+          onConfirm={() => { handleRemoveCrop(confirmDelete.index!); setConfirmDelete(null); }}
           onCancel={() => setConfirmDelete(null)}
         />
       )}

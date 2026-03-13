@@ -368,21 +368,26 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
       const creatorSnap = await transaction.get(creatorRef);
       if (!creatorSnap.exists()) throw new Error("Creator not found");
       const creatorData = creatorSnap.data();
-      const creatorBalance = creatorData.tokenBalance ?? 0;
+      const creatorBalance = Number(creatorData.tokenBalance || 0);
 
       // 1人あたりの獲得ポイント = 基準レート(ポイント/時) × 作業時間(h)
-      const tokenRate = jobData.tokenRatePerHour ?? 1;
+      const tokenRate = Number(jobData.tokenRatePerHour || 1);
       const start = (jobData.startTime as string).split(":").map(Number);
       const end = (jobData.endTime as string).split(":").map(Number);
-      const hours = (end[0] * 60 + end[1] - start[0] * 60 - start[1]) / 60;
+      const hours = Number((end[0] * 60 + end[1] - start[0] * 60 - start[1]) / 60);
       const pointsPerPerson = Math.max(0, Math.round(hours * tokenRate * 10) / 10);
       
       // 募集者の総支払ポイント = (基準レート × 作業時間) × 参加人数
-      const totalPaidPoints = pointsPerPerson * approvedApps.length;
+      const totalPaidPoints = pointsPerPerson * Number(approvedApps.length);
+
+      // トランザクション前の事前チェック
+      if (isNaN(pointsPerPerson) || isNaN(totalPaidPoints) || pointsPerPerson < 0 || totalPaidPoints < 0) {
+        throw new Error(`Invalid calculated points: pointsPerPerson=${pointsPerPerson}, totalPaidPoints=${totalPaidPoints}`);
+      }
 
       // 1. 募集者の現在のポイント残高を確認（不足している場合はエラーを返す）
       if (creatorBalance < totalPaidPoints) {
-        throw new Error("Insufficient token balance");
+        throw new Error(`Insufficient token balance (Balance: ${creatorBalance}, Required: ${totalPaidPoints})`);
       }
 
       // Read all applicants
@@ -396,7 +401,7 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
       applicantSnaps.forEach((snap, index) => {
         if (!snap.exists()) return;
         const applicantData = snap.data();
-        const applicantBalance = applicantData.tokenBalance ?? 0;
+        const applicantBalance = Number(applicantData.tokenBalance || 0);
         transaction.update(snap.ref, { tokenBalance: applicantBalance + pointsPerPerson });
 
         // Record transaction

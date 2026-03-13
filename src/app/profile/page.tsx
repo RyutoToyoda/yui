@@ -77,13 +77,13 @@ export default function ProfilePage() {
 
     // 仕様があれば保存
     if (specTarget && master?.hasSpecs) {
-      const newSpec: EquipmentSpec = {
+      const newSpec = {
         equipmentId: master.id,
-        horsepower: specHorsepower || undefined,
-        attachments: specAttachments.length > 0 ? specAttachments : undefined,
+        horsepower: specHorsepower || null,
+        attachments: specAttachments.length > 0 ? specAttachments : null,
       };
       const updatedSpecs = [...(user.equipmentSpecs || []), newSpec];
-      await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs as unknown as undefined });
+      await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs } as Record<string, unknown>);
     }
 
     refreshUser();

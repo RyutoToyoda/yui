@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsCreateJob } from "@/lib/firestore-service";
 import { useRouter } from "next/navigation";
-import { Users, Wrench, Truck, Coins, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Users, Wrench, Truck, Coins, CheckCircle2, AlertTriangle, MapPin } from "lucide-react";
 import type { JobType } from "@/types/firestore";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -207,6 +207,7 @@ export default function CreatePage() {
               className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
               required
             />
+            <p className="text-xs text-yui-earth-500 mt-1">具体的な場所を記載すると、手伝ってくれる人が見つけやすくなります。</p>
           </div>
  
           {/* 日付と時間 */}
@@ -287,6 +288,7 @@ export default function CreatePage() {
                 placeholder="例：トラクター、田植え機"
                 className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
               />
+              <p className="text-xs text-yui-earth-500 mt-1">必要な農機具を具体的に記載してください。</p>
             </div>
           )}
 
@@ -331,6 +333,7 @@ export default function CreatePage() {
               />
               <span className="text-sm text-yui-earth-600 font-medium">ポイント / 時間</span>
             </div>
+            <p className="text-xs text-yui-earth-500 mt-1">作業の難易度や緊急度に応じて調整してください。</p>
           </div>
 
           {/* 合計ポイント表示 */}

@@ -344,6 +344,90 @@ export async function fsTransferTokens(
 }
 
 // ============================
+// Job Completion (Atomic Transaction)
+// ============================
+
+export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> {
+  try {
+    // We first get the applications to know who participated (outside transaction to get array length easily,
+    // though getting them inside transaction is safer if they change, but applications status="approved" is final usually)
+    const appsSnap = await getDocs(query(collection(db, "applications"), where("jobId", "==", jobId), where("status", "==", "approved")));
+    const approvedApps = appsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Application));
+    if (approvedApps.length === 0) throw new Error("No approved applicants");
+
+    await runTransaction(db, async (transaction) => {
+      const jobRef = doc(db, "jobs", jobId);
+      const jobSnap = await transaction.get(jobRef);
+      if (!jobSnap.exists()) throw new Error("Job not found");
+      const jobData = jobSnap.data();
+
+      // Ensure job is not already completed
+      if (jobData.status === "completed") throw new Error("Job is already completed");
+
+      const creatorRef = doc(db, "users", jobData.creatorId);
+      const creatorSnap = await transaction.get(creatorRef);
+      if (!creatorSnap.exists()) throw new Error("Creator not found");
+      const creatorData = creatorSnap.data();
+      const creatorBalance = creatorData.tokenBalance ?? 0;
+
+      // 1人あたりの獲得ポイント = 基準レート(ポイント/時) × 作業時間(h)
+      const tokenRate = jobData.tokenRatePerHour ?? 1;
+      const start = (jobData.startTime as string).split(":").map(Number);
+      const end = (jobData.endTime as string).split(":").map(Number);
+      const hours = (end[0] * 60 + end[1] - start[0] * 60 - start[1]) / 60;
+      const pointsPerPerson = Math.max(0, Math.round(hours * tokenRate * 10) / 10);
+      
+      // 募集者の総支払ポイント = (基準レート × 作業時間) × 参加人数
+      const totalPaidPoints = pointsPerPerson * approvedApps.length;
+
+      // 1. 募集者の現在のポイント残高を確認（不足している場合はエラーを返す）
+      if (creatorBalance < totalPaidPoints) {
+        throw new Error("Insufficient token balance");
+      }
+
+      // Read all applicants
+      const applicantRefs = approvedApps.map(app => doc(db, "users", app.applicantId));
+      const applicantSnaps = await Promise.all(applicantRefs.map(ref => transaction.get(ref)));
+
+      // 2. 募集者のポイントを「総支払ポイント」分マイナスする
+      transaction.update(creatorRef, { tokenBalance: creatorBalance - totalPaidPoints });
+
+      // 3. 参加者（複数名対応）のポイントを「1人あたりの獲得ポイント」分プラスする
+      applicantSnaps.forEach((snap, index) => {
+        if (!snap.exists()) return;
+        const applicantData = snap.data();
+        const applicantBalance = applicantData.tokenBalance ?? 0;
+        transaction.update(snap.ref, { tokenBalance: applicantBalance + pointsPerPerson });
+
+        // Record transaction
+        const txRef = doc(collection(db, "transactions"));
+        transaction.set(txRef, {
+          fromUserId: jobData.creatorId,
+          fromUserName: creatorData.name ?? "",
+          toUserId: approvedApps[index].applicantId,
+          toUserName: applicantData.name ?? "",
+          jobId,
+          amount: pointsPerPerson,
+          description: jobData.title ?? "",
+          createdAt: Timestamp.fromDate(new Date()),
+        });
+        
+        // Update application status
+        const appRef = doc(db, "applications", approvedApps[index].id);
+        transaction.update(appRef, { status: "completed" });
+      });
+
+      // 4. 募集データ（Job/Task）のステータスを「完了」に更新する
+      transaction.update(jobRef, { status: "completed" });
+    });
+    return true;
+  } catch (error) {
+    console.error("Job completion failed:", error);
+    throw error;
+  }
+}
+
+// ============================
 // Availabilities
 // ============================
 

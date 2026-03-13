@@ -278,7 +278,11 @@ export default function CreatePage() {
               お礼のポイント（1時間あたり）
             </label>
             <div className="flex flex-wrap gap-2 mb-3">
-              {ratePresets.map((preset) => (
+              {ratePresets.filter(preset => {
+                if (selectedType === "labor") return preset.label !== "農機具＋人";
+                if (selectedType === "equipment") return preset.label === "農機具＋人";
+                return true;
+              }).map((preset) => (
                 <button
                   key={preset.label}
                   type="button"

@@ -230,7 +230,7 @@ export default function LoginPage() {
               <label htmlFor="reg-prefecture" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 お住まいの地域
               </label>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="space-y-3">
                 <select
                   id="reg-prefecture"
                   value={prefecture}

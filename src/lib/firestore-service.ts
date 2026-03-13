@@ -402,7 +402,12 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
 
       // Read all applicants
       const applicantRefs = approvedApps.map(app => doc(db, "users", app.applicantId));
-      const applicantSnaps = await Promise.all(applicantRefs.map(ref => transaction.get(ref)));
+      let applicantSnaps;
+      try {
+        applicantSnaps = await Promise.all(applicantRefs.map(ref => transaction.get(ref)));
+      } catch (err: any) {
+        throw new Error("Failed to read applicants (Permission Denied): " + err.message);
+      }
 
       // 2. 募集者のポイントを「総支払ポイント」分マイナスする
       transaction.update(creatorRef, { tokenBalance: creatorBalance - totalPaidPoints });
@@ -412,7 +417,12 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
         if (!snap.exists()) return;
         const applicantData = snap.data();
         const applicantBalance = Number(applicantData.tokenBalance || 0);
-        transaction.update(snap.ref, { tokenBalance: applicantBalance + pointsPerPerson });
+        
+        try {
+          transaction.update(snap.ref, { tokenBalance: applicantBalance + pointsPerPerson });
+        } catch (err: any) {
+           throw new Error("Failed to update applicant balance (Permission Denied): " + err.message);
+        }
 
         // Record transaction
         const txRef = doc(collection(db, "transactions"));

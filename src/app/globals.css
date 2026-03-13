@@ -158,6 +158,15 @@ html.ud-high-contrast .card-premium {
     outline: none;
   }
 
+  /* スマホでの日付・時間入力はみ出し防止 */
+  input[type="date"],
+  input[type="time"] {
+    max-width: 100%;
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
   /* ===================================
    * ボタン / リンクのUD対応
    * =================================== */

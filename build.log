@@ -1,0 +1,30 @@
+
+> yui-app@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.12
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 13.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/13) ...
+
+Error occurred prerendering page "/wallet". Read more: https://nextjs.org/docs/messages/prerender-error
+Error [FirebaseError]: Firebase: Error (auth/invalid-api-key).
+    at s (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\891.js:3:65861)
+    at t (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\891.js:3:65909)
+    at e.instanceFactory (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\891.js:3:119500)
+    at g.getOrInitializeService (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\891.js:6:14073)
+    at g.initialize (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\891.js:6:13461)
+    at aP (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\891.js:3:104946)
+    at bA (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\891.js:3:120169)
+    at 13737 (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\950.js:1:548)
+    at c (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\webpack-runtime.js:1:128)
+    at 84342 (C:\Users\keiji\OneDrive - 木更津工業高等専門学校\デスクトップ\yui\.next\server\chunks\950.js:1:10814) {
+  code: 'auth/invalid-api-key',
+  customData: [Object],
+  digest: '679326518'
+}
+Export encountered an error on /wallet/page: /wallet, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null

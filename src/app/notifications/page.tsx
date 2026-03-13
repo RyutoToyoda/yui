@@ -2,37 +2,45 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  fsGetNotificationsByUser,
+  fsFetchNotifications,
+  fsFetchUnreadCount,
   fsMarkNotificationRead,
   fsMarkAllNotificationsRead,
-  fsGetUnreadCountByUser,
 } from "@/lib/firestore-service";
 import type { Notification } from "@/types/firestore";
-import { Bell, CheckCheck, Zap, UserCheck, CheckCircle2, ArrowRight } from "lucide-react";
+import { Bell, CheckCheck, Zap, UserCheck, CheckCircle2, ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
+  // オンデマンドで通知を取得（onSnapshot/ポーリング不使用）
+  const loadData = useCallback(async () => {
     if (!user) return;
-    const [notifs, count] = await Promise.all([
-      fsGetNotificationsByUser(user.uid),
-      fsGetUnreadCountByUser(user.uid),
-    ]);
-    setNotifications(notifs);
-    setUnreadCount(count);
-    setLoading(false);
-  };
+    try {
+      const [notifs, count] = await Promise.all([
+        fsFetchNotifications(user.uid, 30),
+        fsFetchUnreadCount(user.uid),
+      ]);
+      setNotifications(notifs);
+      setUnreadCount(count);
+    } catch (err) {
+      console.error("通知の取得に失敗:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user]);
 
+  // マウント時に取得
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [loadData]);
 
   if (!user) return null;
   if (loading) {
@@ -42,6 +50,11 @@ export default function NotificationsPage() {
       </div>
     );
   }
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
 
   const handleMarkAllRead = async () => {
     await fsMarkAllNotificationsRead(user.uid);
@@ -75,15 +88,27 @@ export default function NotificationsPage() {
     <div className="px-4 py-5 space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-yui-green-800">おしらせ</h1>
-        {unreadCount > 0 && (
+        <div className="flex items-center gap-2">
+          {/* 手動リロードボタン */}
           <button
-            onClick={handleMarkAllRead}
-            className="flex items-center gap-1.5 text-sm text-yui-green-600 font-bold hover:text-yui-green-800 transition-colors"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 text-sm text-yui-earth-500 font-bold hover:text-yui-green-600 transition-colors disabled:opacity-50"
             style={{ minHeight: "44px" }}
+            aria-label="通知を更新する"
           >
-            <CheckCheck className="w-5 h-5" aria-hidden="true" /> すべて読んだ
+            <RefreshCw className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
           </button>
-        )}
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllRead}
+              className="flex items-center gap-1.5 text-sm text-yui-green-600 font-bold hover:text-yui-green-800 transition-colors"
+              style={{ minHeight: "44px" }}
+            >
+              <CheckCheck className="w-5 h-5" aria-hidden="true" /> すべて読んだ
+            </button>
+          )}
+        </div>
       </div>
 
       {notifications.length > 0 ? (

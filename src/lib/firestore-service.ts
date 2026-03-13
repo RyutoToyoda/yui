@@ -14,9 +14,11 @@ import {
   query,
   where,
   orderBy,
+  limit,
   Timestamp,
   runTransaction,
   writeBatch,
+  getCountFromServer,
 } from "firebase/firestore";
 import type {
   User,
@@ -49,6 +51,7 @@ function docToUser(data: any, uid: string): User {
     ageGroup: data.ageGroup ?? "",
     tokenBalance: data.tokenBalance ?? 0,
     equipmentList: data.equipmentList ?? [],
+    equipmentSpecs: data.equipmentSpecs ?? [],
     crops: data.crops ?? [],
     createdAt: toDate(data.createdAt),
   };
@@ -308,28 +311,29 @@ export async function fsTransferTokens(
 
       if (!fromSnap.exists() || !toSnap.exists()) throw new Error("User not found");
 
-      const fromBalance = fromSnap.data().tokenBalance ?? 0;
+      const fromData = fromSnap.data();
+      const toData = toSnap.data();
+      const fromBalance = fromData.tokenBalance ?? 0;
       if (fromBalance < amount) throw new Error("Insufficient balance");
 
-      const toBalance = toSnap.data().tokenBalance ?? 0;
+      const toBalance = toData.tokenBalance ?? 0;
 
+      // 残高更新
       transaction.update(fromRef, { tokenBalance: fromBalance - amount });
       transaction.update(toRef, { tokenBalance: toBalance + amount });
-    });
 
-    // トランザクション成功後に記録を追加
-    const fromUser = await fsGetUser(fromUid);
-    const toUser = await fsGetUser(toUid);
-
-    await addDoc(collection(db, "transactions"), {
-      fromUserId: fromUid,
-      fromUserName: fromUser?.name ?? "",
-      toUserId: toUid,
-      toUserName: toUser?.name ?? "",
-      jobId,
-      amount,
-      description,
-      createdAt: Timestamp.fromDate(new Date()),
+      // トランザクション履歴もアトミックに記録（runTransaction内でset）
+      const txRef = doc(collection(db, "transactions"));
+      transaction.set(txRef, {
+        fromUserId: fromUid,
+        fromUserName: fromData.name ?? "",
+        toUserId: toUid,
+        toUserName: toData.name ?? "",
+        jobId,
+        amount,
+        description,
+        createdAt: Timestamp.fromDate(new Date()),
+      });
     });
 
     return true;
@@ -378,20 +382,49 @@ export async function fsDeleteAvailability(id: string): Promise<void> {
 // Notifications
 // ============================
 
+/**
+ * 【既存互換】全通知を取得（内部・自動マッチングなどでも使用）
+ */
 export async function fsGetNotificationsByUser(uid: string): Promise<Notification[]> {
   const q = query(collection(db, "notifications"), where("userId", "==", uid), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => docToNotification(d.data(), d.id));
 }
 
-export async function fsGetUnreadCountByUser(uid: string): Promise<number> {
+/**
+ * 【コスト最適化】未読通知の件数のみ取得（getCountFromServer）
+ * onSnapshotやポーリングを使わず、マウント時・タブフォーカス時にオンデマンドで呼ぶ
+ */
+export async function fsFetchUnreadCount(uid: string): Promise<number> {
   const q = query(
     collection(db, "notifications"),
     where("userId", "==", uid),
     where("isRead", "==", false)
   );
+  const snapshot = await getCountFromServer(q);
+  return snapshot.data().count;
+}
+
+/**
+ * 【コスト最適化】通知リストをページネーション付きで取得
+ * onSnapshotやポーリングを使わず、ページ表示時・リロード時にオンデマンドで呼ぶ
+ */
+export async function fsFetchNotifications(uid: string, maxCount: number = 30): Promise<Notification[]> {
+  const q = query(
+    collection(db, "notifications"),
+    where("userId", "==", uid),
+    orderBy("createdAt", "desc"),
+    limit(maxCount)
+  );
   const snap = await getDocs(q);
-  return snap.size;
+  return snap.docs.map((d) => docToNotification(d.data(), d.id));
+}
+
+/**
+ * 【後方互換】既存のfsGetUnreadCountByUserをfsFetchUnreadCountに委譲
+ */
+export async function fsGetUnreadCountByUser(uid: string): Promise<number> {
+  return fsFetchUnreadCount(uid);
 }
 
 export async function fsMarkNotificationRead(id: string): Promise<void> {
@@ -422,6 +455,21 @@ export async function fsCreateNotification(notif: Omit<Notification, "id">): Pro
   };
   const ref = await addDoc(collection(db, "notifications"), data);
   return ref.id;
+}
+
+/**
+ * 新規ユーザー登録時にプロフィール登録を促すウェルカム通知を発行
+ */
+export async function fsCreateWelcomeNotification(uid: string): Promise<void> {
+  await fsCreateNotification({
+    userId: uid,
+    type: "match",
+    title: "🌱 ようこそ「結 Yui」へ！",
+    message:
+      "まずはマイページで、持っている農機具や手伝える時間を登録しましょう。登録するとご近所さんとマッチングしやすくなります！",
+    isRead: false,
+    createdAt: new Date(),
+  });
 }
 
 // ============================

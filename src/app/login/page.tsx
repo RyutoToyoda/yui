@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
+import { PREFECTURES, getMunicipalities } from "@/lib/region-data";
 
 
 export default function LoginPage() {
@@ -12,11 +13,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [farmName, setFarmName] = useState("");
-  const [location, setLocation] = useState("");
+  const [prefecture, setPrefecture] = useState("");
+  const [municipality, setMunicipality] = useState("");
   const [ageGroup, setAgeGroup] = useState("30代");
   const [error, setError] = useState("");
   const { login, register, loginAsGuest } = useAuth();
   const router = useRouter();
+
+  const municipalities = prefecture ? getMunicipalities(prefecture) : [];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +48,7 @@ export default function LoginPage() {
       setError("パスワードは6文字以上にしてください");
       return;
     }
+    const location = [prefecture, municipality].filter(Boolean).join(" ");
     const success = await register(email, password, name, farmName, location, ageGroup);
     if (success) {
       router.push("/");
@@ -222,18 +227,37 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="reg-location" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-prefecture" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 お住まいの地域
               </label>
-              <input
-                id="reg-location"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="長野県松本市"
-                className={inputClass}
-                autoComplete="address-level1"
-              />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  id="reg-prefecture"
+                  value={prefecture}
+                  onChange={(e) => {
+                    setPrefecture(e.target.value);
+                    setMunicipality("");
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">都道府県を選ぶ</option>
+                  {PREFECTURES.map(pref => (
+                    <option key={pref} value={pref}>{pref}</option>
+                  ))}
+                </select>
+                <select
+                  id="reg-municipality"
+                  value={municipality}
+                  onChange={(e) => setMunicipality(e.target.value)}
+                  disabled={!prefecture || municipalities.length === 0}
+                  className={`${inputClass} disabled:bg-yui-earth-50 disabled:text-yui-earth-300`}
+                >
+                  <option value="">{!prefecture ? "先に都道府県を選ぶ" : municipalities.length > 0 ? "市町村を選ぶ" : "市町村データなし"}</option>
+                  {municipalities.map(muni => (
+                    <option key={muni} value={muni}>{muni}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div>
               <label htmlFor="reg-age" className="block text-sm font-bold text-yui-earth-700 mb-2">

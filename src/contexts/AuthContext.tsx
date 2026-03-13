@@ -11,7 +11,7 @@ import {
   signOut,
   type UserCredential,
 } from "firebase/auth";
-import { fsGetUser, fsCreateUser, fsUpdateUser } from "@/lib/firestore-service";
+import { fsGetUser, fsCreateUser, fsUpdateUser, fsCreateWelcomeNotification } from "@/lib/firestore-service";
 
 interface AuthContextType {
   user: User | null;
@@ -96,6 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       await fsCreateUser(newUser);
+      // ウェルカム通知を発行（プロフィール登録の催促）
+      await fsCreateWelcomeNotification(cred.user.uid);
       setUser(newUser);
       return true;
     } catch (error) {
@@ -123,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           createdAt: new Date(),
         };
         await fsCreateUser(profile);
+        // 初回ゲストログイン時にウェルカム通知を発行
+        await fsCreateWelcomeNotification(cred.user.uid);
       }
       setUser(profile);
       return true;

@@ -1,23 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { fsGetUnreadCountByUser } from "@/lib/firestore-service";
+import { fsFetchUnreadCount } from "@/lib/firestore-service";
 import { Coins, Bell } from "lucide-react";
 
 export default function Header() {
   const { user, isLoggedIn } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
+  // オンデマンドで未読数を取得（getCountFromServer使用）
+  const refreshUnread = useCallback(async () => {
     if (!isLoggedIn || !user) return;
-    let cancelled = false;
-    fsGetUnreadCountByUser(user.uid).then((count) => {
-      if (!cancelled) setUnreadCount(count);
-    });
-    return () => { cancelled = true; };
+    try {
+      const count = await fsFetchUnreadCount(user.uid);
+      setUnreadCount(count);
+    } catch (err) {
+      console.error("未読数の取得に失敗:", err);
+    }
   }, [isLoggedIn, user]);
+
+  useEffect(() => {
+    // マウント時に取得
+    refreshUnread();
+
+    // タブがフォーカスされたときに再取得
+    const handleFocus = () => refreshUnread();
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [refreshUnread]);
 
   const now = new Date();
   const dateStr = `${now.getMonth() + 1}月${now.getDate()}日(${["日", "月", "火", "水", "木", "金", "土"][now.getDay()]})`;

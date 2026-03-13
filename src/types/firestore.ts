@@ -1,5 +1,13 @@
 // Firestore コレクション型定義
 
+// 農機具の仕様情報
+export interface EquipmentSpec {
+  equipmentId: string;   // equipment-data.ts の id に対応
+  horsepower?: string;   // 馬力・条数など
+  weight?: string;       // 重さ
+  attachments?: string[]; // アタッチメントリスト
+}
+
 export interface User {
   uid: string;
   name: string;
@@ -8,6 +16,7 @@ export interface User {
   ageGroup: string;
   tokenBalance: number;
   equipmentList: string[];
+  equipmentSpecs?: EquipmentSpec[]; // 仕様付き農機具（後方互換で optional）
   crops: string[];
   createdAt: Date;
 }

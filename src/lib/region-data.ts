@@ -85,3 +85,13 @@ export const MUNICIPALITIES: Record<string, string[]> = {
 export function getMunicipalities(prefecture: string): string[] {
   return MUNICIPALITIES[prefecture] ?? [];
 }
+
+/** 関東圏の都道府県（市町村マスターデータあり） */
+export const KANTO_PREFECTURES = [
+  "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+] as const;
+
+/** 関東圏かどうかを判定 */
+export function isKantoPrefecture(prefecture: string): boolean {
+  return (KANTO_PREFECTURES as readonly string[]).includes(prefecture);
+}

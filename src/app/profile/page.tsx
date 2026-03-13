@@ -16,7 +16,7 @@ import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import MultiSelectTag from "@/components/MultiSelectTag";
 import { EQUIPMENT_MASTER } from "@/lib/equipment-data";
-import { PREFECTURES, getMunicipalities } from "@/lib/region-data";
+import { PREFECTURES, getMunicipalities, isKantoPrefecture } from "@/lib/region-data";
 
 const DAYS_OF_WEEK: DayOfWeek[] = ["月", "火", "水", "木", "金", "土", "日"];
 const EQUIPMENT_PRESETS = ["トラクター", "軽トラック", "草刈機", "コンバイン", "田植え機", "軽バン", "動噴"];
@@ -156,15 +156,26 @@ export default function ProfilePage() {
                       <option value="">都道府県を選ぶ</option>
                       {PREFECTURES.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <select
-                      value={editMunicipality}
-                      onChange={(e) => setEditMunicipality(e.target.value)}
-                      disabled={!editPrefecture || editMunicipalities.length === 0}
-                      className="w-full px-3 py-3 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white disabled:bg-gray-50 disabled:text-gray-400"
-                    >
-                      <option value="">{!editPrefecture ? "先に県を選ぶ" : editMunicipalities.length > 0 ? "市町村を選ぶ" : "データなし"}</option>
-                      {editMunicipalities.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                    {editPrefecture && (
+                      isKantoPrefecture(editPrefecture) ? (
+                        <select
+                          value={editMunicipality}
+                          onChange={(e) => setEditMunicipality(e.target.value)}
+                          className="w-full px-3 py-3 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white"
+                        >
+                          <option value="">市町村を選ぶ</option>
+                          {editMunicipalities.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={editMunicipality}
+                          onChange={(e) => setEditMunicipality(e.target.value)}
+                          placeholder="（例）〇〇市"
+                          className="w-full px-3 py-3 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white"
+                        />
+                      )
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button

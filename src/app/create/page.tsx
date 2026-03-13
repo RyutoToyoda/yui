@@ -141,54 +141,25 @@ export default function CreatePage() {
       {/* タイプ選択 */}
       <section aria-labelledby="type-heading">
         <h2 id="type-heading" className="text-base font-bold text-yui-green-800 mb-3">募集の種類を選ぶ</h2>
-        <div className="space-y-3" role="radiogroup" aria-label="募集の種類">
-          {jobTypes.map((jt) => {
-            const Icon = jt.icon;
-            const isSelected = selectedType === jt.type;
-            return (
-              <button
-                key={jt.type}
-                onClick={() => {
-                  setSelectedType(jt.type);
-                  setTokenRate(jt.defaultRate);
-                }}
-                className={`w-full flex items-center gap-3 p-5 rounded-xl border-2 transition-all text-left ${
-                  isSelected
-                    ? "border-yui-green-500 bg-yui-green-50 shadow-sm"
-                    : "border-yui-green-100 bg-white hover:border-yui-green-300"
-                }`}
-                role="radio"
-                aria-checked={isSelected}
-                style={{ minHeight: "64px" }}
-              >
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${
-                  isSelected ? "bg-yui-green-600 text-white" : "bg-yui-green-100 text-yui-green-600"
-                }`}>
-                  <Icon className="w-7 h-7" aria-hidden="true" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-nowrap" style={{ whiteSpace: "nowrap", overflow: "hidden" }}>
-                    <span className="font-bold text-yui-green-800 shrink-0" style={{ fontSize: "clamp(0.8rem, 3.5vw, 1rem)" }}>{jt.emoji} {jt.label}</span>
-                    {jt.recommended && (
-                      <span className="bg-yui-accent text-white font-bold px-2 py-0.5 rounded shrink-0" style={{ fontSize: "clamp(0.6rem, 2.5vw, 0.75rem)" }}>
-                        おすすめ
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-yui-earth-600 mt-0.5">{jt.desc}</p>
-                </div>
-                <div className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                  isSelected
-                    ? "border-yui-green-500 bg-yui-green-500"
-                    : "border-yui-earth-300"
-                }`}>
-                  {isSelected && (
-                    <div className="w-2.5 h-2.5 bg-white rounded-full" />
-                  )}
-                </div>
-              </button>
-            );
-          })}
+        <div className="space-y-3">
+          <select
+            value={selectedType || ""}
+            onChange={(e) => {
+              const type = e.target.value as JobType;
+              const jt = jobTypes.find((t) => t.type === type);
+              setSelectedType(type || null);
+              if (jt) setTokenRate(jt.defaultRate);
+            }}
+            className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white appearance-none"
+            aria-label="募集の種類"
+          >
+            <option value="">募集の種類を選択してください</option>
+            {jobTypes.map((jt) => (
+              <option key={jt.type} value={jt.type}>
+                {jt.label}（{jt.desc}）
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* カテゴリ選択時の基準レート表示 */}

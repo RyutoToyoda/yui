@@ -9,7 +9,7 @@ import {
   fsGetJob,
   fsUpdateApplication,
   fsUpdateJob,
-  fsTransferTokens,
+  fsCompleteJobTransaction,
   fsCreateNotification,
   fsGetAvailabilitiesByUser,
   fsCreateAvailability,
@@ -148,25 +148,17 @@ export default function SchedulePage() {
     await loadData();
   };
 
-  const handleComplete = async (applicationId: string, jobId: string) => {
-    if (!applicationId || !jobId) return;
-    const job = await fsGetJob(jobId);
-    const apps = await fsGetApplicationsByJob(jobId);
-    const app = apps.find((a) => a.id === applicationId);
-    if (!job || !app) return;
-
-    await fsTransferTokens(
-      job.creatorId,
-      app.applicantId,
-      job.totalTokens,
-      jobId,
-      job.title
-    );
-    await fsUpdateApplication(applicationId, { status: "completed" });
-    await fsUpdateJob(jobId, { status: "completed" });
-    refreshUser();
-    setConfirmAction(null);
-    await loadData();
+  const handleComplete = async (jobId: string) => {
+    if (!jobId) return;
+    try {
+      await fsCompleteJobTransaction(jobId);
+      refreshUser();
+      setConfirmAction(null);
+      await loadData();
+    } catch (e: any) {
+      alert("ポイントの決済に失敗しました。残高が不足している可能性があります。");
+      setConfirmAction(null);
+    }
   };
 
   const handleToggleAvail = async (dateStr: string) => {
@@ -348,7 +340,7 @@ export default function SchedulePage() {
                   {/* 承認済み作業者 */}
                   {approvedApps.length > 0 && (
                     <div className="p-5 border-t border-yui-green-100">
-                      <p className="text-sm font-bold text-yui-green-800 mb-3">お願い済みの方</p>
+                      <p className="text-sm font-bold text-yui-green-800 mb-3">お願い済みの方 ({approvedApps.length}名)</p>
                       {approvedApps.map((app) => (
                         <div key={app.id} className="flex items-center justify-between bg-green-50 rounded-xl p-4 mb-2 border border-green-200">
                           <div>
@@ -357,15 +349,17 @@ export default function SchedulePage() {
                               <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> お願い済み
                             </p>
                           </div>
-                          <button
-                            onClick={() => setConfirmAction({ type: "complete", appId: app.id, jobId: job.id })}
-                            className="px-4 py-2.5 bg-yui-green-600 text-white text-sm font-bold rounded-xl hover:bg-yui-green-700 transition-colors"
-                            style={{ minHeight: "44px" }}
-                          >
-                            作業おわり
-                          </button>
                         </div>
                       ))}
+                      <div className="mt-3">
+                        <button
+                          onClick={() => setConfirmAction({ type: "complete", jobId: job.id })}
+                          className="w-full py-3 bg-yui-green-600 text-white text-sm font-bold rounded-xl hover:bg-yui-green-700 transition-colors"
+                          style={{ minHeight: "44px" }}
+                        >
+                          全員の作業完了とポイント送金
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -595,10 +589,10 @@ export default function SchedulePage() {
         <ConfirmDialog
           isOpen={true}
           title="作業おわりにしますか？"
-          message="作業おわりにすると、お礼のポイントが自動で相手に届きます。"
+          message="作業おわりにすると、お礼のポイントが自動で参加者全員に届きます。"
           confirmLabel="おわりにする"
           cancelLabel="まだおわっていない"
-          onConfirm={() => handleComplete(confirmAction.appId!, confirmAction.jobId!)}
+          onConfirm={() => handleComplete(confirmAction.jobId!)}
           onCancel={() => setConfirmAction(null)}
         />
       )}

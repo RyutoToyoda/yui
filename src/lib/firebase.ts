@@ -15,8 +15,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+
 const app =
-  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  getApps().length === 0
+    ? initializeApp(isConfigValid ? firebaseConfig : { ...firebaseConfig, apiKey: "dummy-key" })
+    : getApps()[0];
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

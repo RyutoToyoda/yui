@@ -44,6 +44,7 @@ export default function AdSection() {
             className="block min-w-[280px] w-[280px] bg-white rounded-2xl border-2 border-yui-green-100/50 shadow-sm overflow-hidden snap-start no-underline hover:border-yui-green-200 transition-all shrink-0"
           >
             <div className="relative h-32 bg-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
               <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-[10px] text-white px-2 py-0.5 rounded font-bold">
                 PR

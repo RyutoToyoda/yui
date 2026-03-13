@@ -149,6 +149,7 @@ export default function AdminAdsPage() {
           <div key={ad.id} className={`bg-white rounded-3xl shadow-sm border ${ad.isActive ? 'border-gray-100' : 'border-gray-200 opacity-60'} overflow-hidden group hover:shadow-md transition-all`}>
             <div className="relative h-40 bg-gray-100">
               {ad.imageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-300">

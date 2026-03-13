@@ -221,6 +221,12 @@ export default function ExplorePage() {
                       {job.requiredPeople}名募集
                     </p>
                   )}
+                  <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
+                    <span className="text-[10px] bg-yui-green-50 text-yui-green-700 font-bold px-1.5 py-0.5 rounded border border-yui-green-200">
+                      場所
+                    </span>
+                    <span className="truncate">{job.location || "（未指定）"}</span>
+                  </p>
                 </div>
                 <div className="text-right ml-3 shrink-0">
                   <div className="flex items-center gap-1 bg-yui-accent/10 px-3 py-1.5 rounded-full">

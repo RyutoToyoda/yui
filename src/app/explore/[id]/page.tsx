@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsDeleteJob, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
-import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
+import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Job, Application } from "@/types/firestore";
@@ -166,6 +166,25 @@ export default function JobDetailPage() {
                 <p className="text-sm font-bold text-yui-green-800">{job.equipmentNeeded}</p>
               </div>
             )}
+            <div className="bg-yui-green-50 rounded-xl p-4 col-span-2">
+              <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
+                <MapPin className="w-5 h-5" aria-hidden="true" />
+                <span className="text-xs font-bold">作業場所</span>
+              </div>
+              <p className="text-sm font-bold text-yui-green-800">{job.location || "（未指定）"}</p>
+              {job.location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-1.5 w-full py-2.5 bg-white text-yui-green-600 border-2 border-yui-green-200 rounded-xl text-sm font-bold hover:bg-yui-green-50 transition-colors shadow-sm"
+                  style={{ minHeight: "44px" }}
+                >
+                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                  地図で見る
+                </a>
+              )}
+            </div>
           </div>
 
           {/* ポイント情報 */}

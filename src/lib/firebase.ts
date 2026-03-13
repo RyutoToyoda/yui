@@ -15,12 +15,27 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+const isConfigValid = 
+  !!firebaseConfig.apiKey && 
+  firebaseConfig.apiKey !== "undefined" &&
+  !!firebaseConfig.projectId;
 
-const app =
-  getApps().length === 0
-    ? initializeApp(isConfigValid ? firebaseConfig : { ...firebaseConfig, apiKey: "dummy-key" })
-    : getApps()[0];
+let app;
+if (typeof window !== "undefined" || isConfigValid) {
+  // クライアント側、または設定が揃っている場合は本物を使用
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+} else {
+  // サーバーサイド・ビルド時かつ設定不足時は、エラーを出さない最小限のモック設定
+  const mockConfig = {
+    apiKey: "AIza-dummy-key-for-build-only", // AIzaから始めないとFirebaseがエラーを出す場合がある
+    authDomain: "dummy.firebaseapp.com",
+    projectId: "yui-app-dummy",
+    storageBucket: "dummy.appspot.com",
+    messagingSenderId: "000000000",
+    appId: "1:000000000:web:dummy"
+  };
+  app = getApps().length === 0 ? initializeApp(mockConfig) : getApps()[0];
+}
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

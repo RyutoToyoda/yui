@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { fsGetAds, fsUpsertAd, fsDeleteAd } from "@/lib/firestore-service";
 import { Plus, Edit2, Trash2, ExternalLink, Image as ImageIcon, Check, X } from "lucide-react";

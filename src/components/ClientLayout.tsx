@@ -5,6 +5,7 @@ import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
+import HelpAdvisor from "@/components/HelpAdvisor";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -61,6 +62,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-yui-earth-50">
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Header />
+      <HelpAdvisor />
       <main id="main-content" className="max-w-[430px] mx-auto pb-24" role="main">
         {children}
       </main>

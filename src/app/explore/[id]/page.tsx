@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsDeleteJob, fsCancelJobWithPenalty, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
+import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, cancelJob, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
 import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -25,6 +25,7 @@ export default function JobDetailPage() {
   const [approvedApplicants, setApprovedApplicants] = useState<Application[]>([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
+  const [cancelDetail, setCancelDetail] = useState<string>("");
 
   const jobId = params.id as string;
 
@@ -101,22 +102,25 @@ export default function JobDetailPage() {
 
   const handleDeleteClick = () => {
     setCancelReason("");
+    setCancelDetail("");
     setShowCancelModal(true);
   };
 
   const executeDeleteOrCancel = async () => {
     try {
-      if (approvedApplicants.length > 0) {
-        if (!cancelReason) {
-          alert("キャンセル理由を選択してください");
-          return;
-        }
-        await fsCancelJobWithPenalty(job.id, user.uid, cancelReason);
-        alert("お手伝いの募集をキャンセルしました。");
-      } else {
-        await fsDeleteJob(job.id);
-        alert("募集を削除しました");
+      if (!cancelReason) {
+        alert("キャンセル理由を選択してください");
+        return;
       }
+
+      if (cancelReason === "その他" && !cancelDetail.trim()) {
+        alert("キャンセル理由を入力してください");
+        return;
+      }
+
+      await cancelJob(job.id, user.uid, cancelReason, cancelDetail);
+      alert("お手伝いの募集をキャンセルしました。");
+
       router.push("/explore");
     } catch (e) {
       console.error(e);
@@ -125,25 +129,6 @@ export default function JobDetailPage() {
       setShowCancelModal(false);
     }
   };
-
-  // ペナルティ計算用ヘルパー
-  const getPenaltyWarningText = () => {
-    if (!cancelReason || cancelReason === "悪天候" || cancelReason === "体調不良") return null;
-    
-    const jobDateTimeStr = `${job.date}T${job.startTime}:00`;
-    const jobDateTime = new Date(jobDateTimeStr);
-    const now = new Date();
-    const diffHours = (jobDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-    if (diffHours < 24) {
-      const totalTokens = Number(job.totalTokens || 0);
-      const penaltyPerPerson = Math.max(1, Math.floor(totalTokens * 0.10));
-      return `※作業まで24時間を切っているため、1人あたり${penaltyPerPerson}ポイントのペナルティが発生します`;
-    }
-    return null;
-  };
-
-  const penaltyWarning = getPenaltyWarningText();
 
   return (
     <div className="px-4 py-5 space-y-5">
@@ -231,6 +216,18 @@ export default function JobDetailPage() {
         </div>
       </div>
 
+      {job.status === "cancelled" && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
+          <p className="text-sm font-bold text-red-700 mb-2">この募集はキャンセルされました</p>
+          {job.cancelReason && (
+            <p className="text-sm text-yui-earth-700"><span className="font-bold">理由:</span> {job.cancelReason}</p>
+          )}
+          {job.cancelDetail && (
+            <p className="text-sm text-yui-earth-700 mt-1 whitespace-pre-wrap"><span className="font-bold">コメント:</span> {job.cancelDetail}</p>
+          )}
+        </div>
+      )}
+
       {/* 応募セクション */}
       {!isOwner && job.status === "open" && (
         <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
@@ -285,7 +282,7 @@ export default function JobDetailPage() {
         </div>
       )}
 
-      {isOwner && (
+      {isOwner && job.status !== "cancelled" && job.status !== "completed" && (
         <div className="bg-yui-earth-100 rounded-xl p-5 text-center">
           <p className="text-sm text-yui-earth-600 font-medium">これはあなたが作った募集です</p>
           <div className="flex flex-col gap-3 mt-4">
@@ -324,21 +321,15 @@ export default function JobDetailPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6">
               <h2 className="text-xl font-bold text-yui-green-800 mb-2">
-                {approvedApplicants.length > 0 ? "募集のキャンセル" : "募集の削除"}
+                作業をキャンセルしますか？
               </h2>
-              {approvedApplicants.length > 0 ? (
-                <p className="text-sm text-yui-earth-600 mb-4">
-                  すでに応募者がいますが、これを取り消します。相手にキャンセル通知が届きます。キャンセル理由を選択してください。
-                </p>
-              ) : (
-                <p className="text-sm text-yui-earth-600 mb-4">
-                  本当にこの募集を削除しますか？ よろしければ理由を選択してください。
-                </p>
-              )}
+              <p className="text-sm text-yui-earth-600 mb-4">
+                キャンセル理由を記録し、応募者へ通知します。{approvedApplicants.length > 0 ? `現在の応募者: ${approvedApplicants.length}名` : "応募者がいない募集でも理由は記録されます。"}
+              </p>
 
               {/* 理由選択（ラジオボタン） */}
               <div className="space-y-3 mb-4">
-                {["悪天候", "体調不良", "農作業の変更", "その他"].map((reason) => (
+                {["悪天候", "体調不良", "作業内容変更", "その他"].map((reason) => (
                   <label
                     key={reason}
                     className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
@@ -362,11 +353,29 @@ export default function JobDetailPage() {
                 ))}
               </div>
 
-              {/* ペナルティ警告 */}
-              {approvedApplicants.length > 0 && penaltyWarning && (
-                <div className="flex items-start gap-2 text-yui-danger text-sm mb-4 bg-red-50 p-3 rounded-xl border border-red-200">
-                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-                  <span className="font-bold leading-relaxed">{penaltyWarning}</span>
+              {cancelReason === "その他" && (
+                <div className="mb-4">
+                  <label className="block text-sm font-bold text-yui-green-800 mb-2">キャンセル理由（必須）</label>
+                  <textarea
+                    value={cancelDetail}
+                    onChange={(e) => setCancelDetail(e.target.value)}
+                    placeholder="キャンセル理由を入力してください"
+                    rows={3}
+                    className="w-full rounded-xl border-2 border-slate-200 focus:border-yui-green-500 focus:outline-none p-3 text-sm text-slate-700"
+                  />
+                </div>
+              )}
+
+              {cancelReason !== "その他" && cancelReason && (
+                <div className="mb-4">
+                  <label className="block text-sm font-bold text-yui-green-800 mb-2">コメント（任意）</label>
+                  <textarea
+                    value={cancelDetail}
+                    onChange={(e) => setCancelDetail(e.target.value)}
+                    placeholder="応募者へのコメントを入力してください"
+                    rows={3}
+                    className="w-full rounded-xl border-2 border-slate-200 focus:border-yui-green-500 focus:outline-none p-3 text-sm text-slate-700"
+                  />
                 </div>
               )}
 
@@ -380,7 +389,7 @@ export default function JobDetailPage() {
                 </button>
                 <button
                   onClick={executeDeleteOrCancel}
-                  disabled={!cancelReason}
+                  disabled={!cancelReason || (cancelReason === "その他" && !cancelDetail.trim())}
                   className="flex-1 py-3 text-white font-bold bg-red-500 rounded-xl hover:bg-red-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                   style={{ minHeight: "48px" }}
                 >

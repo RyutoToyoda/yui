@@ -8,7 +8,7 @@ import {
   fsMarkAllNotificationsRead,
 } from "@/lib/firestore-service";
 import type { Notification } from "@/types/firestore";
-import { Bell, CheckCheck, Zap, UserCheck, CheckCircle2, ArrowRight, RefreshCw } from "lucide-react";
+import { Bell, CheckCheck, Zap, UserCheck, CheckCircle2, ArrowRight, RefreshCw, CircleX } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 
@@ -71,6 +71,7 @@ export default function NotificationsPage() {
       case "match": return <Zap className="w-5 h-5 text-orange-600" aria-hidden="true" />;
       case "application": return <UserCheck className="w-5 h-5 text-blue-700" aria-hidden="true" />;
       case "approved": return <CheckCircle2 className="w-5 h-5 text-yui-success" aria-hidden="true" />;
+      case "job_cancelled": return <CircleX className="w-5 h-5 text-red-700" aria-hidden="true" />;
       default: return <Bell className="w-5 h-5 text-yui-green-600" aria-hidden="true" />;
     }
   };
@@ -80,7 +81,33 @@ export default function NotificationsPage() {
       case "match": return "ぴったり";
       case "application": return "手を挙げた方";
       case "approved": return "お願い済み";
+      case "job_cancelled": return "キャンセル";
       default: return "お知らせ";
+    }
+  };
+
+  const getNotificationTheme = (type: string) => {
+    switch (type) {
+      case "match":
+        return {
+          iconWrap: "bg-orange-100 border-orange-200",
+          badge: "bg-orange-100 text-orange-700 border border-orange-300",
+        };
+      case "approved":
+        return {
+          iconWrap: "bg-green-100 border-green-200",
+          badge: "bg-green-100 text-green-700 border border-green-300",
+        };
+      case "job_cancelled":
+        return {
+          iconWrap: "bg-red-100 border-red-200",
+          badge: "bg-red-100 text-red-700 border border-red-300",
+        };
+      default:
+        return {
+          iconWrap: "bg-blue-100 border-blue-200",
+          badge: "bg-blue-100 text-blue-700 border border-blue-300",
+        };
     }
   };
 
@@ -113,7 +140,9 @@ export default function NotificationsPage() {
 
       {notifications.length > 0 ? (
         <div className="space-y-3">
-          {notifications.map((notif) => (
+          {notifications.map((notif) => {
+            const theme = getNotificationTheme(notif.type);
+            return (
             <div
               key={notif.id}
               className={`bg-white rounded-xl p-5 shadow-sm border-2 transition-colors relative cursor-pointer ${
@@ -126,20 +155,12 @@ export default function NotificationsPage() {
               aria-label={`${notif.isRead ? "" : "未読: "}${notif.title}`}
             >
               <div className="flex items-start gap-3">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
-                  notif.type === "match" ? "bg-orange-100 border-orange-200" :
-                  notif.type === "approved" ? "bg-green-100 border-green-200" :
-                  "bg-blue-100 border-blue-200"
-                }`}>
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${theme.iconWrap}`}>
                   {getNotificationIcon(notif.type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      notif.type === "match" ? "bg-orange-100 text-orange-700 border border-orange-300" :
-                      notif.type === "approved" ? "bg-green-100 text-green-700 border border-green-300" :
-                      "bg-blue-100 text-blue-700 border border-blue-300"
-                    }`}>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${theme.badge}`}>
                       {getNotificationTypeLabel(notif.type)}
                     </span>
                     {!notif.isRead && (
@@ -154,6 +175,16 @@ export default function NotificationsPage() {
                   <p className="text-sm text-yui-earth-600 mt-1 leading-relaxed" style={{ lineHeight: "1.7" }}>
                     {notif.message}
                   </p>
+                  {(notif.reason || notif.detail) && (
+                    <div className="mt-2 bg-yui-earth-50 border border-yui-earth-200 rounded-lg p-3 space-y-1">
+                      {notif.reason && (
+                        <p className="text-xs text-yui-earth-700"><span className="font-bold">理由:</span> {notif.reason}</p>
+                      )}
+                      {notif.detail && (
+                        <p className="text-xs text-yui-earth-700 whitespace-pre-wrap"><span className="font-bold">コメント:</span> {notif.detail}</p>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs text-yui-earth-400 font-medium">
                       {notif.createdAt.toLocaleDateString("ja-JP")}
@@ -172,7 +203,8 @@ export default function NotificationsPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white rounded-xl p-8 text-center shadow-sm border-2 border-yui-green-100">

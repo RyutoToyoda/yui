@@ -39,6 +39,7 @@ export interface Job {
   requiredPeople: number;
   equipmentNeeded: string;
   status: JobStatus;
+  cancelReason?: string;
   createdAt: Date;
 }
 

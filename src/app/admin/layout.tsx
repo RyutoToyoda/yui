@@ -37,8 +37,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* サイドバー */}
-      <aside className="w-64 bg-yui-green-900 text-white flex flex-col shrink-0">
+      {/* サイドバー（PC用） */}
+      <aside className="hidden md:flex md:flex-col w-64 bg-yui-green-900 text-white shrink-0">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-black text-xl">
@@ -82,16 +82,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
+      <main className="flex-1 overflow-y-auto min-w-0">
+        <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-3 sticky top-0 z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-800">結 Yui 管理システム</h2>
-            <div className="text-sm text-gray-500 font-medium">
+            <div className="flex items-center gap-2">
+              {/* モバイル用ロゴ */}
+              <div className="md:hidden w-8 h-8 bg-yui-green-900 rounded-lg flex items-center justify-center font-black text-white text-sm shrink-0">
+                結
+              </div>
+              <h2 className="text-base md:text-lg font-bold text-gray-800">結 Yui 管理システム</h2>
+            </div>
+            <div className="text-sm text-gray-500 font-medium hidden md:block">
               セッション有効
             </div>
           </div>
+          {/* モバイル用ナビゲーション */}
+          <nav className="md:hidden flex items-center gap-2 mt-2 overflow-x-auto pb-1">
+            <Link href="/admin" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-yui-green-900 text-white text-xs font-bold whitespace-nowrap shrink-0">
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              ダッシュボード
+            </Link>
+            <Link href="/admin/ads" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-yui-green-700 text-white text-xs font-bold whitespace-nowrap shrink-0">
+              <Megaphone className="w-3.5 h-3.5" />
+              広告管理
+            </Link>
+            <Link href="/admin/users" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-yui-green-700 text-white text-xs font-bold whitespace-nowrap shrink-0">
+              <Users className="w-3.5 h-3.5" />
+              ユーザー一覧
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500 text-white text-xs font-bold whitespace-nowrap shrink-0 ml-auto"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              ログアウト
+            </button>
+          </nav>
         </header>
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           {children}
         </div>
       </main>

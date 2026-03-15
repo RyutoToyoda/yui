@@ -55,6 +55,8 @@ export interface Job {
   location: string;
   status: JobStatus;
   cancelReason?: string;
+  cancelDetail?: string;
+  cancelledAt?: Date;
   createdAt: Date;
 }
 
@@ -101,7 +103,7 @@ export interface Availability {
 }
 
 // アプリ内通知
-export type NotificationType = "match" | "application" | "approved" | "completed";
+export type NotificationType = "match" | "application" | "approved" | "completed" | "job_cancelled";
 
 export interface Notification {
   id: string;
@@ -110,6 +112,8 @@ export interface Notification {
   title: string;
   message: string;
   jobId?: string;
+  reason?: string;
+  detail?: string;
   isRead: boolean;
   createdAt: Date;
 }

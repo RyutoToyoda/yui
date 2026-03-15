@@ -15,6 +15,7 @@ import {
   runTransaction,
   writeBatch,
   getCountFromServer,
+  increment,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type {
@@ -75,6 +76,8 @@ function docToJob(data: any, id: string): Job {
     location: data.location ?? "",
     status: data.status ?? "open",
     cancelReason: data.cancelReason,
+    cancelDetail: data.cancelDetail,
+    cancelledAt: data.cancelledAt ? toDate(data.cancelledAt) : undefined,
     createdAt: toDate(data.createdAt),
   };
 }
@@ -133,6 +136,8 @@ function docToNotification(data: any, id: string): Notification {
     title: data.title ?? "",
     message: data.message ?? "",
     jobId: data.jobId,
+    reason: data.reason ?? undefined,
+    detail: data.detail ?? undefined,
     isRead: data.isRead ?? false,
     createdAt: toDate(data.createdAt),
   };
@@ -601,6 +606,84 @@ export async function fsCancelJobWithPenalty(jobId: string, hostId: string, reas
 }
 
 // ============================
+// Job Cancellation (No Penalty - 見えないペナルティ方式)
+// ============================
+
+// キャンセル理由 → cancelStats フィールド名のマッピング
+const CANCEL_REASON_KEY: Record<string, string> = {
+  "悪天候": "weather",
+  "体調不良": "personal",
+  "作業内容変更": "workChange",
+  "その他": "other",
+};
+
+export async function fsCancelJob(
+  jobId: string,
+  hostId: string,
+  cancelReason: string,
+  cancelDetail: string = ""
+): Promise<void> {
+  // 応募者全員（pending / approved）を取得
+  const appsSnap = await getDocs(
+    query(
+      collection(db, "applications"),
+      where("jobId", "==", jobId),
+      where("status", "in", ["pending", "approved"])
+    )
+  );
+  const applicants = appsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Application));
+
+  await runTransaction(db, async (transaction) => {
+    const jobRef = doc(db, "jobs", jobId);
+    const jobSnap = await transaction.get(jobRef);
+    if (!jobSnap.exists()) throw new Error("Job not found");
+    const jobData = jobSnap.data();
+
+    if (jobData.creatorId !== hostId) throw new Error("Only the host can cancel this job");
+    if (jobData.status === "cancelled") throw new Error("Job is already cancelled");
+    if (jobData.status === "completed") throw new Error("Cannot cancel a completed job");
+
+    const now = Timestamp.fromDate(new Date());
+
+    // 1. 募集ステータス更新
+    transaction.update(jobRef, {
+      status: "cancelled",
+      cancelReason,
+      cancelDetail: cancelDetail || null,
+      cancelledAt: now,
+    });
+
+    // 2. 応募者全員に通知
+    applicants.forEach(app => {
+      const notifRef = doc(collection(db, "notifications"));
+      transaction.set(notifRef, {
+        userId: app.applicantId,
+        type: "job_cancelled",
+        title: "作業がキャンセルされました",
+        message: `${jobData.creatorName}農園の作業「${jobData.title}」がキャンセルされました。`,
+        jobId,
+        reason: cancelReason,
+        detail: cancelDetail || null,
+        isRead: false,
+        createdAt: now,
+      });
+
+      // 応募ステータスも cancelled に更新
+      const appRef = doc(db, "applications", app.id);
+      transaction.update(appRef, { status: "cancelled" });
+    });
+
+    // 3. 見えないペナルティ（ホストのキャンセル統計を蓄積）
+    const reasonKey = CANCEL_REASON_KEY[cancelReason] ?? "other";
+    const hostRef = doc(db, "users", hostId);
+    transaction.update(hostRef, {
+      "cancelStats.total": increment(1),
+      [`cancelStats.${reasonKey}`]: increment(1),
+    });
+  });
+}
+
+// ============================
 // Availabilities
 // ============================
 
@@ -707,6 +790,8 @@ export async function fsCreateNotification(notif: Omit<Notification, "id">): Pro
     title: notif.title,
     message: notif.message,
     jobId: notif.jobId ?? null,
+    reason: notif.reason ?? null,
+    detail: notif.detail ?? null,
     isRead: notif.isRead,
     createdAt: Timestamp.fromDate(notif.createdAt instanceof Date ? notif.createdAt : new Date()),
   };

@@ -54,6 +54,7 @@ export interface Job {
   equipmentNeeded: string;
   location: string;
   status: JobStatus;
+  cancelReason?: string;
   createdAt: Date;
 }
 

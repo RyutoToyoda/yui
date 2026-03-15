@@ -57,7 +57,6 @@ function docToUser(data: any, uid: string): User {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function docToJob(data: any, id: string): Job {
   return {
     id,
@@ -75,6 +74,7 @@ function docToJob(data: any, id: string): Job {
     equipmentNeeded: data.equipmentNeeded ?? "",
     location: data.location ?? "",
     status: data.status ?? "open",
+    cancelReason: data.cancelReason,
     createdAt: toDate(data.createdAt),
   };
 }
@@ -477,6 +477,125 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
     return true;
   } catch (error) {
     console.error("Job completion failed:", error);
+    throw error;
+  }
+}
+
+// ============================
+// Job Cancellation with Penalty (Atomic Transaction)
+// ============================
+
+export async function fsCancelJobWithPenalty(jobId: string, hostId: string, reason: string): Promise<boolean> {
+  try {
+    // 1. Fetch approved applications first (outside transaction to get the count of participants)
+    const appsSnap = await getDocs(query(collection(db, "applications"), where("jobId", "==", jobId), where("status", "==", "approved")));
+    const approvedApps = appsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Application));
+
+    await runTransaction(db, async (transaction) => {
+      // 2. Fetch Job
+      const jobRef = doc(db, "jobs", jobId);
+      const jobSnap = await transaction.get(jobRef);
+      if (!jobSnap.exists()) throw new Error("Job not found");
+      const jobData = jobSnap.data() as Job;
+
+      if (jobData.creatorId !== hostId) throw new Error("Only the host can cancel this job");
+      if (jobData.status === "cancelled") throw new Error("Job is already cancelled");
+      if (jobData.status === "completed") throw new Error("Cannot cancel a completed job");
+
+      let penaltyPerPerson = 0;
+      let totalPenalty = 0;
+      let isPenaltyApplied = false;
+
+      // 3. If there are participants, check the rules
+      if (approvedApps.length > 0) {
+        // "悪天候" (Bad weather) or "体調不良" (Illness) do not incur penalties regardless of time.
+        const isPenaltyReason = reason !== "悪天候" && reason !== "体調不良";
+
+        if (isPenaltyReason) {
+          // Parse job start date and time
+          const jobDateTimeStr = `${jobData.date}T${jobData.startTime}:00`;
+          const jobDateTime = new Date(jobDateTimeStr);
+          const now = new Date();
+          const diffMs = jobDateTime.getTime() - now.getTime();
+          const diffHours = diffMs / (1000 * 60 * 60);
+
+          // If less than 24 hours AND reason requires penalty
+          if (diffHours < 24) {
+            isPenaltyApplied = true;
+            // Calculate penalty: 10% of total job tokens (minimum 1P per person)
+            const totalTokens = Number(jobData.totalTokens || 0);
+            penaltyPerPerson = Math.max(1, Math.floor(totalTokens * 0.10));
+            totalPenalty = penaltyPerPerson * approvedApps.length;
+
+            // Deduct from Host
+            const hostRef = doc(db, "users", hostId);
+            const hostSnap = await transaction.get(hostRef);
+            if (!hostSnap.exists()) throw new Error("Host not found");
+            const hostBalance = Number(hostSnap.data().tokenBalance || 0);
+
+            // Update host balance
+            transaction.update(hostRef, { tokenBalance: hostBalance - totalPenalty });
+
+            // Add to all approved applicants
+            const applicantRefs = approvedApps.map(app => doc(db, "users", app.applicantId));
+            const applicantSnaps = await Promise.all(applicantRefs.map(ref => transaction.get(ref)));
+
+            applicantSnaps.forEach((snap, index) => {
+              if (!snap.exists()) return;
+              const applicantData = snap.data();
+              const applicantBalance = Number(applicantData.tokenBalance || 0);
+              
+              transaction.update(snap.ref, { tokenBalance: applicantBalance + penaltyPerPerson });
+
+              // Record penalty transaction
+              const txRef = doc(collection(db, "transactions"));
+              transaction.set(txRef, {
+                fromUserId: hostId,
+                fromUserName: jobData.creatorName ?? "",
+                toUserId: approvedApps[index].applicantId,
+                toUserName: applicantData.name ?? "",
+                jobId,
+                amount: penaltyPerPerson,
+                description: `キャンセルペナルティ: ${jobData.title}`,
+                createdAt: Timestamp.fromDate(new Date()),
+              });
+            });
+          }
+        }
+
+        // Notify all participants about the cancellation with the specific reason
+        approvedApps.forEach(app => {
+          const notifRef = doc(collection(db, "notifications"));
+          let message = `【${reason}】のため、${jobData.creatorName}さんの作業「${jobData.title}」がキャンセルされました。`;
+          if (isPenaltyApplied) {
+            message += ` 直前のキャンセルのため、補償として ${penaltyPerPerson}P が付与されました。`;
+          }
+          
+          transaction.set(notifRef, {
+            userId: app.applicantId,
+            type: "match",
+            title: "作業キャンセルのお知らせ",
+            message: message,
+            jobId: jobId,
+            isRead: false,
+            createdAt: Timestamp.fromDate(new Date()),
+          });
+          
+          // Set application status to cancelled
+          const appRef = doc(db, "applications", app.id);
+          transaction.update(appRef, { status: "cancelled" });
+        });
+      }
+
+      // 4. Update the job status to cancelled and save the reason
+      transaction.update(jobRef, { 
+        status: "cancelled",
+        cancelReason: reason 
+      });
+    });
+    return true;
+  } catch (error) {
+    console.error("Cancel job with penalty failed:", error);
     throw error;
   }
 }

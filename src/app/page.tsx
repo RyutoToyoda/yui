@@ -408,7 +408,7 @@ export default function HomePage() {
             style={{ minHeight: "72px", display: "flex", alignItems: "center", gap: "10px" }}
           >
             <BellRing className="w-6 h-6 text-yui-green-700" aria-hidden="true" />
-            <span className="text-lg font-bold text-yui-green-800">その他（チャットボット等）</span>
+            <span className="text-lg font-bold text-yui-green-800">その他（サポート等）</span>
           </Link>
         </div>
       </section>

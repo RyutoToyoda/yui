@@ -25,16 +25,20 @@ type CalendarProps = {
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
-function getCellToneClass(tone: CalendarCellTone) {
+function getCellToneClass(tone: CalendarCellTone, selected?: boolean) {
   switch (tone) {
     case "recruitment":
-      return "bg-green-100 text-green-800";
+      // 予定あり（自分の募集 & マッチング済み）
+      return "bg-green-100 text-green-800 font-bold";
     case "availability":
-      return "bg-blue-100 text-blue-800";
+      // 空き日
+      return `bg-white text-yui-green-800 border-2 border-green-500 ${selected ? "ring-2 ring-green-300" : ""}`;
     case "past":
-      return "bg-gray-100 text-gray-400";
+      // 過去
+      return "bg-gray-100 text-gray-400 cursor-not-allowed";
     default:
-      return "bg-white text-yui-green-800";
+      // 何も設定されていない未来の日
+      return "bg-gray-50 text-yui-green-800";
   }
 }
 
@@ -49,7 +53,27 @@ export default function Calendar({
   const firstDayOffset = new Date(year, month, 1).getDay();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* 色分け凡例 */}
+      <div className="bg-yui-green-50 rounded-2xl p-4 border-2 border-yui-green-100">
+        <p className="text-sm font-bold text-yui-earth-500 mb-3">色分け説明（凡例）</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-green-100 border-2 border-green-800 rounded" />
+            <span className="text-sm font-bold text-yui-green-800">予定あり</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-white border-2 border-green-500 rounded" />
+            <span className="text-sm font-bold text-yui-green-800">空き日</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gray-100 border-2 border-gray-400 rounded" />
+            <span className="text-sm font-bold text-yui-earth-500">過去・履歴</span>
+          </div>
+        </div>
+      </div>
+
+      {/* カレンダーヘッダー */}
       <div className="flex items-center justify-between px-1">
         <button
           onClick={onPrevMonth}
@@ -83,12 +107,12 @@ export default function Calendar({
           <button
             key={cell.dateStr}
             onClick={() => onSelectDate(cell.dateStr)}
-            disabled={cell.disabled}
-            className={`relative aspect-square rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all ${getCellToneClass(cell.tone)} ${
+            disabled={cell.disabled || cell.tone === "past"}
+            className={`relative aspect-square rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all ${getCellToneClass(cell.tone, cell.selected)} ${
               cell.selected ? "ring-2 ring-yui-green-500" : ""
-            } ${cell.disabled ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
+            } ${cell.disabled || cell.tone === "past" ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
             aria-label={cell.ariaLabel}
-            aria-disabled={cell.disabled}
+            aria-disabled={cell.disabled || cell.tone === "past"}
             aria-pressed={cell.selected}
             style={{ minHeight: "56px" }}
           >

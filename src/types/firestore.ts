@@ -53,6 +53,8 @@ export interface Job {
   requiredPeople: number;
   equipmentNeeded: string;
   location: string;
+  locationLat?: number;
+  locationLng?: number;
   status: JobStatus;
   cancelReason?: string;
   cancelDetail?: string;

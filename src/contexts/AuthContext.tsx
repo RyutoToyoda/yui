@@ -7,11 +7,10 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInAnonymously,
   signOut,
   type UserCredential,
 } from "firebase/auth";
-import { fsGetUser, fsCreateUser, fsUpdateUser, fsCreateWelcomeNotification } from "@/lib/firestore-service";
+import { fsGetUser, fsCreateUserIfAbsent, fsCreateWelcomeNotification } from "@/lib/firestore-service";
 
 interface AuthContextType {
   user: User | null;
@@ -25,6 +24,8 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const GUEST_EMAIL = process.env.NEXT_PUBLIC_GUEST_EMAIL ?? "guest@yui.local";
+const GUEST_PASSWORD = process.env.NEXT_PUBLIC_GUEST_PASSWORD ?? "guest-pass-2026";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -96,10 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt: new Date(),
       };
 
-      await fsCreateUser(newUser);
-      // ウェルカム通知を発行（プロフィール登録の催促）
-      await fsCreateWelcomeNotification(cred.user.uid);
-      setUser(newUser);
+      const isCreated = await fsCreateUserIfAbsent(newUser);
+      if (isCreated) {
+        // 新規作成時のみウェルカム通知を発行
+        await fsCreateWelcomeNotification(cred.user.uid);
+      }
+
+      const savedProfile = await fsGetUser(cred.user.uid);
+      setUser(savedProfile ?? newUser);
       return true;
     } catch (error) {
       console.error("Registration failed:", error);
@@ -109,27 +114,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginAsGuest = async (): Promise<boolean> => {
     try {
-      const cred = await signInAnonymously(auth);
-      
-      // ゲストログイン時、ユーザーが存在しない場合は作成する
-      let profile = await fsGetUser(cred.user.uid);
-      if (!profile) {
-        profile = {
-          uid: cred.user.uid,
-          name: "ゲスト農家",
-          farmName: "おためし農園",
-          location: "長野県",
-          ageGroup: "30代",
-          tokenBalance: 10,
-          equipmentList: [],
-          crops: [],
-          status: 'active',
-          createdAt: new Date(),
-        };
-        await fsCreateUser(profile);
-        // 初回ゲストログイン時にウェルカム通知を発行
+      let cred: UserCredential;
+
+      try {
+        cred = await signInWithEmailAndPassword(auth, GUEST_EMAIL, GUEST_PASSWORD);
+      } catch {
+        // ゲストアカウントが未作成なら初回のみ作成
+        try {
+          cred = await createUserWithEmailAndPassword(auth, GUEST_EMAIL, GUEST_PASSWORD);
+        } catch (createError: any) {
+          if (createError?.code === "auth/email-already-in-use") {
+            cred = await signInWithEmailAndPassword(auth, GUEST_EMAIL, GUEST_PASSWORD);
+          } else {
+            throw createError;
+          }
+        }
+      }
+
+      const guestProfile: User = {
+        uid: cred.user.uid,
+        name: "ゲスト農家",
+        farmName: "おためし農園",
+        location: "長野県",
+        ageGroup: "30代",
+        tokenBalance: 10,
+        equipmentList: [],
+        crops: [],
+        status: 'active',
+        createdAt: new Date(),
+      };
+
+      const isCreated = await fsCreateUserIfAbsent(guestProfile);
+      if (isCreated) {
         await fsCreateWelcomeNotification(cred.user.uid);
       }
+
+      const profile = await fsGetUser(cred.user.uid);
+      if (!profile) {
+        setUser(guestProfile);
+        return true;
+      }
+
       setUser(profile);
       return true;
     } catch (error) {

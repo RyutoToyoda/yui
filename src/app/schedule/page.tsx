@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  fsGetJobs,
   fsGetJobsByUser,
   fsGetApplicationsByUser,
   fsGetApplicationsByJob,
@@ -31,11 +32,11 @@ import {
   CircleCheck,
   Loader,
   Plus,
-  ChevronLeft,
   X
 } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Calendar, { type CalendarCell } from "@/components/Calendar";
 
 type Tab = "managing" | "upcoming" | "availability" | "history";
 
@@ -55,17 +56,27 @@ export default function SchedulePage() {
   const [completedAppsWithJobs, setCompletedAppsWithJobs] = useState<{ app: Application; job: Job }[]>([]);
   const [completedJobs, setCompletedJobs] = useState<Job[]>([]);
   const [availabilities, setAvailabilities] = useState<Availability[]>([]);
+  const [openRecruitmentJobs, setOpenRecruitmentJobs] = useState<Job[]>([]);
 
   // カレンダー用ステート
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateForTime, setSelectedDateForTime] = useState<string | null>(null);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
+
+  const toLocalDateStr = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
   const loadData = async () => {
     if (!user) return;
-    const [myJobs, myApps, myAvails] = await Promise.all([
+    const [myJobs, myApps, myAvails, allOpenJobs] = await Promise.all([
       fsGetJobsByUser(user.uid),
       fsGetApplicationsByUser(user.uid),
       fsGetAvailabilitiesByUser(user.uid),
+      fsGetJobs("open"),
     ]);
 
     // 管理中のジョブ + 応募者
@@ -102,6 +113,7 @@ export default function SchedulePage() {
 
     // お手伝い可能日
     setAvailabilities(myAvails.filter(a => a.date)); // 日付指定があるもののみ
+    setOpenRecruitmentJobs(allOpenJobs);
     
     setLoading(false);
   };
@@ -165,6 +177,9 @@ export default function SchedulePage() {
   };
 
   const handleToggleAvail = async (dateStr: string) => {
+    const todayStr = toLocalDateStr(new Date());
+    if (dateStr < todayStr) return;
+
     const existing = availabilities.find(a => a.date === dateStr);
     if (existing) {
       await fsDeleteAvailability(existing.id);
@@ -241,6 +256,45 @@ export default function SchedulePage() {
   const monthDays = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const todayStr = toLocalDateStr(new Date());
+
+  const selectedDayRecruitments = selectedCalendarDate
+    ? openRecruitmentJobs.filter((job) => job.date === selectedCalendarDate)
+    : [];
+
+  const selectedDayHistories = selectedCalendarDate
+    ? [
+        ...completedJobs.filter((job) => job.date === selectedCalendarDate).map((job) => ({
+          id: `host-${job.id}`,
+          title: job.title,
+          owner: "自分の募集",
+        })),
+        ...completedAppsWithJobs.filter(({ job }) => job.date === selectedCalendarDate).map(({ app, job }) => ({
+          id: `help-${app.id}`,
+          title: job.title,
+          owner: `${job.creatorName}さんの募集`,
+        })),
+      ]
+    : [];
+
+  const calendarCells: CalendarCell[] = monthDays.map((date) => {
+    const dateStr = toLocalDateStr(date);
+    const isAvailable = availabilities.some((a) => a.date === dateStr);
+    const hasRecruitment = openRecruitmentJobs.some((job) => job.date === dateStr);
+    const hasHistory =
+      completedJobs.some((job) => job.date === dateStr) ||
+      completedAppsWithJobs.some(({ job }) => job.date === dateStr);
+    const isPast = dateStr < todayStr;
+
+    return {
+      dateStr,
+      day: date.getDate(),
+      tone: isPast ? "past" : hasRecruitment ? "recruitment" : isAvailable ? "availability" : "default",
+      selected: selectedCalendarDate === dateStr,
+      badges: isPast ? (hasHistory ? ["履歴"] : undefined) : hasRecruitment ? ["募集"] : isAvailable ? ["空き"] : undefined,
+      ariaLabel: `${date.getDate()}日 ${isPast ? "過去日" : hasRecruitment ? "募集あり" : isAvailable ? "空き日登録済み" : "未定"}`,
+    };
+  });
 
   return (
     <div className="px-4 py-5 space-y-5">
@@ -430,63 +484,63 @@ export default function SchedulePage() {
               カレンダーの日付をタップして、お手伝いに行ける日を教えてください。ぴったりの募集があったらお知らせします ✨
             </p>
 
-            {/* カレンダーヘッダー */}
-            <div className="flex items-center justify-between mb-4 px-2">
-              <button
-                onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-                className="w-12 h-12 rounded-full hover:bg-yui-earth-100 flex items-center justify-center transition-colors"
-                aria-label="前の月へ"
-              >
-                <ChevronLeft className="w-6 h-6 text-yui-earth-600" aria-hidden="true" />
-              </button>
-              <span className="text-xl font-black text-yui-green-800 tracking-tight">
-                {year}年 {month + 1}月
-              </span>
-              <button
-                onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-                className="w-12 h-12 rounded-full hover:bg-yui-earth-100 flex items-center justify-center transition-colors"
-                aria-label="次の月へ"
-              >
-                <ChevronRight className="w-6 h-6 text-yui-earth-600" aria-hidden="true" />
-              </button>
-            </div>
+            <Calendar
+              year={year}
+              month={month}
+              cells={calendarCells}
+              onPrevMonth={() => setCurrentDate(new Date(year, month - 1, 1))}
+              onNextMonth={() => setCurrentDate(new Date(year, month + 1, 1))}
+              onSelectDate={setSelectedCalendarDate}
+            />
 
-            {/* カレンダーグリッド */}
-            <div className="grid grid-cols-7 gap-2">
-              {["日", "月", "火", "水", "木", "金", "土"].map(d => (
-                <div key={d} className="text-center text-xs font-bold text-yui-earth-400 py-1">{d}</div>
-              ))}
-              {/* 空白埋め（初日まで） */}
-              {Array.from({ length: monthDays[0].getDay() }).map((_, i) => (
-                <div key={`empty-${i}`} />
-              ))}
-              {/* 日付 */}
-              {monthDays.map((date) => {
-                const dateStr = date.toISOString().split("T")[0];
-                const isAvailable = availabilities.some(a => a.date === dateStr);
-                const isToday = new Date().toISOString().split("T")[0] === dateStr;
-                
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => handleToggleAvail(dateStr)}
-                    className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center transition-all ${
-                      isAvailable
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                        : "bg-yui-earth-50 text-yui-green-800 hover:bg-yui-earth-100"
-                    } ${isToday ? "border-2 border-blue-400" : ""}`}
-                    aria-label={`${date.getDate()}日 ${isAvailable ? "お手伝い可能（解除する）" : "お手伝い不可（登録する）"}`}
-                    aria-pressed={isAvailable}
-                    style={{ minHeight: "56px" }}
-                  >
-                    <span className="text-lg font-black">{date.getDate()}</span>
-                    {isAvailable && (
-                      <span className="text-[10px] font-bold mt-0.5">OK!</span>
+            {selectedCalendarDate && (
+              <div className="mt-5 bg-yui-earth-50 rounded-2xl border-2 border-yui-green-100 p-4 space-y-3">
+                <p className="text-base font-bold text-yui-green-800">{formatDateJP(selectedCalendarDate)} の詳細</p>
+
+                {selectedCalendarDate < todayStr ? (
+                  <>
+                    <p className="text-sm text-yui-earth-600">過去日のため、空き日登録の変更はできません。</p>
+                    {selectedDayHistories.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedDayHistories.slice(0, 3).map((item) => (
+                          <div key={item.id} className="bg-white rounded-lg border border-yui-earth-200 p-3">
+                            <p className="text-sm font-bold text-yui-green-800">{item.title}</p>
+                            <p className="text-xs text-yui-earth-500 mt-0.5">{item.owner}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-yui-earth-500">この日の履歴はありません。</p>
                     )}
-                  </button>
-                );
-              })}
-            </div>
+                  </>
+                ) : (
+                  <>
+                    {selectedDayRecruitments.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-bold text-green-700">募集が {selectedDayRecruitments.length} 件あります</p>
+                        {selectedDayRecruitments.slice(0, 2).map((job) => (
+                          <p key={job.id} className="text-sm text-yui-earth-700 bg-white rounded-lg px-3 py-2 border border-green-200">
+                            {job.title}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-yui-earth-500">この日の募集はまだありません。</p>
+                    )}
+
+                    <button
+                      onClick={() => handleToggleAvail(selectedCalendarDate)}
+                      className="w-full py-3 rounded-xl text-base font-bold transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                      style={{ minHeight: "52px" }}
+                    >
+                      {availabilities.some((a) => a.date === selectedCalendarDate)
+                        ? "この日の空き登録を解除する"
+                        : "この日を空き日に登録する"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 登録済みリスト（簡易表示） */}
@@ -505,7 +559,10 @@ export default function SchedulePage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleToggleAvail(avail.date!)}
+                    onClick={async () => {
+                      await fsDeleteAvailability(avail.id);
+                      await loadData();
+                    }}
                     className="p-2 text-yui-earth-300 hover:text-red-500 transition-colors"
                     aria-label="削除"
                   >

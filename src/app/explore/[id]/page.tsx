@@ -69,6 +69,10 @@ export default function JobDetailPage() {
   }
 
   const isOwner = job.creatorId === user.uid;
+  const mapQuery =
+    typeof job.locationLat === "number" && typeof job.locationLng === "number"
+      ? `${job.locationLat},${job.locationLng}`
+      : job.location;
 
   const handlePreApply = () => {
     setError("");
@@ -193,9 +197,9 @@ export default function JobDetailPage() {
                 <span className="text-xs font-bold">作業場所</span>
               </div>
               <p className="text-sm font-bold text-yui-green-800">{job.location || "（未指定）"}</p>
-              {job.location && (
+              {mapQuery && (
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 flex items-center justify-center gap-1.5 w-full py-2.5 bg-white text-yui-green-600 border-2 border-yui-green-200 rounded-xl text-sm font-bold hover:bg-yui-green-50 transition-colors shadow-sm"
@@ -295,7 +299,7 @@ export default function JobDetailPage() {
               className="text-sm bg-white text-yui-green-600 border border-yui-green-200 font-bold px-4 py-3 rounded-xl no-underline hover:bg-yui-green-50 transition-colors"
               style={{ minHeight: "44px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             >
-              手を挙げてくれた方の確認は「予定」から →
+              手を挙げてくれた方の確認は「マイページ」の予定から →
             </Link>
             <button
               onClick={handleDeleteClick}

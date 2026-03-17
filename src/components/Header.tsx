@@ -1,41 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { fsFetchUnreadCount } from "@/lib/firestore-service";
-import { Coins, Bell } from "lucide-react";
+import { Coins } from "lucide-react";
+import YuiLogo from "@/components/YuiLogo";
 
 export default function Header() {
   const { user, isLoggedIn } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const pathname = usePathname();
 
-  // オンデマンドで未読数を取得（getCountFromServer使用）
-  const refreshUnread = useCallback(async () => {
-    if (!isLoggedIn || !user) return;
-    try {
-      const count = await fsFetchUnreadCount(user.uid);
-      setUnreadCount(count);
-    } catch (err) {
-      console.error("未読数の取得に失敗:", err);
-    }
-  }, [isLoggedIn, user]);
-
-  useEffect(() => {
-    // マウント時に取得
-    refreshUnread();
-
-    // タブがフォーカスされたときに再取得
-    const handleFocus = () => refreshUnread();
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [refreshUnread]);
-
-  const now = new Date();
-  const dateStr = `${now.getMonth() + 1}月${now.getDate()}日(${["日", "月", "火", "水", "木", "金", "土"][now.getDay()]})`;
+  const isMyPagePath =
+    pathname === "/" ||
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/schedule") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/notifications") ||
+    pathname.startsWith("/wallet");
 
   if (!isLoggedIn || !user) return null;
 
@@ -50,42 +31,69 @@ export default function Header() {
         className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b-2 border-yui-green-200/60 shadow-[0_1px_10px_rgba(20,58,28,0.08)]"
         role="banner"
       >
-        <div className="max-w-[430px] mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 no-underline group" aria-label="結 Yui ホームへ">
-            <span className="text-2xl font-black text-yui-green-700 tracking-tight group-hover:text-yui-green-600">結</span>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-yui-green-500 tracking-wide leading-none">Yui</span>
-              <span className="text-[10px] font-bold text-yui-earth-500 mt-0.5 whitespace-nowrap">{dateStr}</span>
-            </div>
-          </Link>
-          <div className="flex items-center gap-3">
-            {/* 通知ベル */}
-            <Link
-              href="/notifications"
-              className="relative flex items-center justify-center rounded-xl hover:bg-yui-green-50 transition-colors no-underline"
-              aria-label={`通知${unreadCount > 0 ? ` 未読${unreadCount}件` : ""}`}
-              style={{ minWidth: "48px", minHeight: "48px" }}
-            >
-              <Bell className="w-6 h-6 text-yui-earth-600" aria-hidden="true" />
-              {unreadCount > 0 && (
-                <span
-                  className="absolute top-1 right-1 w-[20px] h-[20px] bg-yui-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white"
-                  aria-hidden="true"
-                >
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
+        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
+          <div className="md:hidden h-16 flex items-center gap-2">
+            <div className="w-16" aria-hidden="true" />
+            <Link href="/" className="flex-1 text-center no-underline" aria-label="結 Yui マイページへ">
+              <YuiLogo className="inline-block h-11 w-auto object-contain" />
             </Link>
-            {/* ポイント残高 */}
+            <div className="shrink-0">
+              <div
+                className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-2xl border border-amber-200"
+                aria-label={`所持ポイント ${user.tokenBalance ?? 0}`}
+                role="status"
+              >
+                <Coins className="w-5 h-5 text-yui-accent" aria-hidden="true" />
+                <p className="text-lg font-bold text-yui-earth-800 tabular-nums leading-none">
+                  {user.tokenBalance ?? 0}P
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden md:flex h-20 items-center justify-between gap-6">
+            <div className="flex items-center gap-8">
+              <Link href="/" className="no-underline" aria-label="結 Yui マイページへ">
+                <YuiLogo className="h-14 w-auto object-contain" />
+              </Link>
+              <nav className="flex items-center gap-2" aria-label="デスクトップメニュー">
+                <Link
+                  href="/"
+                  className={`px-4 py-2 rounded-xl no-underline text-lg font-bold transition-colors ${
+                    isMyPagePath
+                      ? "bg-yui-green-100 text-yui-green-800"
+                      : "text-yui-earth-600 hover:bg-yui-green-50 hover:text-yui-green-700"
+                  }`}
+                  style={{ minHeight: "52px", display: "inline-flex", alignItems: "center" }}
+                >
+                  マイページ
+                </Link>
+                <Link
+                  href="/create"
+                  className={`px-4 py-2 rounded-xl no-underline text-lg font-bold transition-colors ${
+                    pathname.startsWith("/create")
+                      ? "bg-yui-green-100 text-yui-green-800"
+                      : "text-yui-earth-600 hover:bg-yui-green-50 hover:text-yui-green-700"
+                  }`}
+                  style={{ minHeight: "52px", display: "inline-flex", alignItems: "center" }}
+                >
+                  募集
+                </Link>
+              </nav>
+            </div>
+
             <div
-              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-2 rounded-full border border-amber-200/80"
-              aria-label={`ポイント残高 ${user.tokenBalance ?? 0}`}
+              className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-2xl border border-amber-200"
+              aria-label={`所持ポイント ${user.tokenBalance ?? 0}`}
               role="status"
             >
               <Coins className="w-5 h-5 text-yui-accent" aria-hidden="true" />
-              <span className="text-sm font-bold text-yui-earth-800 tabular-nums">
-                {user.tokenBalance ?? 0}
-              </span>
+              <div className="leading-tight">
+                <p className="text-xs font-bold text-yui-earth-500">所持ポイント</p>
+                <p className="text-lg font-bold text-yui-earth-800 tabular-nums">
+                  {user.tokenBalance ?? 0}P
+                </p>
+              </div>
             </div>
           </div>
         </div>

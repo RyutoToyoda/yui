@@ -9,7 +9,6 @@ import {
   fsFetchNotifications,
   fsGetApplicationsByUser,
   fsGetJob,
-  fsGetTransactionsByUser,
   fsUpdateUser,
 } from "@/lib/firestore-service";
 import MultiSelectTag from "@/components/MultiSelectTag";
@@ -41,14 +40,6 @@ type UpcomingPlan = {
   endTime: string;
 };
 
-type ActivityItem = {
-  id: string;
-  createdAt: Date;
-  title: string;
-  detail: string;
-  tone: "plus" | "minus" | "neutral";
-};
-
 function toDateTime(date: string, time: string): Date {
   return new Date(`${date}T${time || "00:00"}:00`);
 }
@@ -56,7 +47,6 @@ function toDateTime(date: string, time: string): Date {
 export default function HomePage() {
   const { user, refreshUser } = useAuth();
   const [upcomingPlans, setUpcomingPlans] = useState<UpcomingPlan[]>([]);
-  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
   const [importantNotifications, setImportantNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,9 +61,8 @@ export default function HomePage() {
 
     async function loadData() {
       try {
-        const [apps, txns, notifications] = await Promise.all([
+        const [apps, notifications] = await Promise.all([
           fsGetApplicationsByUser(currentUser.uid),
-          fsGetTransactionsByUser(currentUser.uid),
           fsFetchNotifications(currentUser.uid, 30),
         ]);
 
@@ -108,40 +97,6 @@ export default function HomePage() {
             endTime: job.endTime,
           }));
 
-        const appActivities: ActivityItem[] = apps.slice(0, 4).map((app) => {
-          const statusLabel =
-            app.status === "approved"
-              ? "参加が確定しました"
-              : app.status === "pending"
-              ? "返答待ちです"
-              : app.status === "completed"
-              ? "作業が完了しました"
-              : "結果を確認してください";
-
-          return {
-            id: `app-${app.id}`,
-            createdAt: app.createdAt,
-            title: "募集へのやり取り",
-            detail: statusLabel,
-            tone: app.status === "approved" || app.status === "completed" ? "plus" : "neutral",
-          };
-        });
-
-        const transactionActivities: ActivityItem[] = txns.slice(0, 4).map((txn) => {
-          const isIncome = txn.toUserId === currentUser.uid;
-          return {
-            id: `txn-${txn.id}`,
-            createdAt: txn.createdAt,
-            title: txn.description || "ポイントのやり取り",
-            detail: isIncome ? `${txn.fromUserName}さんから受け取り` : `${txn.toUserName}さんへ支払い`,
-            tone: isIncome ? "plus" : "minus",
-          };
-        });
-
-        const combinedActivities = [...appActivities, ...transactionActivities]
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          .slice(0, 5);
-
         const actionableNotifs = notifications
           .filter(
             (notif) =>
@@ -154,7 +109,6 @@ export default function HomePage() {
           .slice(0, 4);
 
         setUpcomingPlans(upcoming);
-        setRecentActivities(combinedActivities);
         setImportantNotifications(actionableNotifs);
       } catch (error) {
         console.error("ホーム情報の取得に失敗:", error);
@@ -318,38 +272,6 @@ export default function HomePage() {
             </Link>
           </div>
         )}
-      </section>
-
-      <section aria-labelledby="activity-section" className="space-y-3">
-        <h2 id="activity-section" className="text-xl md:text-2xl font-bold text-yui-green-800">最近の活動履歴</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {recentActivities.length > 0 ? (
-            recentActivities.map((activity) => (
-              <div key={activity.id} className="bg-white rounded-2xl border-2 border-yui-green-100 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-base font-bold text-yui-green-800 line-clamp-1">{activity.title}</p>
-                  <span
-                    className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      activity.tone === "plus"
-                        ? "bg-green-100 text-green-700"
-                        : activity.tone === "minus"
-                        ? "bg-orange-100 text-orange-700"
-                        : "bg-yui-earth-100 text-yui-earth-600"
-                    }`}
-                  >
-                    {activity.tone === "plus" ? "進行中" : activity.tone === "minus" ? "確認" : "記録"}
-                  </span>
-                </div>
-                <p className="text-sm text-yui-earth-600 mt-1">{activity.detail}</p>
-                <p className="text-xs text-yui-earth-400 mt-2">{activity.createdAt.toLocaleDateString("ja-JP")}</p>
-              </div>
-            ))
-          ) : (
-            <div className="md:col-span-2 bg-white rounded-2xl border-2 border-yui-green-100 p-5 text-center text-yui-earth-500">
-              まだ活動履歴はありません
-            </div>
-          )}
-        </div>
       </section>
 
       <section aria-labelledby="important-notice" className="space-y-3">

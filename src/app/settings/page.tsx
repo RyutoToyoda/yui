@@ -5,10 +5,10 @@ export const dynamic = "force-dynamic";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, Type, Sun, LogOut, Settings as SettingsIcon, HelpCircle, MessageCircle, Eye } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import HelpAdvisor from "@/components/HelpAdvisor";
 
 const fontSizeOptions = [
   { value: "standard" as const, label: "ふつう", description: "標準のサイズです", sampleSize: "18px" },
@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const { logout } = useAuth();
   const router = useRouter();
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [showHelpAdvisor, setShowHelpAdvisor] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -161,9 +162,9 @@ export default function SettingsPage() {
         </button>
 
         {/* 困ったときのAIサポート */}
-        <Link
-          href="/profile"
-          className="w-full flex items-center justify-between p-5 rounded-xl border-2 border-yui-green-100 bg-white hover:border-yui-green-300 transition-all text-left shadow-sm block"
+        <button
+          onClick={() => setShowHelpAdvisor(true)}
+          className="w-full flex items-center justify-between p-5 rounded-xl border-2 border-yui-green-100 bg-white hover:border-yui-green-300 transition-all text-left shadow-sm"
           style={{ minHeight: "72px" }}
           aria-label="困ったときのAIサポートを開く"
         >
@@ -174,7 +175,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <MessageCircle className="w-5 h-5 text-yui-green-600 shrink-0 ml-3" aria-hidden="true" />
-        </Link>
+        </button>
       </section>
 
       {/* ===============================================
@@ -205,6 +206,12 @@ export default function SettingsPage() {
         variant="danger"
         onConfirm={handleLogout}
         onCancel={() => setConfirmLogout(false)}
+      />
+
+      <HelpAdvisor
+        isOpen={showHelpAdvisor}
+        onClose={() => setShowHelpAdvisor(false)}
+        showFloatingButton={false}
       />
     </div>
   );

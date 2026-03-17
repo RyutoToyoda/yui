@@ -64,8 +64,14 @@ export default function LocationPickerMapInner({ value, onSelect }: LocationPick
   };
 
   return (
-    <div className="space-y-2">
-      <MapContainer center={center} zoom={value ? 14 : 6} className="w-full h-64 rounded-2xl border-2 border-yui-green-200" scrollWheelZoom>
+    <div className="relative z-0 isolate space-y-2 w-full max-w-full min-w-0 overflow-x-hidden">
+      <MapContainer
+        center={center}
+        zoom={value ? 14 : 6}
+        className="relative z-0 isolate w-full max-w-full h-64 rounded-2xl border-2 border-yui-green-200"
+        style={{ zIndex: 0 }}
+        scrollWheelZoom
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

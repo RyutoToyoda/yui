@@ -202,11 +202,11 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-7 max-w-3xl mx-auto">
+    <div className="space-y-6 md:space-y-7 w-full max-w-3xl mx-auto overflow-x-hidden">
       <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800">募集をつくる</h1>
 
-      <form onSubmit={handlePreSubmit} className="space-y-6">
-        <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-5 md:p-6 space-y-4">
+      <form onSubmit={handlePreSubmit} className="space-y-6 w-full min-w-0">
+        <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-5 md:p-6 space-y-4 w-full min-w-0 overflow-x-hidden">
           <label htmlFor="job-title" className="block text-lg md:text-xl font-bold text-yui-green-800">
             何を募集しますか？ <span className="text-yui-danger">（必須）</span>
           </label>
@@ -239,13 +239,13 @@ export default function CreatePage() {
             </select>
           </div>
 
-          <div>
-            <label htmlFor="job-location" className="text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
+          <div className="relative overflow-visible">
+            <label htmlFor="job-location" className="relative z-10 text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
               作業場所 <span className="text-yui-danger">（必須）</span>
             </label>
-            <div className="space-y-2">
-              <div className="flex gap-2 items-end">
+            <div className="relative z-10 space-y-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-end w-full min-w-0">
                 <input
                   id="job-location"
                   type="text"
@@ -263,7 +263,7 @@ export default function CreatePage() {
                     }
                   }}
                   placeholder="例：長野県松本市中島〇丁目、または○○農園の西側の畑"
-                  className="flex-1 px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
+                  className="w-full sm:flex-1 min-w-0 px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
                   required
                 />
                 <button
@@ -280,7 +280,7 @@ export default function CreatePage() {
                     }
                   }}
                   disabled={isGeocoding || !location.trim()}
-                  className="px-6 py-4 bg-yui-green-100 text-yui-green-700 font-bold rounded-xl hover:bg-yui-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  className="w-full sm:w-auto sm:shrink-0 px-6 py-4 bg-yui-green-100 text-yui-green-700 font-bold rounded-xl hover:bg-yui-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                   style={{ minHeight: "56px" }}
                 >
                   {isGeocoding ? "検索中..." : "地図に反映"}
@@ -290,18 +290,20 @@ export default function CreatePage() {
                 住所を入力するか、下の地図をタップして正確な位置を指定してください。
               </p>
             </div>
-            <div className="mt-3 space-y-2">
-              <LocationPickerMap
-                value={locationPoint}
-                onSelect={(point) => {
-                  setLocationPoint(point);
-                  if (point.address?.trim()) {
-                    setLocation(point.address);
-                  } else {
-                    setLocation(`${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`);
-                  }
-                }}
-              />
+            <div className="relative z-0 mt-3 space-y-2 w-full max-w-full min-w-0 overflow-visible">
+              <div className="create-location-map relative z-0 isolate w-full max-w-full min-w-0 overflow-hidden rounded-2xl">
+                <LocationPickerMap
+                  value={locationPoint}
+                  onSelect={(point) => {
+                    setLocationPoint(point);
+                    if (point.address?.trim()) {
+                      setLocation(point.address);
+                    } else {
+                      setLocation(`${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`);
+                    }
+                  }}
+                />
+              </div>
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 {locationPoint ? (
                   <>
@@ -326,7 +328,7 @@ export default function CreatePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full min-w-0">
             <div className="md:col-span-1">
               <label htmlFor="job-date" className="text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
                 <CalendarDays className="w-5 h-5 text-yui-green-600" aria-hidden="true" />

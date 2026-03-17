@@ -25,14 +25,14 @@ type CalendarProps = {
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
-function getCellToneClass(tone: CalendarCellTone, selected?: boolean) {
+function getCellToneClass(tone: CalendarCellTone) {
   switch (tone) {
     case "recruitment":
       // 予定あり（自分の募集 & マッチング済み）
       return "bg-green-100 text-green-800 font-bold";
     case "availability":
       // 空き日
-      return `bg-white text-yui-green-800 border-2 border-green-500 ${selected ? "ring-2 ring-green-300" : ""}`;
+      return "bg-white text-yui-green-800 border-2 border-green-500";
     case "past":
       // 過去
       return "bg-gray-100 text-gray-400 cursor-not-allowed";
@@ -53,7 +53,7 @@ export default function Calendar({
   const firstDayOffset = new Date(year, month, 1).getDay();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full overflow-x-hidden">
       {/* 色分け凡例 */}
       <div className="bg-yui-green-50 rounded-2xl p-4 border-2 border-yui-green-100">
         <p className="text-sm font-bold text-yui-earth-500 mb-3">色分け説明（凡例）</p>
@@ -92,7 +92,7 @@ export default function Calendar({
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1.5 md:gap-2 w-full max-w-full items-stretch">
         {WEEKDAYS.map((day) => (
           <div key={day} className="text-center text-xs md:text-sm font-bold text-yui-earth-500 py-1">
             {day}
@@ -100,7 +100,7 @@ export default function Calendar({
         ))}
 
         {Array.from({ length: firstDayOffset }).map((_, idx) => (
-          <div key={`blank-${idx}`} />
+          <div key={`blank-${idx}`} className="aspect-square min-h-[3rem]" />
         ))}
 
         {cells.map((cell) => (
@@ -108,17 +108,17 @@ export default function Calendar({
             key={cell.dateStr}
             onClick={() => onSelectDate(cell.dateStr)}
             disabled={cell.disabled || cell.tone === "past"}
-            className={`relative aspect-square rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all ${getCellToneClass(cell.tone, cell.selected)} ${
+            className={`relative w-full min-w-0 aspect-square min-h-[3rem] rounded-lg border-2 border-black flex flex-col items-center justify-center overflow-hidden transition-all ${getCellToneClass(cell.tone)} ${
               cell.selected ? "ring-2 ring-yui-green-500" : ""
             } ${cell.disabled || cell.tone === "past" ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
             aria-label={cell.ariaLabel}
             aria-disabled={cell.disabled || cell.tone === "past"}
             aria-pressed={cell.selected}
-            style={{ minHeight: "56px" }}
+            style={{ minHeight: "48px" }}
           >
-            <span className="text-lg font-black leading-none">{cell.day}</span>
+            <span className="text-sm md:text-base font-black leading-none">{cell.day}</span>
             {cell.badges && cell.badges.length > 0 && (
-              <span className="text-[10px] font-bold mt-0.5">{cell.badges[0]}</span>
+              <span className="text-[9px] md:text-[10px] font-bold mt-0.5 leading-none whitespace-nowrap">{cell.badges[0]}</span>
             )}
           </button>
         ))}

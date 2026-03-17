@@ -99,7 +99,7 @@ export default function MultiSelectTag({
 
       {/* 追加パネル */}
       {isOpen && (
-        <div className="bg-yui-green-50/50 p-4 rounded-xl border border-yui-green-100 space-y-4 animate-in fade-in duration-200">
+        <div className="w-full min-w-0 bg-yui-green-50/50 p-4 rounded-xl border border-yui-green-100 space-y-4 animate-in fade-in duration-200">
           {/* プリセット選択肢 */}
           {availableOptions.length > 0 && (
             <div>
@@ -123,18 +123,18 @@ export default function MultiSelectTag({
 
           {/* 自由入力 */}
           {allowFreeInput && (
-            <div>
+            <div className="w-full min-w-0">
               <p className="text-xs font-bold text-yui-green-800 mb-2">
                 その他（自由入力）
               </p>
-              <div className="flex gap-2">
+              <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row">
                 <input
                   ref={inputRef}
                   type="text"
                   value={freeInput}
                   onChange={(e) => setFreeInput(e.target.value)}
                   placeholder={placeholder}
-                  className="flex-1 px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
+                  className="w-full min-w-0 box-border px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white sm:flex-1"
                   onKeyDown={(e) => {
                     if (e.nativeEvent.isComposing) return;
                     if (e.key === "Enter") {
@@ -147,7 +147,7 @@ export default function MultiSelectTag({
                   type="button"
                   onClick={handleAddFreeInput}
                   disabled={!freeInput.trim()}
-                  className="px-5 py-3 bg-yui-green-600 text-white text-base font-bold rounded-xl hover:bg-yui-green-700 transition-colors shrink-0 disabled:opacity-50 disabled:bg-yui-earth-300"
+                  className="w-full px-5 py-3 bg-yui-green-600 text-white text-base font-bold rounded-xl hover:bg-yui-green-700 transition-colors disabled:opacity-50 disabled:bg-yui-earth-300 sm:w-auto sm:shrink-0"
                   style={{ minHeight: "48px" }}
                 >
                   追加

@@ -260,37 +260,37 @@ export default function ExplorePage() {
               <Link
                 key={job.id}
                 href={`/explore/${job.id}`}
-                className="block h-full bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100 hover:border-yui-green-300 transition-colors no-underline"
+                className="block h-full w-full min-w-0 overflow-hidden bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100 hover:border-yui-green-300 transition-colors no-underline"
                 aria-label={`${job.title} ${job.creatorName}さん ${job.date}`}
               >
-                <div className="flex items-start justify-between h-full">
-                  <div className="flex-1">
+                <div className="flex w-full min-w-0 items-start justify-between h-full">
+                  <div className="flex-1 min-w-0 pr-2">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+                      <span className="text-lg shrink-0" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
                       <span className="text-xs bg-yui-green-100 text-yui-green-700 font-bold px-2.5 py-1 rounded-full">
                         {getJobTypeLabel(job.type)}
                       </span>
                     </div>
-                    <h3 className="font-bold text-yui-green-800 text-base">{job.title}</h3>
-                    <p className="text-sm text-yui-earth-600 mt-1">{job.creatorName}</p>
-                    <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
-                      <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                      {job.date} {job.startTime}〜{job.endTime}
+                    <h3 className="font-bold text-yui-green-800 text-base break-words">{job.title}</h3>
+                    <p className="text-sm text-yui-earth-600 mt-1 break-words">{job.creatorName}</p>
+                    <p className="text-sm text-yui-earth-500 mt-0.5 flex items-start gap-1 min-w-0">
+                      <CalendarDays className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 break-words">{job.date} {job.startTime}〜{job.endTime}</span>
                     </p>
                     {job.requiredPeople > 0 && (
-                      <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
-                        <Users className="w-4 h-4" aria-hidden="true" />
-                        {job.requiredPeople}名募集
+                      <p className="text-sm text-yui-earth-500 mt-0.5 flex items-start gap-1 min-w-0">
+                        <Users className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+                        <span className="min-w-0 break-words">{job.requiredPeople}名募集</span>
                       </p>
                     )}
-                    <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
-                      <span className="text-[10px] bg-yui-green-50 text-yui-green-700 font-bold px-1.5 py-0.5 rounded border border-yui-green-200">
+                    <p className="text-sm text-yui-earth-500 mt-0.5 flex items-start gap-1 min-w-0">
+                      <span className="text-[10px] bg-yui-green-50 text-yui-green-700 font-bold px-1.5 py-0.5 rounded border border-yui-green-200 shrink-0">
                         場所
                       </span>
-                      <span className="truncate">{job.location || "（未指定）"}</span>
+                      <span className="min-w-0 truncate">{job.location || "（未指定）"}</span>
                     </p>
                   </div>
-                  <div className="text-right ml-3 shrink-0">
+                  <div className="ml-3 shrink-0 text-right">
                     <div className="flex items-center gap-1 bg-yui-accent/10 px-3 py-1.5 rounded-full">
                       <Coins className="w-4 h-4 text-yui-accent" aria-hidden="true" />
                       <span className="font-bold text-yui-green-800">{job.totalTokens}</span>

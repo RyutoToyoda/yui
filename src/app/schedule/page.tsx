@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  fsGetJobs,
   fsGetJobsByUser,
   fsGetApplicationsByUser,
   fsGetApplicationsByJob,
@@ -31,13 +32,12 @@ import {
   CircleCheck,
   Loader,
   Plus,
-  ChevronLeft,
-  X
+  X,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
-
-type Tab = "managing" | "upcoming" | "availability" | "history";
+import Calendar, { type CalendarCell } from "@/components/Calendar";
 
 interface JobWithApps {
   job: Job;
@@ -46,26 +46,43 @@ interface JobWithApps {
 
 export default function SchedulePage() {
   const { user, refreshUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>("managing");
   const [confirmAction, setConfirmAction] = useState<{ type: string; appId?: string; jobId?: string; availId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Recruitment, upcoming, history, availability data
   const [managingJobsWithApps, setManagingJobsWithApps] = useState<JobWithApps[]>([]);
   const [upcomingApps, setUpcomingApps] = useState<{ app: Application; job: Job }[]>([]);
   const [completedAppsWithJobs, setCompletedAppsWithJobs] = useState<{ app: Application; job: Job }[]>([]);
   const [completedJobs, setCompletedJobs] = useState<Job[]>([]);
   const [availabilities, setAvailabilities] = useState<Availability[]>([]);
+  const [openRecruitmentJobs, setOpenRecruitmentJobs] = useState<Job[]>([]);
 
-  // カレンダー用ステート
+  // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
   const [selectedDateForTime, setSelectedDateForTime] = useState<string | null>(null);
+
+  // Expand/collapse states for detail sections
+  const [expandSections, setExpandSections] = useState<{ [key: string]: boolean }>({
+    managing: false,
+    upcoming: false,
+    history: false,
+  });
+
+  const toLocalDateStr = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
   const loadData = async () => {
     if (!user) return;
-    const [myJobs, myApps, myAvails] = await Promise.all([
+    const [myJobs, myApps, myAvails, allOpenJobs] = await Promise.all([
       fsGetJobsByUser(user.uid),
       fsGetApplicationsByUser(user.uid),
       fsGetAvailabilitiesByUser(user.uid),
+      fsGetJobs("open"),
     ]);
 
     // 管理中のジョブ + 応募者
@@ -101,7 +118,8 @@ export default function SchedulePage() {
     setCompletedJobs(myJobs.filter((j) => j.status === "completed"));
 
     // お手伝い可能日
-    setAvailabilities(myAvails.filter(a => a.date)); // 日付指定があるもののみ
+    setAvailabilities(myAvails.filter(a => a.date));
+    setOpenRecruitmentJobs(allOpenJobs);
     
     setLoading(false);
   };
@@ -124,7 +142,6 @@ export default function SchedulePage() {
     if (!applicationId || !jobId) return;
     await fsUpdateApplication(applicationId, { status: "approved" });
     await fsUpdateJob(jobId, { status: "matched" });
-    // 応募者に通知
     const apps = await fsGetApplicationsByJob(jobId);
     const app = apps.find((a) => a.id === applicationId);
     const job = await fsGetJob(jobId);
@@ -165,6 +182,9 @@ export default function SchedulePage() {
   };
 
   const handleToggleAvail = async (dateStr: string) => {
+    const todayStr = toLocalDateStr(new Date());
+    if (dateStr < todayStr) return;
+
     const existing = availabilities.find(a => a.date === dateStr);
     if (existing) {
       await fsDeleteAvailability(existing.id);
@@ -188,36 +208,6 @@ export default function SchedulePage() {
     await loadData();
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "open":
-        return (
-          <span className="ud-status-badge bg-blue-100 text-blue-800 border border-blue-300">
-            <CircleDot className="w-3.5 h-3.5" aria-hidden="true" /> 募集中
-          </span>
-        );
-      case "matched":
-        return (
-          <span className="ud-status-badge bg-green-100 text-green-800 border border-green-300">
-            <CircleCheck className="w-3.5 h-3.5" aria-hidden="true" /> 手伝い手が決定
-          </span>
-        );
-      default:
-        return (
-          <span className="ud-status-badge bg-yellow-100 text-yellow-800 border border-yellow-300">
-            <Loader className="w-3.5 h-3.5" aria-hidden="true" /> 進行中
-          </span>
-        );
-    }
-  };
-
-  const tabs = [
-    { key: "managing" as Tab, label: "自分の募集", count: managingJobsWithApps.length },
-    { key: "upcoming" as Tab, label: "予定", count: upcomingApps.length },
-    { key: "availability" as Tab, label: "空き日", count: availabilities.length },
-    { key: "history" as Tab, label: "履歴", count: completedAppsWithJobs.length + completedJobs.length },
-  ];
-
   const formatDateJP = (dateStr: string) => {
     if (!dateStr) return "";
     const date = new Date(dateStr + "T00:00:00");
@@ -227,7 +217,7 @@ export default function SchedulePage() {
     return `${month}月${day}日(${dayOfWeek})`;
   };
 
-  // カレンダー生成
+  // Calendar generation
   const getDaysInMonth = (year: number, month: number) => {
     const date = new Date(year, month, 1);
     const days = [];
@@ -241,45 +231,174 @@ export default function SchedulePage() {
   const monthDays = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const todayStr = toLocalDateStr(new Date());
+
+  const selectedDayRecruitments = selectedCalendarDate
+    ? openRecruitmentJobs.filter((job) => job.date === selectedCalendarDate)
+    : [];
+
+  const selectedDayHistories = selectedCalendarDate
+    ? [
+        ...completedJobs.filter((job) => job.date === selectedCalendarDate).map((job) => ({
+          id: `host-${job.id}`,
+          title: job.title,
+          owner: "自分の募集",
+        })),
+        ...completedAppsWithJobs.filter(({ job }) => job.date === selectedCalendarDate).map(({ app, job }) => ({
+          id: `help-${app.id}`,
+          title: job.title,
+          owner: `${job.creatorName}さんの募集`,
+        })),
+      ]
+    : [];
+
+  const calendarCells: CalendarCell[] = monthDays.map((date) => {
+    const dateStr = toLocalDateStr(date);
+    const isAvailable = availabilities.some((a) => a.date === dateStr);
+    const hasRecruitment = openRecruitmentJobs.some((job) => job.date === dateStr);
+    const hasHistory =
+      completedJobs.some((job) => job.date === dateStr) ||
+      completedAppsWithJobs.some(({ job }) => job.date === dateStr);
+    const isPast = dateStr < todayStr;
+    const hasUpcoming = upcomingApps.some(({ job }) => job.date === dateStr);
+
+    return {
+      dateStr,
+      day: date.getDate(),
+      // 優先順位: 予定あり > 空き日 > 過去 > デフォルト
+      tone: isPast ? "past" : (hasRecruitment || hasUpcoming) ? "recruitment" : isAvailable ? "availability" : "default",
+      selected: selectedCalendarDate === dateStr,
+      badges: isPast ? (hasHistory ? ["履歴"] : undefined) : (hasRecruitment || hasUpcoming) ? ["予定"] : isAvailable ? ["空き"] : undefined,
+      ariaLabel: `${date.getDate()}日 ${isPast ? "過去日" : (hasRecruitment || hasUpcoming) ? "予定あり" : isAvailable ? "空き日登録済み" : "未定"}`,
+    };
+  });
+
+  const toggleExpandSection = (section: string) => {
+    setExpandSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   return (
-    <div className="px-4 py-5 space-y-5">
-      <h1 className="text-xl font-bold text-yui-green-800">やることリスト</h1>
+    <div className="px-4 py-5 space-y-5 pb-20">
+      <h1 className="text-xl font-bold text-yui-green-800">スケジュール</h1>
 
-      {/* タブ - スクロール可能に */}
-      <div className="flex bg-yui-green-50 rounded-xl p-0.5 overflow-x-auto no-scrollbar" role="tablist" aria-label="表示を切りかえ">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 min-w-0 px-1 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === tab.key
-                ? "bg-white text-yui-green-700 shadow-sm"
-                : "text-yui-earth-500"
-            }`}
-            role="tab"
-            aria-selected={activeTab === tab.key}
-            style={{ minHeight: "44px" }}
-          >
-            {tab.label}
-            {tab.count > 0 && (
-              <span className={`ml-0.5 text-[10px] font-bold ${
-                activeTab === tab.key ? "text-yui-green-500" : "text-yui-earth-400"
-              }`}>
-                ({tab.count})
-              </span>
+      {/* Calendar with legend */}
+      <div className="space-y-6">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-6">
+          <h2 className="text-lg font-bold text-yui-green-800 mb-4 flex items-center gap-2">
+            <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+            お手伝い可能日を管理する
+          </h2>
+          <p className="text-sm text-yui-earth-600 mb-6" style={{ lineHeight: "1.7" }}>
+            カレンダーの日付をタップして、お手伝いに行ける日を教えてください ✨
+          </p>
+
+          <Calendar
+            year={year}
+            month={month}
+            cells={calendarCells}
+            onPrevMonth={() => setCurrentDate(new Date(year, month - 1, 1))}
+            onNextMonth={() => setCurrentDate(new Date(year, month + 1, 1))}
+            onSelectDate={setSelectedCalendarDate}
+          />
+
+          {selectedCalendarDate && (
+            <div className="mt-5 bg-yui-earth-50 rounded-2xl border-2 border-yui-green-100 p-4 space-y-3">
+              <p className="text-base font-bold text-yui-green-800">{formatDateJP(selectedCalendarDate)} の詳細</p>
+
+              {selectedCalendarDate < todayStr ? (
+                <>
+                  <p className="text-sm text-yui-earth-600">過去日のため、空き日登録の変更はできません。</p>
+                  {selectedDayHistories.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedDayHistories.slice(0, 3).map((item) => (
+                        <div key={item.id} className="bg-white rounded-lg border border-yui-earth-200 p-3">
+                          <p className="text-sm font-bold text-yui-green-800">{item.title}</p>
+                          <p className="text-xs text-yui-earth-500 mt-0.5">{item.owner}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-yui-earth-500">この日の履歴はありません。</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  {selectedDayRecruitments.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-green-700">募集が {selectedDayRecruitments.length} 件あります</p>
+                      {selectedDayRecruitments.slice(0, 2).map((job) => (
+                        <p key={job.id} className="text-sm text-yui-earth-700 bg-white rounded-lg px-3 py-2 border border-green-200">
+                          {job.title}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-yui-earth-500">この日の募集はまだありません。</p>
+                  )}
+
+                  <button
+                    onClick={() => handleToggleAvail(selectedCalendarDate)}
+                    className="w-full py-3 rounded-xl text-base font-bold transition-colors bg-green-600 text-white hover:bg-green-700"
+                    style={{ minHeight: "52px" }}
+                  >
+                    {availabilities.some((a) => a.date === selectedCalendarDate)
+                      ? "この日の空き登録を解除する"
+                      : "この日を空き日に登録する"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 登録済みリスト */}
+        <div>
+          <h3 className="text-sm font-bold text-yui-earth-500 mb-3 px-1">登録されている日</h3>
+          <div className="space-y-2">
+            {availabilities.slice(0, 5).map(avail => (
+              <div key={avail.id} className="bg-white rounded-xl p-4 flex items-center justify-between border border-yui-green-100 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-50 text-green-700 flex items-center justify-center font-bold">
+                    {avail.date?.split("-")[2]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-yui-green-800">{formatDateJP(avail.date!)}</p>
+                    <p className="text-xs text-yui-earth-500">{avail.startTime}〜{avail.endTime} お手伝いできます</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    await fsDeleteAvailability(avail.id);
+                    await loadData();
+                  }}
+                  className="p-2 text-yui-earth-300 hover:text-red-500 transition-colors"
+                  aria-label="削除"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+            {availabilities.length === 0 && (
+              <p className="text-sm text-yui-earth-400 text-center py-4 bg-white rounded-xl border-2 border-dashed border-yui-earth-100">
+                カレンダーから日付をえらんでください
+              </p>
             )}
-          </button>
-        ))}
+          </div>
+        </div>
       </div>
 
-      {/* 管理中タブ */}
-      {activeTab === "managing" && (
-        <div className="space-y-4">
-          {managingJobsWithApps.length === 0 ? (
-            <EmptyState message="出した募集はありません" />
-          ) : (
-            managingJobsWithApps.map(({ job, applications }) => {
+      {/* Collapsible section: 自分の募集 */}
+      {managingJobsWithApps.length > 0 && (
+        <CollapsibleSection
+          title={`自分の募集 (${managingJobsWithApps.length})`}
+          isExpanded={expandSections.managing}
+          onToggle={() => toggleExpandSection("managing")}
+        >
+          <div className="space-y-4">
+            {managingJobsWithApps.map(({ job, applications }) => {
               const pendingApps = applications.filter((a) => a.status === "pending");
               const approvedApps = applications.filter((a) => a.status === "approved");
 
@@ -291,7 +410,6 @@ export default function SchedulePage() {
                       <span className="text-xs bg-yui-green-100 text-yui-green-700 font-bold px-2.5 py-1 rounded-full">
                         {getJobTypeLabel(job.type)}
                       </span>
-                      {getStatusBadge(job.status)}
                     </div>
                     <h3 className="font-bold text-yui-green-800">{job.title}</h3>
                     <p className="text-sm text-yui-earth-500 mt-1 flex items-center gap-1">
@@ -300,7 +418,6 @@ export default function SchedulePage() {
                     </p>
                   </div>
 
-                  {/* 応募者リスト */}
                   {pendingApps.length > 0 && (
                     <div className="p-5">
                       <p className="text-sm font-bold text-yui-green-800 mb-3">
@@ -319,7 +436,6 @@ export default function SchedulePage() {
                               <button
                                 onClick={() => setConfirmAction({ type: "approve", appId: app.id, jobId: job.id })}
                                 className="flex items-center gap-1 px-3 py-2 rounded-xl bg-green-100 text-green-700 font-bold text-xs hover:bg-green-200 transition-colors"
-                                aria-label={`${app.applicantName}さんにお願いする`}
                                 style={{ minHeight: "44px" }}
                               >
                                 <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
@@ -328,7 +444,6 @@ export default function SchedulePage() {
                               <button
                                 onClick={() => setConfirmAction({ type: "reject", appId: app.id, jobId: job.id })}
                                 className="flex items-center justify-center p-2 rounded-xl bg-yui-earth-100 text-yui-earth-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-                                aria-label={`${app.applicantName}さんをお断りする`}
                                 style={{ minWidth: "44px", minHeight: "44px" }}
                               >
                                 <X className="w-5 h-5" aria-hidden="true" />
@@ -340,7 +455,6 @@ export default function SchedulePage() {
                     </div>
                   )}
 
-                  {/* 承認済み作業者 */}
                   {approvedApps.length > 0 && (
                     <div className="p-5 border-t border-yui-green-100">
                       <p className="text-sm font-bold text-yui-green-800 mb-3">お願い済みの方 ({approvedApps.length}名)</p>
@@ -365,31 +479,26 @@ export default function SchedulePage() {
                       </div>
                     </div>
                   )}
-
-                  {applications.length === 0 && (
-                    <div className="p-5 text-center text-sm text-yui-earth-500">
-                      まだ手を挙げた方はいません
-                    </div>
-                  )}
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        </CollapsibleSection>
       )}
 
-      {/* 予定タブ */}
-      {activeTab === "upcoming" && (
-        <div className="space-y-3">
-          {upcomingApps.length === 0 ? (
-            <EmptyState message="予定はありません" link="/explore" linkText="お手伝い募集を探す" />
-          ) : (
-            upcomingApps.map(({ app, job }) => (
+      {/* Collapsible section: 予定 */}
+      {upcomingApps.length > 0 && (
+        <CollapsibleSection
+          title={`予定 (${upcomingApps.length})`}
+          isExpanded={expandSections.upcoming}
+          onToggle={() => toggleExpandSection("upcoming")}
+        >
+          <div className="space-y-3">
+            {upcomingApps.map(({ app, job }) => (
               <Link
                 key={app.id}
                 href={`/explore/${job.id}`}
                 className="block bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100 no-underline hover:border-yui-green-300 transition-colors"
-                aria-label={`${job.title} ${job.date}`}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -413,158 +522,53 @@ export default function SchedulePage() {
                   </div>
                 </div>
               </Link>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        </CollapsibleSection>
       )}
 
-      {/* 手伝える日（カレンダー）タブ */}
-      {activeTab === "availability" && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border-2 border-blue-100 p-6">
-            <h2 className="text-lg font-bold text-yui-green-800 mb-2 flex items-center gap-2">
-              <Plus className="w-6 h-6 text-blue-600" aria-hidden="true" />
-              手伝える日をえらぶ
-            </h2>
-            <p className="text-sm text-yui-earth-600 mb-6" style={{ lineHeight: "1.7" }}>
-              カレンダーの日付をタップして、お手伝いに行ける日を教えてください。ぴったりの募集があったらお知らせします ✨
-            </p>
-
-            {/* カレンダーヘッダー */}
-            <div className="flex items-center justify-between mb-4 px-2">
-              <button
-                onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-                className="w-12 h-12 rounded-full hover:bg-yui-earth-100 flex items-center justify-center transition-colors"
-                aria-label="前の月へ"
-              >
-                <ChevronLeft className="w-6 h-6 text-yui-earth-600" aria-hidden="true" />
-              </button>
-              <span className="text-xl font-black text-yui-green-800 tracking-tight">
-                {year}年 {month + 1}月
-              </span>
-              <button
-                onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-                className="w-12 h-12 rounded-full hover:bg-yui-earth-100 flex items-center justify-center transition-colors"
-                aria-label="次の月へ"
-              >
-                <ChevronRight className="w-6 h-6 text-yui-earth-600" aria-hidden="true" />
-              </button>
-            </div>
-
-            {/* カレンダーグリッド */}
-            <div className="grid grid-cols-7 gap-2">
-              {["日", "月", "火", "水", "木", "金", "土"].map(d => (
-                <div key={d} className="text-center text-xs font-bold text-yui-earth-400 py-1">{d}</div>
-              ))}
-              {/* 空白埋め（初日まで） */}
-              {Array.from({ length: monthDays[0].getDay() }).map((_, i) => (
-                <div key={`empty-${i}`} />
-              ))}
-              {/* 日付 */}
-              {monthDays.map((date) => {
-                const dateStr = date.toISOString().split("T")[0];
-                const isAvailable = availabilities.some(a => a.date === dateStr);
-                const isToday = new Date().toISOString().split("T")[0] === dateStr;
-                
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => handleToggleAvail(dateStr)}
-                    className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center transition-all ${
-                      isAvailable
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                        : "bg-yui-earth-50 text-yui-green-800 hover:bg-yui-earth-100"
-                    } ${isToday ? "border-2 border-blue-400" : ""}`}
-                    aria-label={`${date.getDate()}日 ${isAvailable ? "お手伝い可能（解除する）" : "お手伝い不可（登録する）"}`}
-                    aria-pressed={isAvailable}
-                    style={{ minHeight: "56px" }}
-                  >
-                    <span className="text-lg font-black">{date.getDate()}</span>
-                    {isAvailable && (
-                      <span className="text-[10px] font-bold mt-0.5">OK!</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 登録済みリスト（簡易表示） */}
-          <div>
-            <h3 className="text-sm font-bold text-yui-earth-500 mb-3 px-1">登録されている日</h3>
-            <div className="space-y-2">
-              {availabilities.slice(0, 5).map(avail => (
-                <div key={avail.id} className="bg-white rounded-xl p-4 flex items-center justify-between border border-yui-green-100 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-                      {avail.date?.split("-")[2]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-yui-green-800">{formatDateJP(avail.date!)}</p>
-                      <p className="text-xs text-yui-earth-500">{avail.startTime}〜{avail.endTime} お手伝いできます</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleToggleAvail(avail.date!)}
-                    className="p-2 text-yui-earth-300 hover:text-red-500 transition-colors"
-                    aria-label="削除"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+      {/* Collapsible section: 履歴 */}
+      {(completedAppsWithJobs.length > 0 || completedJobs.length > 0) && (
+        <CollapsibleSection
+          title={`履歴 (${completedAppsWithJobs.length + completedJobs.length})`}
+          isExpanded={expandSections.history}
+          onToggle={() => toggleExpandSection("history")}
+        >
+          <div className="space-y-3">
+            {completedJobs.map((job) => (
+              <div key={job.id} className="bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+                  <span className="ud-status-badge bg-yui-earth-200 text-yui-earth-700 border border-yui-earth-300">
+                    <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> 完了
+                  </span>
                 </div>
-              ))}
-              {availabilities.length === 0 && (
-                <p className="text-sm text-yui-earth-400 text-center py-4 bg-white rounded-xl border-2 border-dashed border-yui-earth-100">
-                  カレンダーから日付をえらんでください
+                <h3 className="font-bold text-yui-green-800">{job.title}</h3>
+                <p className="text-sm text-yui-earth-500 flex items-center gap-1">
+                  <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
                 </p>
-              )}
-            </div>
+              </div>
+            ))}
+            {completedAppsWithJobs.map(({ app, job }) => (
+              <div key={app.id} className="bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+                  <span className="ud-status-badge bg-yui-earth-200 text-yui-earth-700 border border-yui-earth-300">
+                    <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> 完了
+                  </span>
+                </div>
+                <h3 className="font-bold text-yui-green-800">{job.title}</h3>
+                <p className="text-sm text-yui-earth-500 flex items-center gap-1">
+                  <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
+                </p>
+                <p className="text-sm text-yui-earth-600 mt-1">{job.creatorName}さん</p>
+              </div>
+            ))}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
-      {/* 履歴タブ */}
-      {activeTab === "history" && (
-        <div className="space-y-3">
-          {completedAppsWithJobs.length === 0 && completedJobs.length === 0 ? (
-            <EmptyState message="おわった作業はまだありません" />
-          ) : (
-            <>
-              {completedJobs.map((job) => (
-                <div key={job.id} className="bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                    <span className="ud-status-badge bg-yui-earth-200 text-yui-earth-700 border border-yui-earth-300">
-                      <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> 完了
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-yui-green-800">{job.title}</h3>
-                  <p className="text-sm text-yui-earth-500 flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
-                  </p>
-                </div>
-              ))}
-              {completedAppsWithJobs.map(({ app, job }) => (
-                <div key={app.id} className="bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                    <span className="ud-status-badge bg-yui-earth-200 text-yui-earth-700 border border-yui-earth-300">
-                      <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> 完了
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-yui-green-800">{job.title}</h3>
-                  <p className="text-sm text-yui-earth-500 flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
-                  </p>
-                  <p className="text-sm text-yui-earth-600 mt-1">{job.creatorName}さん</p>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* 確認ダイアログ */}
+      {/* Confirmation Dialogs */}
       {confirmAction?.type === "approve" && (
         <ConfirmDialog
           isOpen={true}
@@ -599,7 +603,8 @@ export default function SchedulePage() {
           onCancel={() => setConfirmAction(null)}
         />
       )}
-      {/* 時間選択ダイアログ */}
+      
+      {/* Time selection dialog */}
       {selectedDateForTime && (
         <TimeSelectionDialog
           isOpen={true}
@@ -608,6 +613,37 @@ export default function SchedulePage() {
           onCancel={() => setSelectedDateForTime(null)}
         />
       )}
+    </div>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  isExpanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-yui-green-50 transition-colors"
+        style={{ minHeight: "56px" }}
+      >
+        <h2 className="text-lg font-bold text-yui-green-800">{title}</h2>
+        <ChevronDown
+          className={`w-6 h-6 text-yui-green-600 transition-transform ${
+            isExpanded ? "rotate-180" : ""
+          }`}
+          aria-hidden="true"
+        />
+      </button>
+      {isExpanded && <div className="px-6 pb-6 space-y-4 border-t border-yui-green-100 pt-4">{children}</div>}
     </div>
   );
 }
@@ -691,20 +727,6 @@ function TimeSelectionDialog({
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function EmptyState({ message, link, linkText }: { message: string; link?: string; linkText?: string }) {
-  return (
-    <div className="bg-white rounded-xl p-6 text-center shadow-sm border-2 border-yui-green-100">
-      <Clock className="w-10 h-10 text-yui-earth-300 mx-auto mb-2" aria-hidden="true" />
-      <p className="text-yui-earth-500 font-medium">{message}</p>
-      {link && linkText && (
-        <Link href={link} className="text-sm text-yui-green-600 font-bold mt-2 inline-block no-underline" style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}>
-          {linkText} →
-        </Link>
-      )}
     </div>
   );
 }

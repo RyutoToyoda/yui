@@ -1,297 +1,471 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  fsGetJobs,
-  fsGetTransactionsByUser,
+  fsFetchNotifications,
   fsGetApplicationsByUser,
-  fsGetMatchedJobsForUser,
-  fsGetAvailabilitiesByUser,
   fsGetJob,
-  getJobTypeEmoji,
-  getJobTypeLabel,
+  fsUpdateUser,
 } from "@/lib/firestore-service";
-import AdSection from "@/components/AdSection";
-import type { Job, Application, Transaction, Availability } from "@/types/firestore";
-import { Coins, CalendarDays, ArrowRight, TrendingUp, TrendingDown, Sparkles, Zap, Clock } from "lucide-react";
-import Link from "next/link";
+import MultiSelectTag from "@/components/MultiSelectTag";
+import { EQUIPMENT_MASTER } from "@/lib/equipment-data";
+import type { Application, EquipmentSpec, Notification } from "@/types/firestore";
+import {
+  ArrowRight,
+  BellRing,
+  CalendarDays,
+  Check,
+  Clock3,
+  Coins,
+  Search,
+  Settings,
+  Sprout,
+  Tractor,
+} from "lucide-react";
+
+const EQUIPMENT_PRESETS = ["トラクター", "軽トラック", "草刈機", "コンバイン", "田植え機", "軽バン", "動噴"];
+const CROP_PRESETS = ["米", "トマト", "きゅうり", "ナス", "キャベツ", "りんご", "ぶどう", "みかん", "いちご", "ねぎ"];
+
+type UpcomingPlan = {
+  id: string;
+  jobId: string;
+  title: string;
+  partnerName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+};
+
+function toDateTime(date: string, time: string): Date {
+  return new Date(`${date}T${time || "00:00"}:00`);
+}
 
 export default function HomePage() {
-  const { user } = useAuth();
-  const [openJobs, setOpenJobs] = useState<Job[]>([]);
-  const [matchedJobs, setMatchedJobs] = useState<Job[]>([]);
-  const [myAvailabilities, setMyAvailabilities] = useState<Availability[]>([]);
-  const [myUpcoming, setMyUpcoming] = useState<{ app: Application; job: Job }[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { user, refreshUser } = useAuth();
+  const [upcomingPlans, setUpcomingPlans] = useState<UpcomingPlan[]>([]);
+  const [importantNotifications, setImportantNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [specTarget, setSpecTarget] = useState<string | null>(null);
+  const [specHorsepower, setSpecHorsepower] = useState("");
+  const [specAttachments, setSpecAttachments] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
+    const currentUser = user;
     let cancelled = false;
 
     async function loadData() {
-      const [jobs, matched, avails, apps, txns] = await Promise.all([
-        fsGetJobs("open"),
-        fsGetMatchedJobsForUser(user!.uid),
-        fsGetAvailabilitiesByUser(user!.uid),
-        fsGetApplicationsByUser(user!.uid),
-        fsGetTransactionsByUser(user!.uid),
-      ]);
+      try {
+        const [apps, notifications] = await Promise.all([
+          fsGetApplicationsByUser(currentUser.uid),
+          fsFetchNotifications(currentUser.uid, 30),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      setOpenJobs(jobs.filter((j) => j.creatorId !== user!.uid).slice(0, 3));
-      setMatchedJobs(matched);
-      setMyAvailabilities(avails);
-      setTransactions(txns.slice(0, 3));
+        const approvedApps = apps.filter((app) => app.status === "approved");
+        const upcomingPairs = await Promise.all(
+          approvedApps.map(async (app) => {
+            const job = await fsGetJob(app.jobId);
+            if (!job) return null;
+            return { app, job };
+          })
+        );
 
-      // 承認済みの応募 + ジョブ詳細取得
-      const approvedApps = apps.filter((a) => a.status === "approved").slice(0, 2);
-      const upcomingWithJobs = await Promise.all(
-        approvedApps.map(async (app) => {
-          const job = await fsGetJob(app.jobId);
-          return job ? { app, job } : null;
-        })
-      );
-      if (!cancelled) {
-        setMyUpcoming(upcomingWithJobs.filter(Boolean) as { app: Application; job: Job }[]);
-        setLoading(false);
+        if (cancelled) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const upcoming = upcomingPairs
+          .filter((pair): pair is { app: Application; job: NonNullable<Awaited<ReturnType<typeof fsGetJob>>> } => Boolean(pair))
+          .filter(({ job }) => toDateTime(job.date, job.startTime) >= today)
+          .sort((a, b) => toDateTime(a.job.date, a.job.startTime).getTime() - toDateTime(b.job.date, b.job.startTime).getTime())
+          .slice(0, 3)
+          .map(({ app, job }) => ({
+            id: app.id,
+            jobId: job.id,
+            title: job.title,
+            partnerName: job.creatorName,
+            date: job.date,
+            startTime: job.startTime,
+            endTime: job.endTime,
+          }));
+
+        const actionableNotifs = notifications
+          .filter(
+            (notif) =>
+              !notif.isRead &&
+              (notif.type === "application" ||
+                notif.type === "approved" ||
+                notif.type === "job_cancelled" ||
+                notif.type === "match")
+          )
+          .slice(0, 4);
+
+        setUpcomingPlans(upcoming);
+        setImportantNotifications(actionableNotifs);
+      } catch (error) {
+        console.error("ホーム情報の取得に失敗:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   if (!user) return null;
+
+  const handleAddEquipment = async (eqName: string) => {
+    const trimmed = eqName.trim();
+    if (!trimmed || user.equipmentList?.includes(trimmed)) return;
+
+    const master = EQUIPMENT_MASTER.find((item) => item.name === trimmed);
+    if (master?.hasSpecs && !specTarget) {
+      setSpecTarget(trimmed);
+      setSpecHorsepower("");
+      setSpecAttachments([]);
+      return;
+    }
+
+    const updatedEquipment = [...(user.equipmentList || []), trimmed];
+    let updatedSpecs = user.equipmentSpecs || [];
+
+    if (master?.hasSpecs && specTarget === trimmed) {
+      const newSpec: EquipmentSpec = {
+        equipmentId: master.id,
+        horsepower: specHorsepower || undefined,
+        attachments: specAttachments.length > 0 ? specAttachments : undefined,
+      };
+      updatedSpecs = [...updatedSpecs, newSpec];
+    }
+
+    await fsUpdateUser(user.uid, {
+      equipmentList: updatedEquipment,
+      equipmentSpecs: updatedSpecs,
+    });
+
+    await refreshUser();
+    setSpecTarget(null);
+    setSpecHorsepower("");
+    setSpecAttachments([]);
+  };
+
+  const handleRemoveEquipment = async (index: number) => {
+    const target = user.equipmentList?.[index];
+    const updatedEquipment = (user.equipmentList || []).filter((_, i) => i !== index);
+    let updatedSpecs = user.equipmentSpecs || [];
+
+    if (target) {
+      const master = EQUIPMENT_MASTER.find((item) => item.name === target);
+      if (master) {
+        updatedSpecs = updatedSpecs.filter((spec) => spec.equipmentId !== master.id);
+      }
+    }
+
+    await fsUpdateUser(user.uid, {
+      equipmentList: updatedEquipment,
+      equipmentSpecs: updatedSpecs,
+    });
+    await refreshUser();
+  };
+
+  const handleAddCrop = async (cropName: string) => {
+    const trimmed = cropName.trim();
+    if (!trimmed || user.crops?.includes(trimmed)) return;
+
+    const updated = [...(user.crops || []), trimmed];
+    await fsUpdateUser(user.uid, { crops: updated });
+    await refreshUser();
+  };
+
+  const handleRemoveCrop = async (index: number) => {
+    const updated = (user.crops || []).filter((_, i) => i !== index);
+    await fsUpdateUser(user.uid, { crops: updated });
+    await refreshUser();
+  };
+
   if (loading) {
     return (
-      <div className="px-4 py-10 text-center">
+      <div className="py-10 text-center">
         <p className="text-yui-earth-500">読み込み中...</p>
       </div>
     );
   }
 
+  const primaryPlan = upcomingPlans[0];
+
   return (
-    <div className="px-4 py-5 space-y-6">
-      {/* ポイント残高カード */}
-      <div className="gradient-primary rounded-3xl p-6 text-white shadow-lg shadow-yui-green-900/20 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" aria-hidden="true" />
-        <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full" aria-hidden="true" />
-        <p className="text-sm text-white/70 font-bold mb-1.5 relative z-10">ポイント残高</p>
-        <div className="flex items-center gap-3 relative z-10">
-          <Coins className="w-10 h-10 text-yui-accent-light" aria-hidden="true" />
-          <span className="text-5xl font-black tracking-tight">{user.tokenBalance}</span>
-          <span className="text-lg text-white/70 mt-2">ポイント</span>
-        </div>
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800">マイページ</h1>
         <Link
-          href="/wallet"
-          className="relative z-10 inline-flex items-center gap-1.5 mt-4 text-sm text-white/60 hover:text-white/90 transition-colors no-underline font-bold"
-          style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}
+          href="/schedule"
+          className="text-base font-bold text-yui-green-700 no-underline hover:text-yui-green-800"
+          style={{ minHeight: "48px", display: "inline-flex", alignItems: "center" }}
         >
-          やりとりの記録を見る <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          予定を開く
         </Link>
       </div>
 
-      {/* ぴったりマッチ */}
-      {matchedJobs.length > 0 && (
-        <section aria-labelledby="match-heading">
-          <div className="flex items-center justify-between mb-3">
-            <h2 id="match-heading" className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-orange-500" aria-hidden="true" /> ぴったりの募集
-            </h2>
-          </div>
-          <div className="space-y-3">
-            {matchedJobs.slice(0, 3).map((job) => (
-              <Link
-                key={job.id}
-                href={`/explore/${job.id}`}
-                className="block relative card-premium rounded-2xl p-5 border-orange-200/80 hover:border-orange-300 no-underline bg-gradient-to-r from-orange-50/60 to-amber-50/40"
-                aria-label={`${job.title} ${job.creatorName}さん ${job.date}`}
-              >
-                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-                  <Zap className="w-3 h-3" aria-hidden="true" /> ぴったり
-                </div>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                      <span className="text-xs bg-yui-green-100/80 text-yui-green-700 font-bold px-2.5 py-1 rounded-full">
-                        {getJobTypeLabel(job.type)}
-                      </span>
-                    </div>
-                    <h3 className="font-bold text-yui-green-800 text-base">{job.title}</h3>
-                    <p className="text-sm text-yui-earth-600 mt-1">{job.creatorName}</p>
-                    <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
-                      <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                      {job.date} {job.startTime}〜{job.endTime}
-                    </p>
-                  </div>
-                  <div className="text-right ml-3 shrink-0">
-                    <div className="flex items-center gap-1 bg-amber-100/80 px-3 py-1.5 rounded-full">
-                      <Coins className="w-4 h-4 text-yui-accent" aria-hidden="true" />
-                      <span className="font-bold text-yui-earth-800 tabular-nums">{job.totalTokens}</span>
-                      <span className="text-xs text-yui-earth-500">P</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <section aria-labelledby="upcoming-section" className="space-y-3">
+        <h2 id="upcoming-section" className="text-xl md:text-2xl font-bold text-yui-green-800 flex items-center gap-2">
+          <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+          今後の予定
+        </h2>
 
-      {/* スキマ時間の登録促進 */}
-      {myAvailabilities.length === 0 && (
-        <Link
-          href="/profile"
-          className="block card-premium rounded-2xl p-5 border-blue-200/60 no-underline hover:border-blue-300 bg-gradient-to-r from-blue-50/50 to-indigo-50/30"
-          aria-label="手伝える時間を登録する"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-              <Clock className="w-6 h-6 text-blue-700" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="font-bold text-blue-800 text-base">手伝える時間を登録しよう！</p>
-              <p className="text-sm text-blue-600 mt-0.5">
-                時間を登録すると、ぴったりの募集を自動でお知らせ
+        {primaryPlan ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              href="/schedule"
+              className="md:col-span-2 block gradient-primary rounded-3xl p-6 md:p-7 text-white no-underline"
+              aria-label="直近の予定を確認"
+            >
+              <p className="text-sm md:text-base text-white/80 font-bold">直近の確定予定</p>
+              <h3 className="mt-1 text-2xl md:text-3xl font-black leading-snug">{primaryPlan.title}</h3>
+              <p className="mt-2 text-lg md:text-xl font-bold">
+                {primaryPlan.date} {primaryPlan.startTime}〜{primaryPlan.endTime}
               </p>
-            </div>
-          </div>
-        </Link>
-      )}
+              <p className="mt-1 text-base text-white/85">{primaryPlan.partnerName}さんの募集</p>
+              <span className="inline-flex items-center gap-1 mt-4 text-base font-bold text-white/90">
+                予定の一覧へ
+                <ArrowRight className="w-5 h-5" aria-hidden="true" />
+              </span>
+            </Link>
 
-      {/* 直近の予定 */}
-      <section aria-labelledby="upcoming-heading">
-        <div className="flex items-center justify-between mb-3">
-          <h2 id="upcoming-heading" className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> 直近の予定
-          </h2>
-          <Link href="/schedule" className="text-sm text-yui-green-600 font-bold no-underline hover:text-yui-green-700" style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}>
-            すべて見る
-          </Link>
-        </div>
-        {myUpcoming.length > 0 ? (
-          <div className="space-y-2">
-            {myUpcoming.map(({ app, job }) => (
-              <div key={app.id} className="card-premium rounded-2xl p-5">
-                <p className="font-bold text-yui-green-800">{job.title}</p>
-                <p className="text-sm text-yui-earth-600 mt-1 flex items-center gap-1">
-                  <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                  {job.date} {job.startTime}〜{job.endTime}
-                </p>
+            <div className="bg-white rounded-3xl p-5 border-2 border-yui-green-100">
+              <p className="text-sm text-yui-earth-500 font-bold mb-2">次の予定</p>
+              <div className="space-y-2">
+                {upcomingPlans.slice(1).length > 0 ? (
+                  upcomingPlans.slice(1).map((plan) => (
+                    <div key={plan.id} className="rounded-xl bg-yui-green-50 px-3 py-3">
+                      <p className="text-sm font-bold text-yui-green-800 line-clamp-1">{plan.title}</p>
+                      <p className="text-xs text-yui-earth-600 mt-0.5">{plan.date}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-yui-earth-500">直近の予定は1件です。</p>
+                )}
               </div>
-            ))}
+            </div>
           </div>
         ) : (
-          <div className="card-premium rounded-2xl p-6 text-center">
-            <p className="text-base text-yui-earth-500">まだ予定はありません</p>
-            <Link href="/explore" className="text-sm text-yui-green-600 font-bold mt-2 inline-block no-underline hover:text-yui-green-700" style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}>
-              お手伝い募集を探す →
+          <div className="bg-white rounded-3xl p-6 border-2 border-yui-green-100 text-center">
+            <Clock3 className="w-9 h-9 text-yui-earth-400 mx-auto" aria-hidden="true" />
+            <p className="mt-2 text-lg font-bold text-yui-green-800">確定した予定はまだありません</p>
+            <Link
+              href="/explore"
+              className="mt-3 inline-flex items-center gap-1 text-base font-bold text-yui-green-700 no-underline hover:text-yui-green-800"
+              style={{ minHeight: "48px", alignItems: "center" }}
+            >
+              募集を探す
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Link>
           </div>
         )}
       </section>
 
-      {/* おすすめヘルプ募集 */}
-      <section aria-labelledby="recommend-heading">
-        <div className="flex items-center justify-between mb-3">
-          <h2 id="recommend-heading" className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-yui-accent" aria-hidden="true" /> おすすめ募集
-          </h2>
-          <Link href="/explore" className="text-sm text-yui-green-600 font-bold no-underline hover:text-yui-green-700" style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}>
-            すべて見る
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {openJobs.map((job) => (
-            <Link
-              key={job.id}
-              href={`/explore/${job.id}`}
-              className="block card-premium rounded-2xl p-5 hover:border-yui-green-200 no-underline"
-              aria-label={`${job.title} ${job.creatorName}さん ${job.date}`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                    <span className="text-xs bg-yui-green-100/80 text-yui-green-700 font-bold px-2.5 py-1 rounded-full">
-                      {getJobTypeLabel(job.type)}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-yui-green-800 text-base">{job.title}</h3>
-                  <p className="text-sm text-yui-earth-600 mt-1">{job.creatorName}</p>
-                  <p className="text-sm text-yui-earth-500 mt-0.5 flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4" aria-hidden="true" />
-                    {job.date} {job.startTime}〜{job.endTime}
-                  </p>
-                </div>
-                <div className="text-right ml-3 shrink-0">
-                  <div className="flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200/60">
-                    <Coins className="w-4 h-4 text-yui-accent" aria-hidden="true" />
-                    <span className="font-bold text-yui-earth-800 tabular-nums">{job.totalTokens}</span>
-                    <span className="text-xs text-yui-earth-500">P</span>
-                  </div>
-                </div>
+      <section aria-labelledby="important-notice" className="space-y-3">
+        <h2 id="important-notice" className="text-xl md:text-2xl font-bold text-yui-green-800 flex items-center gap-2">
+          <BellRing className="w-6 h-6 text-yui-accent" aria-hidden="true" />
+          重要通知
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {importantNotifications.length > 0 ? (
+            importantNotifications.map((notif) => (
+              <div key={notif.id} className="bg-white rounded-2xl border-2 border-orange-200 p-4">
+                <p className="text-base font-bold text-yui-green-800">{notif.title}</p>
+                <p className="text-sm text-yui-earth-600 mt-1 line-clamp-2">{notif.message}</p>
+                <Link
+                  href={notif.jobId ? `/explore/${notif.jobId}` : "/notifications"}
+                  className="mt-2 inline-flex items-center gap-1 text-base font-bold text-yui-green-700 no-underline hover:text-yui-green-800"
+                  style={{ minHeight: "44px", alignItems: "center" }}
+                >
+                  対応する
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
               </div>
-            </Link>
-          ))}
+            ))
+          ) : (
+            <div className="md:col-span-2 bg-white rounded-2xl border-2 border-yui-green-100 p-5 text-center text-yui-earth-500">
+              今すぐ対応が必要な通知はありません
+            </div>
+          )}
         </div>
       </section>
 
-      {/* 広告セクション */}
-      <AdSection />
+      <section aria-labelledby="hub-section" className="space-y-3">
+        <h2 id="hub-section" className="text-xl md:text-2xl font-bold text-yui-green-800">よく使う機能</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Link
+            href="/explore"
+            className="w-full bg-white border-2 border-yui-green-200 rounded-2xl px-4 py-5 no-underline hover:bg-yui-green-50 transition-colors"
+            style={{ minHeight: "72px", display: "flex", alignItems: "center", gap: "10px" }}
+          >
+            <Search className="w-6 h-6 text-yui-green-700" aria-hidden="true" />
+            <span className="text-lg font-bold text-yui-green-800">探す（手伝う）</span>
+          </Link>
 
-      {/* 最近のやりとり */}
-      <section aria-labelledby="recent-heading">
-        <div className="flex items-center justify-between mb-3">
-          <h2 id="recent-heading" className="text-lg font-bold text-yui-green-800">💰 最近のやりとり</h2>
-          <Link href="/wallet" className="text-sm text-yui-green-600 font-bold no-underline hover:text-yui-green-700" style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}>
-            すべて見る
+          <Link
+            href="/profile"
+            className="w-full bg-white border-2 border-yui-green-200 rounded-2xl px-4 py-5 no-underline hover:bg-yui-green-50 transition-colors"
+            style={{ minHeight: "72px", display: "flex", alignItems: "center", gap: "10px" }}
+          >
+            <Settings className="w-6 h-6 text-yui-green-700" aria-hidden="true" />
+            <span className="text-lg font-bold text-yui-green-800">設定・プロフィール</span>
+          </Link>
+
+          <Link
+            href="/settings"
+            className="w-full bg-white border-2 border-yui-green-200 rounded-2xl px-4 py-5 no-underline hover:bg-yui-green-50 transition-colors"
+            style={{ minHeight: "72px", display: "flex", alignItems: "center", gap: "10px" }}
+          >
+            <BellRing className="w-6 h-6 text-yui-green-700" aria-hidden="true" />
+            <span className="text-lg font-bold text-yui-green-800">その他（サポート等）</span>
           </Link>
         </div>
-        {transactions.length > 0 ? (
-          <div className="card-premium rounded-2xl divide-y divide-yui-earth-100/60">
-            {transactions.map((txn) => {
-              const isIncome = txn.toUserId === user.uid;
+      </section>
+
+      <section aria-labelledby="asset-section" className="space-y-3 pt-1">
+        <h2 id="asset-section" className="text-xl md:text-2xl font-bold text-yui-green-800">あなたの登録情報</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl border-2 border-yui-green-100 p-5">
+            <h3 className="text-lg font-bold text-yui-green-800 flex items-center gap-2 mb-3">
+              <Tractor className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
+              もっている農機具
+            </h3>
+
+            <MultiSelectTag
+              selectedItems={user.equipmentList || []}
+              presetOptions={EQUIPMENT_PRESETS}
+              placeholder="例：耕うん機"
+              label="農機具"
+              onAdd={handleAddEquipment}
+              onRemove={handleRemoveEquipment}
+            />
+
+            {specTarget && (() => {
+              const master = EQUIPMENT_MASTER.find((item) => item.name === specTarget);
+              if (!master) return null;
+
               return (
-                <div key={txn.id} className="px-4 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isIncome ? "bg-green-50" : "bg-orange-50"}`}>
-                      {isIncome ? (
-                        <TrendingUp className="w-5 h-5 text-yui-success" aria-hidden="true" />
-                      ) : (
-                        <TrendingDown className="w-5 h-5 text-orange-600" aria-hidden="true" />
-                      )}
-                    </div>
+                <div className="bg-amber-50 p-4 rounded-xl border-2 border-amber-200 mt-3 space-y-3">
+                  <p className="text-sm font-bold text-yui-green-800">🔧 {specTarget} の仕様を入力</p>
+
+                  {master.horsepowerOptions && master.horsepowerOptions.length > 0 && (
                     <div>
-                      <p className="text-sm font-bold text-yui-green-800">{txn.description}</p>
-                      <p className="text-xs text-yui-earth-500">
-                        {isIncome ? txn.fromUserName : txn.toUserName}
-                      </p>
+                      <p className="text-xs font-bold text-yui-earth-600 mb-1">馬力・規格</p>
+                      <select
+                        value={specHorsepower}
+                        onChange={(e) => setSpecHorsepower(e.target.value)}
+                        className="w-full px-3 py-2.5 text-sm border-2 border-yui-green-200 rounded-lg bg-white focus:border-yui-green-500 focus:outline-none"
+                      >
+                        <option value="">選択してください</option>
+                        {master.horsepowerOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`font-bold text-base tabular-nums ${isIncome ? "text-yui-success" : "text-orange-600"}`}>
-                      {isIncome ? "+" : "-"}{txn.amount}
-                    </span>
-                    <p className={`text-xs font-bold ${isIncome ? "text-yui-success" : "text-orange-600"}`}>
-                      {isIncome ? "もらった" : "使った"}
-                    </p>
+                  )}
+
+                  {master.attachmentOptions && master.attachmentOptions.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-yui-earth-600 mb-1">アタッチメント</p>
+                      <div className="flex flex-wrap gap-2">
+                        {master.attachmentOptions.map((attachment) => {
+                          const selected = specAttachments.includes(attachment);
+                          return (
+                            <button
+                              key={attachment}
+                              type="button"
+                              onClick={() => {
+                                setSpecAttachments((prev) =>
+                                  selected ? prev.filter((item) => item !== attachment) : [...prev, attachment]
+                                );
+                              }}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${
+                                selected
+                                  ? "bg-yui-green-600 text-white border-yui-green-600"
+                                  : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"
+                              }`}
+                            >
+                              {selected && <Check className="w-3 h-3 inline mr-1" />}
+                              {attachment}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => handleAddEquipment(specTarget)}
+                      className="px-5 py-2.5 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors"
+                      style={{ minHeight: "44px" }}
+                    >
+                      この仕様で追加する
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSpecTarget(null);
+                        setSpecHorsepower("");
+                        setSpecAttachments([]);
+                      }}
+                      className="px-4 py-2.5 bg-yui-earth-100 text-yui-earth-600 text-sm font-bold rounded-lg hover:bg-yui-earth-200 transition-colors"
+                      style={{ minHeight: "44px" }}
+                    >
+                      やめる
+                    </button>
                   </div>
                 </div>
               );
-            })}
+            })()}
           </div>
-        ) : (
-          <div className="card-premium rounded-2xl p-6 text-center">
-            <p className="text-yui-earth-500">やりとりの記録はまだありません</p>
+
+          <div className="bg-white rounded-2xl border-2 border-yui-green-100 p-5">
+            <h3 className="text-lg font-bold text-yui-green-800 flex items-center gap-2 mb-3">
+              <Sprout className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
+              育てている作物
+            </h3>
+
+            <MultiSelectTag
+              selectedItems={user.crops || []}
+              presetOptions={CROP_PRESETS}
+              placeholder="例：アスパラガス"
+              label="作物"
+              onAdd={handleAddCrop}
+              onRemove={handleRemoveCrop}
+            />
           </div>
-        )}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm text-yui-earth-500 font-bold">ポイントの履歴</p>
+          <p className="text-lg font-bold text-yui-green-800">やり取りの詳細を確認できます</p>
+        </div>
+        <Link
+          href="/wallet"
+          className="inline-flex items-center gap-1 text-base font-bold text-yui-green-700 no-underline hover:text-yui-green-800"
+          style={{ minHeight: "48px", alignItems: "center" }}
+        >
+          <Coins className="w-5 h-5" aria-hidden="true" />
+          開く
+        </Link>
       </section>
     </div>
   );

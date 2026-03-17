@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @theme {
   /* ===================================
@@ -36,6 +37,7 @@
   --color-yui-success: #1a7431;
 
   --font-sans: "BIZ UDPGothic", "Noto Sans JP", system-ui, sans-serif;
+  --font-yui-logo: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
 }
 
 /* ===================================
@@ -209,5 +211,10 @@ html.ud-high-contrast .card-premium {
     padding: 4px 10px;
     border-radius: 9999px;
     font-size: var(--ud-font-size-xs);
+  }
+
+  .font-yui-logo {
+    font-family: var(--font-yui-logo);
+    letter-spacing: 0.06em;
   }
 }

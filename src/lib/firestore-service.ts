@@ -74,6 +74,8 @@ function docToJob(data: any, id: string): Job {
     requiredPeople: data.requiredPeople ?? 0,
     equipmentNeeded: data.equipmentNeeded ?? "",
     location: data.location ?? "",
+    locationLat: typeof data.locationLat === "number" ? data.locationLat : undefined,
+    locationLng: typeof data.locationLng === "number" ? data.locationLng : undefined,
     status: data.status ?? "open",
     cancelReason: data.cancelReason,
     cancelDetail: data.cancelDetail,
@@ -176,9 +178,39 @@ export async function fsCreateUser(user: User): Promise<void> {
     ageGroup: user.ageGroup,
     tokenBalance: user.tokenBalance,
     equipmentList: user.equipmentList,
+    equipmentSpecs: user.equipmentSpecs ?? [],
     crops: user.crops,
+    role: user.role ?? "user",
+    status: user.status,
     createdAt: Timestamp.fromDate(user.createdAt),
   });
+}
+
+export async function fsCreateUserIfAbsent(user: User): Promise<boolean> {
+  const userRef = doc(db, "users", user.uid);
+  let created = false;
+
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(userRef);
+    if (snap.exists()) return;
+
+    created = true;
+    transaction.set(userRef, {
+      name: user.name,
+      farmName: user.farmName,
+      location: user.location,
+      ageGroup: user.ageGroup,
+      tokenBalance: user.tokenBalance,
+      equipmentList: user.equipmentList,
+      equipmentSpecs: user.equipmentSpecs ?? [],
+      crops: user.crops,
+      role: user.role ?? "user",
+      status: user.status,
+      createdAt: Timestamp.fromDate(user.createdAt),
+    });
+  });
+
+  return created;
 }
 
 export async function fsUpdateUser(uid: string, updates: Partial<User>): Promise<void> {
@@ -244,6 +276,8 @@ export async function fsCreateJob(job: Omit<Job, "id"> & { id?: string }): Promi
     requiredPeople: job.requiredPeople,
     equipmentNeeded: job.equipmentNeeded,
     location: job.location,
+    locationLat: job.locationLat ?? null,
+    locationLng: job.locationLng ?? null,
     status: job.status,
     createdAt: Timestamp.fromDate(job.createdAt instanceof Date ? job.createdAt : new Date()),
   };
@@ -280,6 +314,12 @@ export async function fsGetApplicationsByJob(jobId: string): Promise<Application
 
 export async function fsGetApplicationsByUser(uid: string): Promise<Application[]> {
   const q = query(collection(db, "applications"), where("applicantId", "==", uid), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => docToApplication(d.data(), d.id));
+}
+
+export async function fsGetAllApplications(): Promise<Application[]> {
+  const q = query(collection(db, "applications"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => docToApplication(d.data(), d.id));
 }

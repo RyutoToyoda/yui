@@ -20,6 +20,7 @@ export interface User {
   crops: string[];
   role?: 'admin' | 'user';
   status: 'active' | 'inactive';
+  hasSeenTutorial?: boolean; // オンボーディング完了フラグ
   createdAt: Date;
 }
 
@@ -53,6 +54,8 @@ export interface Job {
   requiredPeople: number;
   equipmentNeeded: string;
   location: string;
+  locationLat?: number;
+  locationLng?: number;
   status: JobStatus;
   cancelReason?: string;
   cancelDetail?: string;

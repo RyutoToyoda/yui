@@ -59,6 +59,9 @@ export default function AdminLoginPage() {
           </div>
           <h1 className="text-2xl font-black text-yui-green-800">管理者ログイン</h1>
           <p className="text-sm text-yui-earth-500 mt-2 font-medium">管理者専用パスワードを入力してください</p>
+          <p className="mt-3 inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800">
+            デモ用パスワード: yui-admin-2026
+          </p>
         </div>
 
         <form onSubmit={handleAdminLogin} className="space-y-6">

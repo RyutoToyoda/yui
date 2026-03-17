@@ -12,8 +12,14 @@ interface Message {
   timestamp: Date;
 }
 
-export default function HelpAdvisor() {
-  const [isOpen, setIsOpen] = useState(false);
+interface HelpAdvisorProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  showFloatingButton?: boolean;
+}
+
+export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloatingButton = true }: HelpAdvisorProps) {
+  const [isOpen, setIsOpen] = useState(externalIsOpen ?? false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -26,6 +32,13 @@ export default function HelpAdvisor() {
   const [isTyping, setIsTyping] = useState(false);
   const { isListening, isSpeaking, speak, startListening, stopListening, cancelAll } = useVoice();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 外部から制御される場合は externalIsOpen を追跡
+  useEffect(() => {
+    if (externalIsOpen !== undefined) {
+      setIsOpen(externalIsOpen);
+    }
+  }, [externalIsOpen]);
 
   // メッセージが増えたら一番下までスクロール
   useEffect(() => {
@@ -87,11 +100,11 @@ export default function HelpAdvisor() {
   return (
     <>
       {/* 起動ボタン (フローティング) */}
-      {!isOpen && (
+      {!isOpen && showFloatingButton && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-24 right-4 z-50 flex flex-col items-center gap-1 group"
-          aria-label="お悩み相談役を開く"
+          aria-label="おたすけAIを開く"
         >
           <div className="bg-yui-green-600 text-white p-4 rounded-full shadow-2xl shadow-yui-green-900/40 group-hover:bg-yui-green-700 transition-all transform group-hover:scale-110 border-4 border-white">
             <MessageCircle className="w-8 h-8" />
@@ -112,14 +125,18 @@ export default function HelpAdvisor() {
                 <Info className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-black">お悩み相談役</h2>
+                <h2 className="text-xl font-black">おたすけAI</h2>
                 <p className="text-white/80 text-sm font-bold">アプリの使い方を教えます</p>
               </div>
             </div>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                onClose?.();
+              }}
               className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
               aria-label="閉じる"
+              style={{ minHeight: "56px", minWidth: "56px" }}
             >
               <X className="w-8 h-8" />
             </button>

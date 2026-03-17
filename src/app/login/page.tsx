@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { PREFECTURES, getMunicipalities, isKantoPrefecture } from "@/lib/region-data";
 
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [municipality, setMunicipality] = useState("");
   const [ageGroup, setAgeGroup] = useState("30代");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { login, register, loginAsGuest } = useAuth();
   const router = useRouter();
 
@@ -89,7 +90,7 @@ export default function LoginPage() {
         {/* タブ切り替え */}
         <div className="flex bg-yui-earth-100 rounded-2xl p-1 mb-6" role="tablist" aria-label="ログインまたは新規登録">
           <button
-            onClick={() => { setIsRegister(false); setError(""); }}
+            onClick={() => { setIsRegister(false); setError(""); setShowPassword(false); }}
             className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${!isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
                 : "text-yui-earth-500 hover:text-yui-earth-700"
@@ -101,7 +102,7 @@ export default function LoginPage() {
             ログイン
           </button>
           <button
-            onClick={() => { setIsRegister(true); setError(""); }}
+            onClick={() => { setIsRegister(true); setError(""); setShowPassword(false); }}
             className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
                 : "text-yui-earth-500 hover:text-yui-earth-700"
@@ -142,16 +143,28 @@ export default function LoginPage() {
               <label htmlFor="login-password" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 パスワード
               </label>
-              <input
-                id="login-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className={inputClass}
-                required
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClass + " pr-14"}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-yui-earth-400 hover:text-yui-earth-700 rounded-xl hover:bg-yui-earth-100 transition-colors"
+                >
+                  {showPassword
+                    ? <EyeOff className="w-6 h-6" aria-hidden="true" />
+                    : <Eye className="w-6 h-6" aria-hidden="true" />}
+                </button>
+              </div>
             </div>
             <button
               type="submit"
@@ -188,17 +201,29 @@ export default function LoginPage() {
               <label htmlFor="reg-password" className="block text-sm font-bold text-yui-earth-700 mb-2">
                 パスワード <span className="text-yui-danger text-xs font-bold">（6文字以上）</span>
               </label>
-              <input
-                id="reg-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className={inputClass}
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <input
+                  id="reg-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClass + " pr-14"}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-yui-earth-400 hover:text-yui-earth-700 rounded-xl hover:bg-yui-earth-100 transition-colors"
+                >
+                  {showPassword
+                    ? <EyeOff className="w-6 h-6" aria-hidden="true" />
+                    : <Eye className="w-6 h-6" aria-hidden="true" />}
+                </button>
+              </div>
             </div>
             <div>
               <label htmlFor="reg-name" className="block text-sm font-bold text-yui-earth-700 mb-2">

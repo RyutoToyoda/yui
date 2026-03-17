@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Mic, Volume2, VolumeX, Send, Info } from "lucide-react";
+import { MessageCircle, X, Mic, Volume2, Send, Info } from "lucide-react";
 import { useVoice } from "@/hooks/useVoice";
 import { getBotResponse } from "@/lib/ai-service";
 
@@ -117,9 +117,9 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
 
       {/* 相談画面 (オーバーレイ) */}
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-yui-earth-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-0 z-[60] flex flex-col w-full max-w-full overflow-x-hidden bg-yui-earth-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* ヘッダー */}
-          <header className="bg-yui-green-700 text-white p-5 flex items-center justify-between shadow-md">
+          <header className="bg-yui-green-700 text-white px-4 py-4 md:p-5 flex items-center justify-between shadow-md">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-2 rounded-full">
                 <Info className="w-6 h-6" />
@@ -145,39 +145,37 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
           {/* メッセージ表示エリア */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto p-5 space-y-6 bg-gradient-to-b from-white to-yui-earth-50"
+            className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-5 space-y-6 bg-gradient-to-b from-white to-yui-earth-50"
           >
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`w-full flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div
-                  className={`max-w-[85%] rounded-3xl p-5 shadow-sm relative ${
-                    msg.sender === "user"
-                      ? "bg-yui-green-600 text-white rounded-tr-none text-lg font-bold"
-                      : "bg-white text-yui-earth-900 border border-yui-earth-100 rounded-tl-none text-xl font-black leading-relaxed"
-                  }`}
-                >
-                  <p>{msg.text}</p>
-                  <div
-                    className={`text-[10px] mt-2 opacity-60 ${
-                      msg.sender === "user" ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                  
-                  {msg.sender === "bot" && (
+                {msg.sender === "bot" ? (
+                  <div className="w-full max-w-[92%] md:max-w-[85%] flex items-start gap-2">
+                    <div className="min-w-0 flex-1 bg-white text-yui-earth-900 border border-yui-earth-100 rounded-3xl rounded-tl-none p-5 text-xl font-black leading-relaxed shadow-sm break-words">
+                      <p>{msg.text}</p>
+                      <div className="text-[10px] mt-2 opacity-60 text-left">
+                        {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
                     <button
                       onClick={() => speak(msg.text)}
-                      className="absolute -right-12 top-0 p-3 bg-white border border-yui-earth-100 rounded-full shadow-sm text-yui-green-600 hover:bg-yui-green-50 transition-colors"
+                      className="shrink-0 p-3 bg-white border border-yui-earth-100 rounded-full shadow-sm text-yui-green-600 hover:bg-yui-green-50 transition-colors"
                       aria-label="音声を再生"
                     >
                       {isSpeaking ? <Volume2 className="w-5 h-5 animate-pulse" /> : <Volume2 className="w-5 h-5" />}
                     </button>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="max-w-[90%] md:max-w-[85%] bg-yui-green-600 text-white rounded-3xl rounded-tr-none p-5 text-lg font-bold shadow-sm break-words">
+                    <p>{msg.text}</p>
+                    <div className="text-[10px] mt-2 opacity-60 text-right">
+                      {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             {isTyping && (
@@ -192,44 +190,41 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
           </div>
 
           {/* 操作エリア */}
-          <footer className="bg-white border-t border-yui-earth-200 p-6 pb-10 space-y-6 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-            {/* 音声入力ボタン (最大級) */}
-            <div className="flex justify-center">
+          <footer className="bg-white border-t border-yui-earth-200 p-4 md:p-6 pb-8 md:pb-10 space-y-4 md:space-y-6 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <p className="text-sm md:text-base font-bold text-yui-earth-600">困ったことを入力（音声入力）</p>
+
+            {/* モバイルでは縦積み / 画面幅に収める */}
+            <div className="flex flex-col md:flex-row gap-3 w-full">
+              <div className="w-full md:flex-1 min-w-0 flex gap-2">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSend(inputText)}
+                  placeholder="文字で入力もできます"
+                  className="w-full min-w-0 bg-yui-earth-50 border-2 border-yui-earth-200 rounded-2xl px-4 py-3.5 text-base md:text-lg focus:outline-none focus:border-yui-green-500 font-bold"
+                />
+                <button
+                  onClick={() => handleSend(inputText)}
+                  disabled={!inputText.trim()}
+                  className="shrink-0 bg-yui-green-600 text-white px-4 py-3 rounded-2xl disabled:opacity-30 disabled:grayscale transition-all"
+                  aria-label="送信"
+                >
+                  <Send className="w-6 h-6" />
+                </button>
+              </div>
+
               <button
                 onClick={toggleListen}
-                className={`flex flex-col items-center gap-3 p-6 rounded-full transition-all duration-300 ${
+                className={`w-full md:w-auto md:min-w-[180px] flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl font-black transition-all ${
                   isListening
-                    ? "bg-red-500 scale-110 shadow-lg shadow-red-200 animate-pulse"
+                    ? "bg-red-500 text-white shadow-lg shadow-red-200"
                     : "bg-yui-green-100 text-yui-green-700 hover:bg-yui-green-200"
                 }`}
-                aria-label={isListening ? "聞き取りを停止" : "声で相談する"}
+                aria-label={isListening ? "聞き取りを停止" : "声で入力"}
               >
-                <div className={`p-6 rounded-full ${isListening ? "bg-white text-red-500" : "bg-yui-green-600 text-white"}`}>
-                  <Mic className={`w-12 h-12 ${isListening ? "scale-125" : ""}`} />
-                </div>
-                <span className="text-xl font-black">
-                  {isListening ? "お話しください..." : "声で相談する"}
-                </span>
-              </button>
-            </div>
-
-            {/* テキスト入力エリア (バックアップ用) */}
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSend(inputText)}
-                placeholder="文字で入力もできます"
-                className="flex-1 bg-yui-earth-50 border-2 border-yui-earth-200 rounded-2xl px-5 py-4 text-lg focus:outline-none focus:border-yui-green-500 font-bold"
-              />
-              <button
-                onClick={() => handleSend(inputText)}
-                disabled={!inputText.trim()}
-                className="bg-yui-green-600 text-white p-4 rounded-2xl disabled:opacity-30 disabled:grayscale transition-all"
-                aria-label="送信"
-              >
-                <Send className="w-8 h-8" />
+                <Mic className="w-6 h-6" />
+                <span>{isListening ? "聞き取り中..." : "声で入力"}</span>
               </button>
             </div>
             

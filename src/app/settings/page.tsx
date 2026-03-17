@@ -11,7 +11,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import HelpAdvisor from "@/components/HelpAdvisor";
 
 const fontSizeOptions = [
-  { value: "standard" as const, label: "ふつう", description: "標準のサイズです", sampleSize: "18px" },
+  { value: "standard" as const, label: "普通", description: "標準のサイズです", sampleSize: "18px" },
   { value: "large" as const, label: "大きめ", description: "少し大きめの文字です", sampleSize: "20px" },
   { value: "xlarge" as const, label: "とても大きい", description: "もっとも読みやすいサイズです", sampleSize: "22px" },
 ];

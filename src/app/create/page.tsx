@@ -50,6 +50,31 @@ const jobTypes = [
 
 const ratePresets = [1, 1.5, 2, 4];
 
+// 住所から座標を取得（順ジオコーディング）
+async function geocodeAddress(address: string): Promise<LocationPoint | null> {
+  if (!address.trim()) return null;
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        address
+      )}&limit=1&accept-language=ja`
+    );
+    if (!response.ok) return null;
+    const results = await response.json();
+    if (!results || results.length === 0) return null;
+
+    const result = results[0];
+    return {
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon),
+      address: result.display_name || address,
+    };
+  } catch (error) {
+    console.error("Geocoding failed:", error);
+    return null;
+  }
+}
+
 export default function CreatePage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -71,6 +96,7 @@ export default function CreatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   if (!user) return null;
 
@@ -218,15 +244,52 @@ export default function CreatePage() {
               <MapPin className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
               作業場所 <span className="text-yui-danger">（必須）</span>
             </label>
-            <input
-              id="job-location"
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="例：○○農園の西側の畑"
-              className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
-              required
-            />
+            <div className="space-y-2">
+              <div className="flex gap-2 items-end">
+                <input
+                  id="job-location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  onBlur={async () => {
+                    // フォーカス喪失時に自動で地図に反映
+                    if (location.trim() && !locationPoint) {
+                      setIsGeocoding(true);
+                      const result = await geocodeAddress(location);
+                      if (result) {
+                        setLocationPoint(result);
+                      }
+                      setIsGeocoding(false);
+                    }
+                  }}
+                  placeholder="例：長野県松本市中島〇丁目、または○○農園の西側の畑"
+                  className="flex-1 px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (location.trim()) {
+                      setIsGeocoding(true);
+                      const result = await geocodeAddress(location);
+                      if (result) {
+                        setLocationPoint(result);
+                        setLocation(result.address || location);
+                      }
+                      setIsGeocoding(false);
+                    }
+                  }}
+                  disabled={isGeocoding || !location.trim()}
+                  className="px-6 py-4 bg-yui-green-100 text-yui-green-700 font-bold rounded-xl hover:bg-yui-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  style={{ minHeight: "56px" }}
+                >
+                  {isGeocoding ? "検索中..." : "地図に反映"}
+                </button>
+              </div>
+              <p className="text-xs text-yui-earth-500">
+                住所を入力するか、下の地図をタップして正確な位置を指定してください。
+              </p>
+            </div>
             <div className="mt-3 space-y-2">
               <LocationPickerMap
                 value={locationPoint}

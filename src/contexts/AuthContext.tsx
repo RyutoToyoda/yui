@@ -10,7 +10,7 @@ import {
   signOut,
   type UserCredential,
 } from "firebase/auth";
-import { fsGetUser, fsCreateUserIfAbsent, fsCreateWelcomeNotification } from "@/lib/firestore-service";
+import { fsGetUser, fsCreateUserIfAbsent, fsCreateWelcomeNotification, fsUpdateUser } from "@/lib/firestore-service";
 
 interface AuthContextType {
   user: User | null;
@@ -21,6 +21,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string, farmName: string, location: string, ageGroup: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => void;
+  markTutorialAsSeen: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -172,8 +173,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const markTutorialAsSeen = async () => {
+    if (!user) return;
+    try {
+      await fsUpdateUser(user.uid, { hasSeenTutorial: true });
+      setUser({ ...user, hasSeenTutorial: true });
+    } catch (error) {
+      console.error("Failed to mark tutorial as seen:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading, login, loginAsGuest, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading, login, loginAsGuest, register, logout, refreshUser, markTutorialAsSeen }}>
       {children}
     </AuthContext.Provider>
   );

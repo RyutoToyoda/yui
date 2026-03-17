@@ -20,6 +20,7 @@ export interface User {
   crops: string[];
   role?: 'admin' | 'user';
   status: 'active' | 'inactive';
+  hasSeenTutorial?: boolean; // オンボーディング完了フラグ
   createdAt: Date;
 }
 

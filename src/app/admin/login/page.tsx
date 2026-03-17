@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Lock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,6 +12,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { loginAsGuest, isLoggedIn } = useAuth();
   const router = useRouter();
 
@@ -69,16 +70,28 @@ export default function AdminLoginPage() {
             <label htmlFor="admin-pass" className="block text-sm font-bold text-yui-earth-700 mb-3 ml-1">
               管理者用パスワード
             </label>
-            <input
-              id="admin-pass"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-5 py-4 text-base border-2 border-yui-earth-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-yui-earth-50/50 transition-all font-mono"
-              required
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                id="admin-pass"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-5 py-4 pr-16 text-base border-2 border-yui-earth-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-yui-earth-50/50 transition-all font-mono"
+                required
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-yui-earth-400 hover:text-yui-earth-700 rounded-xl hover:bg-yui-earth-100 transition-colors"
+              >
+                {showPassword
+                  ? <EyeOff className="w-6 h-6" aria-hidden="true" />
+                  : <Eye className="w-6 h-6" aria-hidden="true" />}
+              </button>
+            </div>
           </div>
 
           {error && (

@@ -17,7 +17,6 @@ import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Onboarding from "@/components/Onboarding";
-import HelpAdvisor from "@/components/HelpAdvisor";
 import MultiSelectTag from "@/components/MultiSelectTag";
 import { EQUIPMENT_MASTER } from "@/lib/equipment-data";
 import { PREFECTURES, getMunicipalities, isKantoPrefecture } from "@/lib/region-data";
@@ -32,7 +31,6 @@ export default function ProfilePage() {
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [showHelpAdvisor, setShowHelpAdvisor] = useState(false);
 
   // 農機具仕様入力用ステート
   const [specTarget, setSpecTarget] = useState<string | null>(null); // 仕様入力中の農機具名
@@ -47,8 +45,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      // オンボーディング未表示の場合、表示
-      if (!user.hasSeenTutorial) {
+      // オンボーディング未表示かつ、ローカルでも未保存の場合に表示
+      const localSeen = localStorage.getItem("yui-onboarding-seen");
+      if (!user.hasSeenTutorial && !localSeen) {
         setShowTutorial(true);
       }
       setLoading(false);
@@ -60,6 +59,7 @@ export default function ProfilePage() {
   // オンボーディングハンドラー
   const handleTutorialComplete = async () => {
     await markTutorialAsSeen();
+    localStorage.setItem("yui-onboarding-seen", "true");
     setShowTutorial(false);
   };
 
@@ -251,27 +251,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* お手伝い可能日の管理ボタン */}
-      <div className="bg-blue-50 border-2 border-blue-100 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center gap-3 mb-2">
-          <CalendarDays className="w-6 h-6 text-blue-600" aria-hidden="true" />
-          <h2 className="text-base font-bold text-yui-green-800">お手伝いに行ける日</h2>
-        </div>
-        <p className="text-sm text-yui-earth-600 mb-4" style={{ lineHeight: "1.6" }}>
-          お手伝いに行ける日をカレンダーから選んで登録できます。予定に合わせて更新しましょう ✨
-        </p>
-        <Link
-          href="/schedule?tab=availability"
-          onClick={() => {
-            // タブを切り替えるためのヒントをlocalStorageなどに保存するか、URLパラメータで制御する（今回はシンプルにLink）
-          }}
-          className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors no-underline shadow-md shadow-blue-100"
-          style={{ minHeight: "52px" }}
-        >
-          カレンダーで登録する
-        </Link>
-      </div>
-
       {/* 所有農機具 */}
       <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
         <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2 mb-3">
@@ -326,11 +305,10 @@ export default function ProfilePage() {
                               selected ? prev.filter(a => a !== att) : [...prev, att]
                             );
                           }}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${
-                            selected
-                              ? "bg-yui-green-600 text-white border-yui-green-600"
-                              : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"
-                          }`}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selected
+                            ? "bg-yui-green-600 text-white border-yui-green-600"
+                            : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"
+                            }`}
                         >
                           {selected && <Check className="w-3 h-3 inline mr-1" />}{att}
                         </button>
@@ -400,29 +378,6 @@ export default function ProfilePage() {
           onConfirm={() => { handleRemoveCrop(confirmDelete.index!); setConfirmDelete(null); }}
           onCancel={() => setConfirmDelete(null)}
         />
-      )}
-
-      {/* 困ったときのAIサポート */}
-      <div 
-        className="bg-green-50 border-2 border-green-200 rounded-2xl p-5 shadow-sm cursor-pointer hover:bg-green-100 transition-colors" 
-        onClick={() => setShowHelpAdvisor(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && setShowHelpAdvisor(true)}
-        aria-label="困ったときのAIサポートを開く"
-      >
-        <div className="flex items-start gap-4">
-          <div className="text-4xl shrink-0" aria-hidden="true">💬</div>
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-green-800 mb-1">困ったときのAIサポート</h2>
-            <p className="text-sm text-gray-600">アプリの使い方について、何でも相談できます。タップして話しかけてください。</p>
-          </div>
-          <div className="text-2xl shrink-0" aria-hidden="true">→</div>
-        </div>
-      </div>
-
-      {/* HelpAdvisor モーダル */}
-      <HelpAdvisor isOpen={showHelpAdvisor} onClose={() => setShowHelpAdvisor(false)} showFloatingButton={false} />
-    </div>
+      )}    </div>
   );
 }

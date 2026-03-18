@@ -37,7 +37,7 @@
   --color-yui-success: #1a7431;
 
   --font-sans: "BIZ UDPGothic", "Noto Sans JP", system-ui, sans-serif;
-  --font-yui-logo: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-yui-logo: "Yuji Syuku", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
 }
 
 /* ===================================
@@ -150,12 +150,16 @@ html.ud-high-contrast .card-premium {
   /* ===================================
    * フォーム要素のUD対応
    * =================================== */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     transition: all 0.2s ease;
     font-size: var(--ud-font-size-base);
   }
 
-  input:focus, select:focus, textarea:focus {
+  input:focus,
+  select:focus,
+  textarea:focus {
     box-shadow: 0 0 0 3px rgba(0, 114, 178, 0.25);
     outline: none;
   }
@@ -172,7 +176,8 @@ html.ud-high-contrast .card-premium {
   /* ===================================
    * ボタン / リンクのUD対応
    * =================================== */
-  button, a {
+  button,
+  a {
     transition: all 0.2s ease;
   }
 
@@ -215,6 +220,5 @@ html.ud-high-contrast .card-premium {
 
   .font-yui-logo {
     font-family: var(--font-yui-logo);
-    letter-spacing: 0.06em;
   }
 }

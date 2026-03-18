@@ -89,9 +89,9 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="px-4 py-5 space-y-5">
+    <div className="py-3 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-yui-green-800">おしらせ</h1>
+        <h1 className="text-xl font-bold text-yui-green-800">お知らせ</h1>
         <div className="flex items-center gap-2">
           {/* 手動リロードボタン */}
           <button
@@ -196,19 +196,9 @@ export default function NotificationsPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border-2 border-yui-green-100">
-          <Bell className="w-12 h-12 text-yui-earth-300 mx-auto mb-3" aria-hidden="true" />
-          <p className="text-yui-earth-500 font-bold">おしらせはまだありません</p>
-          <p className="text-sm text-yui-earth-400 mt-1" style={{ lineHeight: "1.7" }}>
-            手伝える時間を登録すると、ぴったりの募集が出た時にお知らせします
-          </p>
-          <Link
-            href="/profile"
-            className="inline-block mt-3 text-sm text-yui-green-600 font-bold no-underline hover:underline"
-            style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}
-          >
-            手伝える時間を登録する →
-          </Link>
+        <div className="bg-white rounded-xl p-10 text-center shadow-sm border border-yui-earth-200 mt-4">
+          <Bell className="w-10 h-10 text-yui-earth-300 mx-auto mb-3" aria-hidden="true" />
+          <p className="text-yui-earth-500 font-bold text-sm">現在、お知らせはありません</p>
         </div>
       )}
     </div>

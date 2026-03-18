@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { useMemo, useState, useEffect } from "react";
+import { MapContainer, Marker, TileLayer, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 
 type LocationPoint = {
@@ -48,6 +48,14 @@ function MapClickHandler({ onPick }: { onPick: (lat: number, lng: number) => voi
   return null;
 }
 
+function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(center, zoom, { duration: 1.5 });
+  }, [center, zoom, map]);
+  return null;
+}
+
 export default function LocationPickerMapInner({ value, onSelect }: LocationPickerMapProps) {
   const [isResolving, setIsResolving] = useState(false);
 
@@ -76,6 +84,7 @@ export default function LocationPickerMapInner({ value, onSelect }: LocationPick
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapUpdater center={center} zoom={value ? 14 : 6} />
         <MapClickHandler onPick={handlePick} />
         {value && <Marker position={[value.lat, value.lng]} icon={markerIcon} />}
       </MapContainer>

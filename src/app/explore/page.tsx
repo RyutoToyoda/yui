@@ -136,7 +136,7 @@ export default function ExplorePage() {
   const isSelectedPast = selectedDate ? selectedDate < todayStr : false;
 
   return (
-    <div className="py-1 md:py-2 space-y-5 md:space-y-6">
+    <div className="py-1 space-y-4">
       <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800">お手伝い募集を探す</h1>
 
       {recommendedJobs.length > 0 && (

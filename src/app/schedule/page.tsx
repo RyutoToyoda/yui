@@ -299,18 +299,15 @@ export default function SchedulePage() {
   };
 
   return (
-    <div className="px-4 py-5 space-y-5 pb-20">
-      <h1 className="text-xl font-bold text-yui-green-800">スケジュール</h1>
+    <div className="py-3 space-y-4 pb-20">
+      <h1 className="text-xl font-bold text-yui-green-800 flex items-center gap-2 mb-2">
+        <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+        予定
+      </h1>
 
       {/* Calendar with legend */}
-      <div className="space-y-6">
-        <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-6">
-          <h2 className="text-lg font-bold text-yui-green-800 mb-6 flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
-            お手伝い可能日を管理する
-          </h2>
-
-
+      <div className="space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-3 md:p-4">
           <Calendar
             year={year}
             month={month}
@@ -321,102 +318,72 @@ export default function SchedulePage() {
           />
 
           {selectedCalendarDate && (
-            <div className="mt-5 bg-yui-earth-50 rounded-2xl border-2 border-yui-green-100 p-4 space-y-3">
-              <p className="text-base font-bold text-yui-green-800">{formatDateJP(selectedCalendarDate)} の詳細</p>
+            <div className="mt-4 bg-yui-earth-50 rounded-xl border border-yui-green-200 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-yui-green-800">{formatDateJP(selectedCalendarDate)}</p>
+                  {selectedCalendarDate < todayStr && (
+                    <span className="text-xs text-yui-earth-500 bg-white px-2 py-0.5 rounded border border-yui-earth-200">過去日</span>
+                  )}
+                </div>
+                {selectedCalendarDate >= todayStr && (() => {
+                  const isRegistered = availabilities.some((a) => a.date === selectedCalendarDate);
+                  return (
+                    <button
+                      onClick={() => handleToggleAvail(selectedCalendarDate)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm shrink-0 flex items-center justify-center ${isRegistered
+                          ? "bg-red-500 text-white hover:bg-red-600"
+                          : "bg-green-600 text-white hover:bg-green-700"
+                        }`}
+                      style={{ minHeight: "32px", height: "32px" }}
+                    >
+                      {isRegistered ? "予定を解除" : "空き日に登録"}
+                    </button>
+                  );
+                })()}
+              </div>
 
               {selectedCalendarDate < todayStr ? (
                 <>
-                  <p className="text-sm text-yui-earth-600">過去日のため、空き日登録の変更はできません。</p>
                   {selectedDayHistories.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {selectedDayHistories.slice(0, 3).map((item) => (
-                        <div key={item.id} className="bg-white rounded-lg border border-yui-earth-200 p-3">
-                          <p className="text-sm font-bold text-yui-green-800">{item.title}</p>
-                          <p className="text-xs text-yui-earth-500 mt-0.5">{item.owner}</p>
+                        <div key={item.id} className="bg-white rounded-lg border border-yui-earth-200 p-2 select-none">
+                          <p className="text-xs font-bold text-yui-green-800 line-clamp-1">{item.title}</p>
+                          <p className="text-[10px] text-yui-earth-500">{item.owner}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-yui-earth-500">この日の履歴はありません。</p>
+                    <p className="text-xs text-yui-earth-500">履歴なし</p>
                   )}
                 </>
               ) : (
                 <>
-                  {selectedDayRecruitments.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-sm font-bold text-green-700">募集が {selectedDayRecruitments.length} 件あります</p>
-                      {selectedDayRecruitments.slice(0, 2).map((job) => (
-                        <p key={job.id} className="text-sm text-yui-earth-700 bg-white rounded-lg px-3 py-2 border border-green-200">
-                          {job.title}
-                        </p>
+                  {selectedDayRecruitments.length > 0 && (
+                    <div className="space-y-1.5 mt-1">
+                      {selectedDayRecruitments.slice(0, 4).map((job) => (
+                        <div key={job.id} className="flex items-center justify-between gap-3 bg-white rounded-md px-3 py-2.5 border border-yui-earth-200 shadow-sm">
+                          <p className="text-base font-bold text-yui-earth-800 line-clamp-1">{job.title}</p>
+                          <p className="text-base font-bold text-yui-earth-700 shrink-0">{job.startTime}〜{job.endTime}</p>
+                        </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm text-yui-earth-500">この日の募集はまだありません。</p>
                   )}
-
-                  {(() => {
-                    const isRegistered = availabilities.some((a) => a.date === selectedCalendarDate);
-                    return (
-                      <button
-                        onClick={() => handleToggleAvail(selectedCalendarDate)}
-                        className={`w-full py-3 rounded-xl text-base font-bold transition-colors ${isRegistered
-                            ? "bg-red-500 text-white hover:bg-red-600"
-                            : "bg-green-600 text-white hover:bg-green-700"
-                          }`}
-                        style={{ minHeight: "52px" }}
-                      >
-                        {isRegistered ? "登録を削除する" : "空き日に登録する"}
-                      </button>
-                    );
-                  })()}
                 </>
               )}
             </div>
           )}
         </div>
 
-        {/* 登録済みリスト */}
-        <div>
-          <h3 className="text-sm font-bold text-yui-earth-500 mb-3 px-1">登録されている日</h3>
-          <div className="space-y-2">
-            {availabilities.slice(0, 5).map(avail => (
-              <div key={avail.id} className="bg-white rounded-xl p-4 flex items-center justify-between border border-yui-green-100 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-50 text-green-700 flex items-center justify-center font-bold">
-                    {avail.date?.split("-")[2]}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-yui-green-800">{formatDateJP(avail.date!)}</p>
-                    <p className="text-xs text-yui-earth-500">{avail.startTime}〜{avail.endTime} お手伝いできます</p>
-                  </div>
-                </div>
-                <button
-                  onClick={async () => {
-                    await fsDeleteAvailability(avail.id);
-                    await loadData();
-                  }}
-                  className="p-2 text-yui-earth-300 hover:text-red-500 transition-colors"
-                  aria-label="削除"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-            {availabilities.length === 0 && (
-              <p className="text-sm text-yui-earth-400 text-center py-4 bg-white rounded-xl border-2 border-dashed border-yui-earth-100">
-                カレンダーから日付をえらんでください
-              </p>
-            )}
-          </div>
-        </div>
+
       </div>
 
       {/* 重要通知 */}
       <section aria-labelledby="important-notice" className="space-y-3">
         <h2 id="important-notice" className="text-xl font-bold text-yui-green-800 flex items-center gap-2">
           <BellRing className="w-6 h-6 text-yui-accent" aria-hidden="true" />
-          重要通知
+          お知らせ
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {importantNotifications.length > 0 ? (
@@ -435,8 +402,8 @@ export default function SchedulePage() {
               </div>
             ))
           ) : (
-            <div className="md:col-span-2 bg-white rounded-2xl border-2 border-yui-green-100 p-5 text-center text-yui-earth-500 shadow-sm">
-              今すぐ対応が必要な通知はありません
+            <div className="md:col-span-2 bg-white rounded-2xl border-2 border-yui-green-100 p-5 text-center text-yui-earth-500 shadow-sm font-bold">
+              お知らせはありません
             </div>
           )}
         </div>

@@ -89,7 +89,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="px-4 py-5 space-y-5">
+    <div className="py-3 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-yui-green-800">おしらせ</h1>
         <div className="flex items-center gap-2">

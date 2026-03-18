@@ -132,7 +132,7 @@ export default function JobDetailPage() {
   };
 
   return (
-    <div className="px-4 py-5 space-y-5">
+    <div className="py-3 space-y-4">
       {/* 戻るボタン */}
       <button
         onClick={() => router.back()}

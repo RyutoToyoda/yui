@@ -202,7 +202,7 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-7 w-full max-w-3xl mx-auto overflow-x-hidden">
+    <div className="space-y-4 w-full max-w-3xl mx-auto overflow-x-hidden">
       <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800">募集をつくる</h1>
 
       <form onSubmit={handlePreSubmit} className="space-y-6 w-full min-w-0">

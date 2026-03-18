@@ -299,7 +299,7 @@ export default function SchedulePage() {
   };
 
   return (
-    <div className="px-4 py-5 space-y-5 pb-20">
+    <div className="py-3 space-y-4 pb-20">
       <h1 className="text-xl font-bold text-yui-green-800">スケジュール</h1>
 
       {/* Calendar with legend */}

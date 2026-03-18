@@ -43,7 +43,7 @@ export default function WalletPage() {
     .reduce((sum, t) => sum + t.amount, 0);
 
   return (
-    <div className="px-4 py-5 space-y-5">
+    <div className="py-3 space-y-4">
       <h1 className="text-xl font-bold text-yui-green-800">やりとりの記録</h1>
 
       {/* 残高カード */}

@@ -29,7 +29,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="px-4 py-5 space-y-6">
+    <div className="py-3 space-y-4">
       {/* もどるボタン */}
       <button
         onClick={() => router.back()}

@@ -44,10 +44,6 @@ export default function SettingsPage() {
         設定
       </h1>
 
-      <p className="text-sm text-yui-earth-600" style={{ lineHeight: "1.8" }}>
-        お好みに合わせて画面の見え方を変えたり、ログアウトを行えます。
-      </p>
-
       {/* ===============================================
           👁 見やすさ設定
           =============================================== */}
@@ -60,42 +56,29 @@ export default function SettingsPage() {
         {/* 文字の大きさ */}
         <div className="space-y-3">
           <h3 className="text-base font-bold text-yui-green-700">文字の大きさ</h3>
-          <div className="space-y-2" role="radiogroup" aria-label="文字の大きさを選ぶ">
+          <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="文字の大きさを選ぶ">
             {fontSizeOptions.map((option) => {
               const isSelected = fontSize === option.value;
               return (
                 <button
                   key={option.value}
                   onClick={() => setFontSize(option.value)}
-                  className={`w-full flex items-center justify-between p-5 rounded-xl border-2 transition-all text-left ${
-                    isSelected
-                      ? "border-yui-green-500 bg-yui-green-50 shadow-sm"
-                      : "border-yui-green-100 bg-white hover:border-yui-green-300"
-                  }`}
+                  className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${isSelected
+                    ? "border-yui-green-500 bg-yui-green-50 shadow-sm"
+                    : "border-yui-green-100 bg-white hover:border-yui-green-300"
+                    }`}
                   role="radio"
                   aria-checked={isSelected}
-                  style={{ minHeight: "72px" }}
                 >
-                  <div className="flex-1">
-                    <p className="font-bold text-yui-green-800">{option.label}</p>
-                    <p className="text-sm text-yui-earth-500 mt-0.5">{option.description}</p>
-                  </div>
-                  <div className="flex items-center gap-3 ml-3">
-                    {/* サンプル文字 */}
-                    <span className="text-yui-green-700 font-bold" style={{ fontSize: option.sampleSize }}>
-                      あ
-                    </span>
-                    {/* ラジオインジケーター */}
-                    <div className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                      isSelected
-                        ? "border-yui-green-500 bg-yui-green-500"
-                        : "border-yui-earth-300"
-                    }`}>
-                      {isSelected && (
-                        <div className="w-2.5 h-2.5 bg-white rounded-full" />
-                      )}
-                    </div>
-                  </div>
+                  <span
+                    className={`font-bold flex items-center justify-center h-12 ${isSelected ? "text-yui-green-800" : "text-black"}`}
+                    style={{ fontSize: option.sampleSize, lineHeight: "1" }}
+                  >
+                    あ
+                  </span>
+                  <span className={`text-xs font-bold mt-2 ${isSelected ? "text-yui-green-800" : "text-yui-earth-500"}`}>
+                    {option.label}
+                  </span>
                 </button>
               );
             })}
@@ -105,32 +88,48 @@ export default function SettingsPage() {
         {/* 高コントラストモード */}
         <div className="space-y-3 pt-4 border-t border-yui-earth-100">
           <h3 className="text-base font-bold text-yui-green-700">画面のくっきりさ</h3>
-          <button
-            onClick={() => setHighContrast(!highContrast)}
-            className={`w-full flex items-center justify-between p-5 rounded-xl border-2 transition-all text-left ${
-              highContrast
+          <p className="text-sm text-yui-earth-600 mb-2">明るい場所や直射日光のもとでも見やすくなります。</p>
+          <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="画面のくっきりさを選ぶ">
+            {/* 標準モード */}
+            <button
+              onClick={() => setHighContrast(false)}
+              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${!highContrast
                 ? "border-yui-green-500 bg-yui-green-50 shadow-sm"
                 : "border-yui-green-100 bg-white hover:border-yui-green-300"
-            }`}
-            role="switch"
-            aria-checked={highContrast}
-            style={{ minHeight: "72px" }}
-          >
-            <div className="flex-1">
-              <p className="font-bold text-yui-green-800">くっきりモード</p>
-              <p className="text-sm text-yui-earth-500 mt-0.5" style={{ lineHeight: "1.7" }}>
-                明るい場所や直射日光のもとでも見やすくなります
-              </p>
-            </div>
-            {/* トグルスイッチ */}
-            <div className={`w-14 h-8 rounded-full flex items-center transition-colors shrink-0 ml-3 ${
-              highContrast ? "bg-yui-green-600" : "bg-yui-earth-300"
-            }`}>
-              <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${
-                highContrast ? "translate-x-7" : "translate-x-1"
-              }`} />
-            </div>
-          </button>
+                }`}
+              role="radio"
+              aria-checked={!highContrast}
+            >
+              <div className="w-full flex justify-center mb-3 h-10 items-end">
+                <div className="px-4 py-1.5 rounded-lg bg-yui-green-50 text-yui-green-700 border-2 border-yui-green-200 font-bold text-sm shadow-sm">
+                  あいうえお
+                </div>
+              </div>
+              <span className={`text-sm font-bold mt-2 ${!highContrast ? "text-yui-green-800" : "text-yui-earth-500"}`}>
+                標準モード
+              </span>
+            </button>
+
+            {/* くっきりモード */}
+            <button
+              onClick={() => setHighContrast(true)}
+              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${highContrast
+                ? "border-yui-green-500 bg-yui-green-50 shadow-sm"
+                : "border-yui-green-100 bg-white hover:border-yui-green-300"
+                }`}
+              role="radio"
+              aria-checked={highContrast}
+            >
+              <div className="w-full flex justify-center mb-3 h-10 items-end">
+                <div className="px-4 py-1.5 rounded-lg bg-white text-black border-2 border-yui-green-800 font-black text-sm">
+                  あいうえお
+                </div>
+              </div>
+              <span className={`text-sm font-bold mt-2 ${highContrast ? "text-yui-green-800" : "text-yui-earth-500"}`}>
+                くっきりモード
+              </span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -147,7 +146,7 @@ export default function SettingsPage() {
         <button
           onClick={() => {
             localStorage.removeItem("yui-onboarding-seen");
-            window.location.href = "/";
+            window.location.href = "/profile";
           }}
           className="w-full flex items-center justify-between p-5 rounded-xl border-2 border-yui-green-100 bg-white hover:border-yui-green-300 transition-all text-left shadow-sm"
           style={{ minHeight: "72px" }}

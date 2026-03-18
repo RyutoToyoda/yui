@@ -10,11 +10,15 @@ type YuiLogoProps = {
 };
 
 export default function YuiLogo({ className = "", alt = "結 Yui ロゴ" }: YuiLogoProps) {
-  const [hasImage, setHasImage] = useState(true);
+  // Remove image-specific classes like object-contain so they don't interfere with the text logo
+  const cleanClassName = className.replace('object-contain', '');
 
-  if (!hasImage) {
-    return <span className={`font-yui-logo text-yui-green-800 ${className}`}>結 Yui</span>;
-  }
-
-  return <img src={RAW_LOGO_SRC} alt={alt} className={className} onError={() => setHasImage(false)} />;
+  return (
+    <span
+      className={`font-yui-logo text-yui-green-800 text-3xl font-black tracking-normal leading-none flex items-center ${cleanClassName}`}
+      aria-label={alt}
+    >
+      結 Yui
+    </span>
+  );
 }

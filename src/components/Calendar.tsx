@@ -28,17 +28,17 @@ const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 function getCellToneClass(tone: CalendarCellTone) {
   switch (tone) {
     case "recruitment":
-      // 予定あり（自分の募集 & マッチング済み）
-      return "bg-green-100 text-green-800 font-bold";
+      // 予定あり
+      return "bg-green-600 text-white font-bold border-green-800";
     case "availability":
       // 空き日
-      return "bg-white text-yui-green-800 border-2 border-green-500";
+      return "bg-green-200 text-green-900 font-bold border-green-400";
     case "past":
       // 過去
-      return "bg-gray-100 text-gray-400 cursor-not-allowed";
+      return "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed";
     default:
       // 何も設定されていない未来の日
-      return "bg-gray-50 text-yui-green-800";
+      return "bg-gray-50 text-yui-green-800 border-black";
   }
 }
 
@@ -59,15 +59,15 @@ export default function Calendar({
         <p className="text-sm font-bold text-yui-earth-500 mb-3">色分け説明（凡例）</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-green-100 border-2 border-green-800 rounded" />
+            <div className="w-6 h-6 bg-green-600 border-2 border-green-800 rounded" />
             <span className="text-sm font-bold text-yui-green-800">予定あり</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-white border-2 border-green-500 rounded" />
+            <div className="w-6 h-6 bg-green-200 border-2 border-green-400 rounded" />
             <span className="text-sm font-bold text-yui-green-800">空き日</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gray-100 border-2 border-gray-400 rounded" />
+            <div className="w-6 h-6 bg-gray-200 border-2 border-gray-300 rounded" />
             <span className="text-sm font-bold text-yui-earth-500">過去・履歴</span>
           </div>
         </div>
@@ -108,18 +108,14 @@ export default function Calendar({
             key={cell.dateStr}
             onClick={() => onSelectDate(cell.dateStr)}
             disabled={cell.disabled || cell.tone === "past"}
-            className={`relative w-full min-w-0 aspect-square min-h-[3rem] rounded-lg border-2 border-black flex flex-col items-center justify-center overflow-hidden transition-all ${getCellToneClass(cell.tone)} ${
-              cell.selected ? "ring-2 ring-yui-green-500" : ""
-            } ${cell.disabled || cell.tone === "past" ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
+            className={`relative w-full min-w-0 aspect-square min-h-[3rem] rounded-lg border-2 flex flex-col items-center justify-center overflow-hidden transition-all ${getCellToneClass(cell.tone)} ${cell.selected ? "ring-2 ring-yui-green-500" : ""
+              } ${cell.disabled || cell.tone === "past" ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
             aria-label={cell.ariaLabel}
             aria-disabled={cell.disabled || cell.tone === "past"}
             aria-pressed={cell.selected}
             style={{ minHeight: "48px" }}
           >
             <span className="text-sm md:text-base font-black leading-none">{cell.day}</span>
-            {cell.badges && cell.badges.length > 0 && (
-              <span className="text-[9px] md:text-[10px] font-bold mt-0.5 leading-none whitespace-nowrap">{cell.badges[0]}</span>
-            )}
           </button>
         ))}
       </div>

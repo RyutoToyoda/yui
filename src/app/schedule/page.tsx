@@ -14,13 +14,14 @@ import {
   fsUpdateJob,
   fsCompleteJobTransaction,
   fsCreateNotification,
+  fsFetchNotifications,
   fsGetAvailabilitiesByUser,
   fsCreateAvailability,
   fsDeleteAvailability,
   getJobTypeEmoji,
   getJobTypeLabel,
 } from "@/lib/firestore-service";
-import type { Job, Application, Availability } from "@/types/firestore";
+import type { Job, Application, Availability, Notification } from "@/types/firestore";
 import {
   CheckCircle2,
   XCircle,
@@ -34,6 +35,8 @@ import {
   Plus,
   X,
   ChevronDown,
+  ArrowRight,
+  BellRing,
 } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -56,6 +59,7 @@ export default function SchedulePage() {
   const [completedJobs, setCompletedJobs] = useState<Job[]>([]);
   const [availabilities, setAvailabilities] = useState<Availability[]>([]);
   const [openRecruitmentJobs, setOpenRecruitmentJobs] = useState<Job[]>([]);
+  const [importantNotifications, setImportantNotifications] = useState<Notification[]>([]);
 
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -78,11 +82,12 @@ export default function SchedulePage() {
 
   const loadData = async () => {
     if (!user) return;
-    const [myJobs, myApps, myAvails, allOpenJobs] = await Promise.all([
+    const [myJobs, myApps, myAvails, allOpenJobs, notifications] = await Promise.all([
       fsGetJobsByUser(user.uid),
       fsGetApplicationsByUser(user.uid),
       fsGetAvailabilitiesByUser(user.uid),
       fsGetJobs("open"),
+      fsFetchNotifications(user.uid, 30),
     ]);
 
     // 管理中のジョブ + 応募者
@@ -114,13 +119,26 @@ export default function SchedulePage() {
       })
     );
     setCompletedAppsWithJobs(completedWithJobs.filter(Boolean) as { app: Application; job: Job }[]);
-    
+
     setCompletedJobs(myJobs.filter((j) => j.status === "completed"));
 
     // お手伝い可能日
     setAvailabilities(myAvails.filter(a => a.date));
     setOpenRecruitmentJobs(allOpenJobs);
-    
+
+    // 重要通知
+    const actionableNotifs = notifications
+      .filter(
+        (notif) =>
+          !notif.isRead &&
+          (notif.type === "application" ||
+            notif.type === "approved" ||
+            notif.type === "job_cancelled" ||
+            notif.type === "match")
+      )
+      .slice(0, 4);
+    setImportantNotifications(actionableNotifs);
+
     setLoading(false);
   };
 
@@ -239,17 +257,17 @@ export default function SchedulePage() {
 
   const selectedDayHistories = selectedCalendarDate
     ? [
-        ...completedJobs.filter((job) => job.date === selectedCalendarDate).map((job) => ({
-          id: `host-${job.id}`,
-          title: job.title,
-          owner: "自分の募集",
-        })),
-        ...completedAppsWithJobs.filter(({ job }) => job.date === selectedCalendarDate).map(({ app, job }) => ({
-          id: `help-${app.id}`,
-          title: job.title,
-          owner: `${job.creatorName}さんの募集`,
-        })),
-      ]
+      ...completedJobs.filter((job) => job.date === selectedCalendarDate).map((job) => ({
+        id: `host-${job.id}`,
+        title: job.title,
+        owner: "自分の募集",
+      })),
+      ...completedAppsWithJobs.filter(({ job }) => job.date === selectedCalendarDate).map(({ app, job }) => ({
+        id: `help-${app.id}`,
+        title: job.title,
+        owner: `${job.creatorName}さんの募集`,
+      })),
+    ]
     : [];
 
   const calendarCells: CalendarCell[] = monthDays.map((date) => {
@@ -287,13 +305,11 @@ export default function SchedulePage() {
       {/* Calendar with legend */}
       <div className="space-y-6">
         <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-6">
-          <h2 className="text-lg font-bold text-yui-green-800 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-yui-green-800 mb-6 flex items-center gap-2">
             <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
             お手伝い可能日を管理する
           </h2>
-          <p className="text-sm text-yui-earth-600 mb-6" style={{ lineHeight: "1.7" }}>
-            カレンダーの日付をタップして、お手伝いに行ける日を教えてください ✨
-          </p>
+
 
           <Calendar
             year={year}
@@ -339,15 +355,21 @@ export default function SchedulePage() {
                     <p className="text-sm text-yui-earth-500">この日の募集はまだありません。</p>
                   )}
 
-                  <button
-                    onClick={() => handleToggleAvail(selectedCalendarDate)}
-                    className="w-full py-3 rounded-xl text-base font-bold transition-colors bg-green-600 text-white hover:bg-green-700"
-                    style={{ minHeight: "52px" }}
-                  >
-                    {availabilities.some((a) => a.date === selectedCalendarDate)
-                      ? "この日の空き登録を解除する"
-                      : "この日を空き日に登録する"}
-                  </button>
+                  {(() => {
+                    const isRegistered = availabilities.some((a) => a.date === selectedCalendarDate);
+                    return (
+                      <button
+                        onClick={() => handleToggleAvail(selectedCalendarDate)}
+                        className={`w-full py-3 rounded-xl text-base font-bold transition-colors ${isRegistered
+                            ? "bg-red-500 text-white hover:bg-red-600"
+                            : "bg-green-600 text-white hover:bg-green-700"
+                          }`}
+                        style={{ minHeight: "52px" }}
+                      >
+                        {isRegistered ? "登録を削除する" : "空き日に登録する"}
+                      </button>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -389,6 +411,36 @@ export default function SchedulePage() {
           </div>
         </div>
       </div>
+
+      {/* 重要通知 */}
+      <section aria-labelledby="important-notice" className="space-y-3">
+        <h2 id="important-notice" className="text-xl font-bold text-yui-green-800 flex items-center gap-2">
+          <BellRing className="w-6 h-6 text-yui-accent" aria-hidden="true" />
+          重要通知
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {importantNotifications.length > 0 ? (
+            importantNotifications.map((notif) => (
+              <div key={notif.id} className="bg-white rounded-2xl border-2 border-orange-200 p-4 shadow-sm">
+                <p className="text-base font-bold text-yui-green-800">{notif.title}</p>
+                <p className="text-sm text-yui-earth-600 mt-1 line-clamp-2">{notif.message}</p>
+                <Link
+                  href={notif.jobId ? `/explore/${notif.jobId}` : "/notifications"}
+                  className="mt-2 inline-flex items-center gap-1 text-base font-bold text-yui-green-700 no-underline hover:text-yui-green-800"
+                  style={{ minHeight: "44px", alignItems: "center" }}
+                >
+                  対応する
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
+              </div>
+            ))
+          ) : (
+            <div className="md:col-span-2 bg-white rounded-2xl border-2 border-yui-green-100 p-5 text-center text-yui-earth-500 shadow-sm">
+              今すぐ対応が必要な通知はありません
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Collapsible section: 自分の募集 */}
       {managingJobsWithApps.length > 0 && (
@@ -603,7 +655,7 @@ export default function SchedulePage() {
           onCancel={() => setConfirmAction(null)}
         />
       )}
-      
+
       {/* Time selection dialog */}
       {selectedDateForTime && (
         <TimeSelectionDialog
@@ -637,9 +689,8 @@ function CollapsibleSection({
       >
         <h2 className="text-lg font-bold text-yui-green-800">{title}</h2>
         <ChevronDown
-          className={`w-6 h-6 text-yui-green-600 transition-transform ${
-            isExpanded ? "rotate-180" : ""
-          }`}
+          className={`w-6 h-6 text-yui-green-600 transition-transform ${isExpanded ? "rotate-180" : ""
+            }`}
           aria-hidden="true"
         />
       </button>
@@ -675,9 +726,9 @@ function TimeSelectionDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-6">
+      <div className="bg-white w-full max-w-md max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+        <div className="p-6 overflow-y-auto flex-1">
+          <div className="flex justify-between items-start mb-6 shrink-0">
             <div>
               <p className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block mb-2">
                 お手伝いに行ける日を確認

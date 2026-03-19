@@ -13,7 +13,7 @@ import {
 } from "@/lib/firestore-service";
 import type { Availability, DayOfWeek, EquipmentSpec } from "@/types/firestore";
 import { useRouter } from "next/navigation";
-import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout, CalendarDays, ChevronDown, Check } from "lucide-react";
+import { LogOut, Plus, X, Wrench, MapPin, User, Tractor, Clock, Settings, Sprout, CalendarDays, ChevronDown, Check, Pencil } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Onboarding from "@/components/Onboarding";
@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id?: string; index?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   // 農機具仕様入力用ステート
   const [specTarget, setSpecTarget] = useState<string | null>(null); // 仕様入力中の農機具名
@@ -61,6 +62,11 @@ export default function ProfilePage() {
     await markTutorialAsSeen();
     localStorage.setItem("yui-onboarding-seen", "true");
     setShowTutorial(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
   };
 
   if (showTutorial) {
@@ -150,9 +156,34 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* プロフィールカード */}
+      {/* プロフィールカード（統合） */}
       <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 px-5 py-6 text-white">
+        <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 px-5 py-6 text-white relative">
+          {/* 編集ボタン（右上） */}
+          <button
+            onClick={async () => {
+              if (editingProfile) {
+                // 編集終了時に住所を保存
+                const loc = [editPrefecture, editMunicipality].filter(Boolean).join(" ");
+                if (loc) {
+                  await fsUpdateUser(user.uid, { location: loc });
+                  refreshUser();
+                }
+                setEditingLocation(false);
+              } else {
+                const parts = (user.location || "").split(" ");
+                setEditPrefecture(parts[0] || "");
+                setEditMunicipality(parts[1] || "");
+                setEditingLocation(true);
+              }
+              setEditingProfile(!editingProfile);
+            }}
+            className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+            {editingProfile ? "完了" : "変更"}
+          </button>
+
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
             <User className="w-8 h-8 text-white" aria-hidden="true" />
           </div>
@@ -161,11 +192,12 @@ export default function ProfilePage() {
         </div>
 
         <div className="p-5 space-y-4">
+          {/* 住所 */}
           <div className="flex items-center gap-3">
             <MapPin className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="text-xs text-yui-earth-500 font-medium">お住まいの地域</p>
-              {editingLocation ? (
+              {editingProfile && editingLocation ? (
                 <div className="mt-1 space-y-3">
                   <div className="space-y-2">
                     <select
@@ -197,50 +229,14 @@ export default function ProfilePage() {
                       )
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={async () => {
-                        const loc = [editPrefecture, editMunicipality].filter(Boolean).join(" ");
-                        if (loc) {
-                          await fsUpdateUser(user.uid, { location: loc });
-                          refreshUser();
-                        }
-                        setEditingLocation(false);
-                      }}
-                      className="px-4 py-2 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors"
-                      style={{ minHeight: "40px" }}
-                    >
-                      保存
-                    </button>
-                    <button
-                      onClick={() => setEditingLocation(false)}
-                      className="px-4 py-2 bg-yui-earth-100 text-yui-earth-600 text-sm font-bold rounded-lg hover:bg-yui-earth-200 transition-colors"
-                      style={{ minHeight: "40px" }}
-                    >
-                      やめる
-                    </button>
-                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-yui-green-800">{user.location || "まだ設定していません"}</p>
-                  <button
-                    onClick={() => {
-                      // 既存のlocationから都道府県と市町村をパース
-                      const parts = (user.location || "").split(" ");
-                      setEditPrefecture(parts[0] || "");
-                      setEditMunicipality(parts[1] || "");
-                      setEditingLocation(true);
-                    }}
-                    className="text-xs text-yui-green-600 font-bold hover:text-yui-green-800 transition-colors"
-                    style={{ minHeight: "32px", display: "inline-flex", alignItems: "center" }}
-                  >
-                    変更する
-                  </button>
-                </div>
+                <p className="text-sm font-bold text-yui-green-800">{user.location || "まだ設定していません"}</p>
               )}
             </div>
           </div>
+
+          {/* 年齢層 */}
           <div className="flex items-center gap-3">
             <User className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
             <div>
@@ -248,110 +244,182 @@ export default function ProfilePage() {
               <p className="text-sm font-bold text-yui-green-800">{user.ageGroup}</p>
             </div>
           </div>
+
+          {/* 農機具 */}
+          <div className="pt-3 border-t border-yui-green-100">
+            <h3 className="text-sm font-bold text-yui-green-800 flex items-center gap-2 mb-2">
+              <Tractor className="w-4 h-4 text-yui-green-600" aria-hidden="true" /> もっている農機具
+            </h3>
+            {editingProfile ? (
+              specTarget ? (
+                /* 仕様入力中：選択済みアイテム + 仕様フォーム */
+                (() => {
+                  const master = EQUIPMENT_MASTER.find(m => m.name === specTarget);
+                  return (
+                    <div className="space-y-2">
+                      {/* 選択中の農機具（折りたたみバー） */}
+                      <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <span className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+                          <Wrench className="w-3.5 h-3.5" aria-hidden="true" />
+                          {specTarget}
+                        </span>
+                        <button
+                          onClick={() => { setSpecTarget(null); setSpecHorsepower(""); setSpecAttachments([]); }}
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-amber-600 hover:bg-amber-200 hover:text-red-600 transition-colors"
+                          aria-label="選択をキャンセル"
+                          type="button"
+                        >
+                          <X className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
+
+                      {/* 仕様入力フォーム */}
+                      {master && (
+                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 space-y-3">
+                          <p className="text-xs font-bold text-yui-green-800">
+                            🔧 {specTarget} の仕様を入力
+                          </p>
+                          {master.horsepowerOptions && master.horsepowerOptions.length > 0 && (
+                            <div>
+                              <p className="text-xs font-bold text-yui-earth-600 mb-1">馬力・規格</p>
+                              <select
+                                value={specHorsepower}
+                                onChange={(e) => setSpecHorsepower(e.target.value)}
+                                className="w-full px-3 py-2 text-sm border-2 border-yui-green-200 rounded-lg bg-white focus:border-yui-green-500 focus:outline-none"
+                              >
+                                <option value="">選択してください</option>
+                                {master.horsepowerOptions.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          {master.attachmentOptions && master.attachmentOptions.length > 0 && (
+                            <div>
+                              <p className="text-xs font-bold text-yui-earth-600 mb-1">アタッチメント</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {master.attachmentOptions.map(att => {
+                                  const selected = specAttachments.includes(att);
+                                  return (
+                                    <button
+                                      key={att}
+                                      type="button"
+                                      onClick={() => {
+                                        setSpecAttachments(prev =>
+                                          selected ? prev.filter(a => a !== att) : [...prev, att]
+                                        );
+                                      }}
+                                      className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors ${selected
+                                        ? "bg-yui-green-600 text-white border-yui-green-600"
+                                        : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"
+                                        }`}
+                                    >
+                                      {selected && <Check className="w-3 h-3 inline mr-1" />}{att}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => handleAddEquipment(specTarget)}
+                            className="w-full py-2 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors"
+                            style={{ minHeight: "36px" }}
+                          >
+                            この仕様で追加する
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              ) : (
+                /* 通常の選択UI */
+                <MultiSelectTag
+                  selectedItems={user.equipmentList || []}
+                  presetOptions={EQUIPMENT_PRESETS}
+                  placeholder="例：耕うん機"
+                  label="農機具"
+                  onAdd={handleAddEquipment}
+                  onRemove={handleRemoveEquipment}
+                  hideEmptyMessage
+                />
+              )
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {(user.equipmentList || []).length > 0 ? (
+                  (user.equipmentList || []).map((eq, i) => (
+                    <span key={i} className="px-2.5 py-1 text-xs font-bold bg-yui-green-50 text-yui-green-700 rounded-lg border border-yui-green-200">{eq}</span>
+                  ))
+                ) : (
+                  <p className="text-xs text-yui-earth-400">まだ登録していません</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 作物 */}
+          <div className="pt-3 border-t border-yui-green-100">
+            <h3 className="text-sm font-bold text-yui-green-800 flex items-center gap-2 mb-2">
+              <Sprout className="w-4 h-4 text-yui-green-600" aria-hidden="true" /> 育てている作物
+            </h3>
+            {editingProfile ? (
+              <MultiSelectTag
+                selectedItems={user.crops || []}
+                presetOptions={CROP_PRESETS}
+                placeholder="例：アスパラガス"
+                label="作物"
+                onAdd={handleAddCrop}
+                onRemove={handleRemoveCrop}
+                hideEmptyMessage
+              />
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {(user.crops || []).length > 0 ? (
+                  (user.crops || []).map((crop, i) => (
+                    <span key={i} className="px-2.5 py-1 text-xs font-bold bg-yui-green-50 text-yui-green-700 rounded-lg border border-yui-green-200">{crop}</span>
+                  ))
+                ) : (
+                  <p className="text-xs text-yui-earth-400">まだ登録していません</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 編集モード時の下部完了ボタン */}
+          {editingProfile && (
+            <div className="pt-4 border-t border-yui-green-100">
+              <button
+                onClick={async () => {
+                  const loc = [editPrefecture, editMunicipality].filter(Boolean).join(" ");
+                  if (loc) {
+                    await fsUpdateUser(user.uid, { location: loc });
+                    refreshUser();
+                  }
+                  setEditingLocation(false);
+                  setEditingProfile(false);
+                }}
+                className="w-full py-3 bg-yui-green-600 text-white font-bold rounded-xl hover:bg-yui-green-700 transition-colors flex items-center justify-center gap-2"
+                style={{ minHeight: "48px" }}
+              >
+                <Check className="w-5 h-5" aria-hidden="true" />
+                保存
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 所有農機具 */}
-      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
-        <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2 mb-3">
-          <Tractor className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> もっている農機具
-        </h2>
-
-        <MultiSelectTag
-          selectedItems={user.equipmentList || []}
-          presetOptions={EQUIPMENT_PRESETS}
-          placeholder="例：耕うん機"
-          label="農機具"
-          onAdd={handleAddEquipment}
-          onRemove={handleRemoveEquipment}
-        />
-
-        {/* 仕様入力ダイアログ（トラクター等の場合） */}
-        {specTarget && (() => {
-          const master = EQUIPMENT_MASTER.find(m => m.name === specTarget);
-          if (!master) return null;
-          return (
-            <div className="bg-amber-50 p-4 rounded-xl border-2 border-amber-200 mt-3 space-y-3">
-              <p className="text-sm font-bold text-yui-green-800">
-                🔧 {specTarget} の仕様を入力
-              </p>
-              {master.horsepowerOptions && master.horsepowerOptions.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-yui-earth-600 mb-1">馬力・規格</p>
-                  <select
-                    value={specHorsepower}
-                    onChange={(e) => setSpecHorsepower(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border-2 border-yui-green-200 rounded-lg bg-white focus:border-yui-green-500 focus:outline-none"
-                  >
-                    <option value="">選択してください</option>
-                    {master.horsepowerOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {master.attachmentOptions && master.attachmentOptions.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-yui-earth-600 mb-1">アタッチメント</p>
-                  <div className="flex flex-wrap gap-2">
-                    {master.attachmentOptions.map(att => {
-                      const selected = specAttachments.includes(att);
-                      return (
-                        <button
-                          key={att}
-                          type="button"
-                          onClick={() => {
-                            setSpecAttachments(prev =>
-                              selected ? prev.filter(a => a !== att) : [...prev, att]
-                            );
-                          }}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${selected
-                            ? "bg-yui-green-600 text-white border-yui-green-600"
-                            : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"
-                            }`}
-                        >
-                          {selected && <Check className="w-3 h-3 inline mr-1" />}{att}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => handleAddEquipment(specTarget)}
-                  className="px-5 py-2.5 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors"
-                  style={{ minHeight: "44px" }}
-                >
-                  この仕様で追加する
-                </button>
-                <button
-                  onClick={() => { setSpecTarget(null); setSpecHorsepower(""); setSpecAttachments([]); }}
-                  className="px-4 py-2.5 bg-yui-earth-100 text-yui-earth-600 text-sm font-bold rounded-lg hover:bg-yui-earth-200 transition-colors"
-                  style={{ minHeight: "44px" }}
-                >
-                  やめる
-                </button>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* 育てている作物 */}
-      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
-        <h2 className="text-base font-bold text-yui-green-800 flex items-center gap-2 mb-3">
-          <Sprout className="w-5 h-5 text-yui-green-600" aria-hidden="true" /> 育てている作物
-        </h2>
-
-        <MultiSelectTag
-          selectedItems={user.crops || []}
-          presetOptions={CROP_PRESETS}
-          placeholder="例：アスパラガス"
-          label="作物"
-          onAdd={handleAddCrop}
-          onRemove={handleRemoveCrop}
-        />
+      {/* ログアウト */}
+      <div className="pt-4 mt-8">
+        <button
+          onClick={() => setConfirmDelete({ type: "logout" })}
+          className="w-full py-4 bg-white text-yui-danger font-bold rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 shadow-sm mb-4"
+          style={{ minHeight: "56px" }}
+        >
+          <LogOut className="w-5 h-5" aria-hidden="true" />
+          ログアウト
+        </button>
       </div>
 
       {/* 確認ダイアログ群 */}
@@ -376,6 +444,18 @@ export default function ProfilePage() {
           cancelLabel="やめておく"
           variant="danger"
           onConfirm={() => { handleRemoveCrop(confirmDelete.index!); setConfirmDelete(null); }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {confirmDelete?.type === "logout" && (
+        <ConfirmDialog
+          isOpen={true}
+          title="ログアウトしますか？"
+          message="ログアウトすると、もう一度ログインが必要になります。"
+          confirmLabel="ログアウトする"
+          cancelLabel="やめておく"
+          variant="danger"
+          onConfirm={handleLogout}
           onCancel={() => setConfirmDelete(null)}
         />
       )}    </div>

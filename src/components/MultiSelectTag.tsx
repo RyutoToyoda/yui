@@ -18,6 +18,8 @@ interface MultiSelectTagProps {
   onRemove: (index: number) => void;
   /** セクションのラベル（アクセシビリティ用） */
   label?: string;
+  /** 空のときの「まだ登録されていません」を非表示にする */
+  hideEmptyMessage?: boolean;
 }
 
 export default function MultiSelectTag({
@@ -28,6 +30,7 @@ export default function MultiSelectTag({
   onAdd,
   onRemove,
   label = "項目",
+  hideEmptyMessage = false,
 }: MultiSelectTagProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [freeInput, setFreeInput] = useState("");
@@ -41,6 +44,7 @@ export default function MultiSelectTag({
   const handleAddPreset = (item: string) => {
     if (!selectedItems.includes(item)) {
       onAdd(item);
+      setIsOpen(false);
     }
   };
 
@@ -50,17 +54,18 @@ export default function MultiSelectTag({
     if (selectedItems.includes(trimmed)) return;
     onAdd(trimmed);
     setFreeInput("");
+    setIsOpen(false);
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* 選択済みタグ一覧 */}
       {selectedItems.length > 0 ? (
         <div className="flex flex-wrap gap-2" role="list" aria-label={`選択済みの${label}`}>
           {selectedItems.map((item, i) => (
             <span
               key={`${item}-${i}`}
-              className="inline-flex items-center gap-1.5 bg-yui-green-100 text-yui-green-800 px-3 py-1.5 rounded-full text-sm font-bold border border-yui-green-200 transition-colors"
+              className="inline-flex items-center gap-1 bg-yui-green-100 text-yui-green-800 px-2.5 py-1 rounded-full text-xs font-bold border border-yui-green-200 transition-colors"
               role="listitem"
             >
               {item}
@@ -75,17 +80,17 @@ export default function MultiSelectTag({
             </span>
           ))}
         </div>
-      ) : (
+      ) : !hideEmptyMessage ? (
         <p className="text-sm text-yui-earth-400 font-medium py-1">
           まだ登録されていません
         </p>
-      )}
+      ) : null}
 
       {/* 追加ボタン */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 text-sm font-bold text-yui-green-600 hover:text-yui-green-800 transition-colors"
-        style={{ minHeight: "40px" }}
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-yui-green-600 hover:text-yui-green-800 transition-colors"
+        style={{ minHeight: "32px" }}
         type="button"
         aria-expanded={isOpen}
       >
@@ -99,42 +104,37 @@ export default function MultiSelectTag({
 
       {/* 追加パネル */}
       {isOpen && (
-        <div className="w-full min-w-0 bg-yui-green-50/50 p-4 rounded-xl border border-yui-green-100 space-y-4 animate-in fade-in duration-200">
+        <div className="w-full min-w-0 bg-yui-green-50/50 p-3 rounded-lg border border-yui-green-100 space-y-3 animate-in fade-in duration-200">
           {/* プリセット選択肢 */}
           {availableOptions.length > 0 && (
-            <div>
-              <p className="text-xs font-bold text-yui-green-800 mb-2">
-                よく使われる{label}からえらぶ
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {availableOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => handleAddPreset(opt)}
-                    className="px-3 py-1.5 bg-white border border-yui-green-200 text-sm font-bold text-yui-green-700 rounded-lg hover:bg-yui-green-100 hover:border-yui-green-300 transition-colors"
-                  >
-                    + {opt}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {availableOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => handleAddPreset(opt)}
+                  className="px-2.5 py-1 bg-white border border-yui-green-200 text-xs font-bold text-yui-green-700 rounded-lg hover:bg-yui-green-100 hover:border-yui-green-300 transition-colors"
+                >
+                  + {opt}
+                </button>
+              ))}
             </div>
           )}
 
           {/* 自由入力 */}
           {allowFreeInput && (
             <div className="w-full min-w-0">
-              <p className="text-xs font-bold text-yui-green-800 mb-2">
+              <p className="text-xs font-bold text-yui-green-800 mb-1.5">
                 その他（自由入力）
               </p>
-              <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row">
+              <div className="flex w-full min-w-0 flex-col gap-1.5 sm:flex-row">
                 <input
                   ref={inputRef}
                   type="text"
                   value={freeInput}
                   onChange={(e) => setFreeInput(e.target.value)}
                   placeholder={placeholder}
-                  className="w-full min-w-0 box-border px-4 py-3 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white sm:flex-1"
+                  className="w-full min-w-0 box-border px-3 py-2 text-sm border-2 border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-white sm:flex-1"
                   onKeyDown={(e) => {
                     if (e.nativeEvent.isComposing) return;
                     if (e.key === "Enter") {
@@ -147,8 +147,8 @@ export default function MultiSelectTag({
                   type="button"
                   onClick={handleAddFreeInput}
                   disabled={!freeInput.trim()}
-                  className="w-full px-5 py-3 bg-yui-green-600 text-white text-base font-bold rounded-xl hover:bg-yui-green-700 transition-colors disabled:opacity-50 disabled:bg-yui-earth-300 sm:w-auto sm:shrink-0"
-                  style={{ minHeight: "48px" }}
+                  className="w-full px-4 py-2 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors disabled:opacity-50 disabled:bg-yui-earth-300 sm:w-auto sm:shrink-0"
+                  style={{ minHeight: "36px" }}
                 >
                   追加
                 </button>

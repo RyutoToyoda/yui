@@ -159,20 +159,43 @@ export default function JobDetailPage() {
         {/* 詳細情報 */}
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-yui-green-50 rounded-xl p-4">
+            {/* 作業日と時間 */}
+            <div className="bg-yui-green-50 rounded-xl p-4 col-span-2">
               <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                 <CalendarDays className="w-5 h-5" aria-hidden="true" />
-                <span className="text-xs font-bold">作業する日</span>
+                <span className="text-xs font-bold">作業日と時間</span>
               </div>
-              <p className="text-sm font-bold text-yui-green-800">{job.date}</p>
+              <p className="text-sm font-bold text-yui-green-800">
+                {job.date} &nbsp; {job.startTime}〜{job.endTime}
+              </p>
             </div>
-            <div className="bg-yui-green-50 rounded-xl p-4">
-              <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
-                <Clock className="w-5 h-5" aria-hidden="true" />
-                <span className="text-xs font-bold">時間</span>
+
+            {/* 作業場所（スマートな横並び・地図ボタン付き） */}
+            <div className="bg-yui-green-50 rounded-xl p-3 px-4 col-span-2 flex items-center justify-between gap-3">
+              <div className="min-w-0 pr-1">
+                <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
+                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                  <span className="text-xs font-bold">作業場所</span>
+                </div>
+                <p className="text-sm font-bold text-yui-green-800 line-clamp-2">
+                  {job.location || "（未指定）"}
+                </p>
               </div>
-              <p className="text-sm font-bold text-yui-green-800">{job.startTime}〜{job.endTime}</p>
+              {mapQuery && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 flex items-center justify-center px-3 py-1.5 bg-white text-yui-green-600 border border-yui-green-200 rounded-lg text-xs font-bold hover:bg-yui-green-50 transition-colors shadow-sm"
+                  style={{ minHeight: "36px" }}
+                >
+                  <MapPin className="w-3.5 h-3.5 mr-1" aria-hidden="true" />
+                  地図で見る
+                </a>
+              )}
             </div>
+
+            {/* 必要な人数 */}
             {job.requiredPeople > 0 && (
               <div className="bg-yui-green-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
@@ -182,113 +205,92 @@ export default function JobDetailPage() {
                 <p className="text-sm font-bold text-yui-green-800">{job.requiredPeople}名</p>
               </div>
             )}
+
+            {/* 農機具 */}
             {job.equipmentNeeded && (
               <div className="bg-yui-green-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                   <Wrench className="w-5 h-5" aria-hidden="true" />
                   <span className="text-xs font-bold">農機具</span>
                 </div>
-                <p className="text-sm font-bold text-yui-green-800">{job.equipmentNeeded}</p>
+                <p className="text-sm font-bold text-yui-green-800 break-words line-clamp-2">{job.equipmentNeeded}</p>
               </div>
             )}
-            <div className="bg-yui-green-50 rounded-xl p-4 col-span-2">
-              <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
-                <MapPin className="w-5 h-5" aria-hidden="true" />
-                <span className="text-xs font-bold">作業場所</span>
+
+            {/* ポイント情報 (Grid内) */}
+            <div className={`bg-yui-accent/10 rounded-xl p-4 flex flex-col justify-center ${((job.requiredPeople > 0 && job.equipmentNeeded) || (!job.requiredPeople && !job.equipmentNeeded)) ? 'col-span-2 flex-row items-center justify-between' : ''}`}>
+              <div>
+                <div className="flex items-center gap-1.5 text-yui-accent mb-1">
+                  <Coins className="w-5 h-5" aria-hidden="true" />
+                  <span className="text-xs font-bold text-yui-earth-700">お礼のポイント</span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-xl font-bold text-yui-green-800">{job.totalTokens}P</span>
+                  <span className="text-[11px] font-bold text-yui-earth-500">
+                    {job.tokenRatePerHour}P/時間
+                  </span>
+                </div>
               </div>
-              <p className="text-sm font-bold text-yui-green-800">{job.location || "（未指定）"}</p>
-              {mapQuery && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 flex items-center justify-center gap-1.5 w-full py-2.5 bg-white text-yui-green-600 border-2 border-yui-green-200 rounded-xl text-sm font-bold hover:bg-yui-green-50 transition-colors shadow-sm"
-                  style={{ minHeight: "44px" }}
-                >
-                  <MapPin className="w-4 h-4" aria-hidden="true" />
-                  地図で見る
-                </a>
-              )}
             </div>
           </div>
 
-          {/* ポイント情報 */}
-          <div className="bg-yui-accent/10 rounded-xl p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-yui-earth-700 mb-1">お礼のポイント</p>
-              <div className="flex items-center gap-2">
-                <Coins className="w-6 h-6 text-yui-accent" aria-hidden="true" />
-                <span className="text-2xl font-black text-yui-green-800">{job.totalTokens}</span>
-                <span className="text-sm text-yui-earth-600 font-medium">ポイント</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-yui-earth-500 font-medium">1時間あたり</p>
-              <p className="text-sm font-bold text-yui-green-800">{job.tokenRatePerHour}P</p>
-            </div>
-          </div>
 
           {/* 説明 */}
-          <div>
+          <div className="pt-2">
             <h3 className="text-sm font-bold text-yui-green-800 mb-2">作業の内容</h3>
-            <p className="text-sm text-yui-earth-600 leading-relaxed" style={{ lineHeight: "1.8" }}>{job.description}</p>
+            <p className="text-sm text-yui-earth-600 leading-relaxed whitespace-pre-wrap" style={{ lineHeight: "1.8" }}>
+              {job.description}
+            </p>
           </div>
-        </div>
-      </div>
 
-      {/* 応募セクション */}
-      {!isOwner && job.status === "open" && (
-        <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-5">
-          {applied || alreadyApplied ? (
-            <div className="text-center py-4">
-              <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
-              <p className="text-lg font-bold text-yui-green-700">手を挙げました！</p>
-              <p className="text-sm text-yui-earth-600 mt-1">
-                募集した方からの連絡をお待ちください
-              </p>
-            </div>
-          ) : (
-            <>
-              <h3 className="text-base font-bold text-yui-green-800 mb-3">このお手伝いに手を挙げる</h3>
-
-              {/* 同意チェックボックス */}
-              <div className="bg-yui-earth-50 rounded-xl p-5 mb-4">
-                <label className="flex items-start gap-3 cursor-pointer" style={{ minHeight: "48px" }}>
-                  <input
-                    type="checkbox"
-                    checked={isAgreed}
-                    onChange={(e) => setIsAgreed(e.target.checked)}
-                    className="w-6 h-6 mt-0.5 rounded border-2 border-yui-green-400 text-yui-green-600 focus:ring-yui-green-500 shrink-0 accent-yui-green-600"
-                  />
-                  <div>
-                    <p className="text-sm font-bold text-yui-green-800">
-                      相手の農園のやり方を大切にすることに同意します
-                    </p>
-                    <p className="text-xs text-yui-earth-600 mt-1" style={{ lineHeight: "1.7" }}>
-                      作業のやり方は募集した方にしたがい、おたがいを大切にして作業します。
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              {error && (
-                <div className="flex items-center gap-2 text-yui-danger text-sm mb-3 bg-red-50 p-4 rounded-xl border-2 border-red-200" role="alert">
-                  <AlertTriangle className="w-5 h-5 shrink-0" aria-hidden="true" />
-                  <span className="font-bold">{error}</span>
+          {/* 応募セクション（メインカード内に統合） */}
+          {!isOwner && job.status === "open" && (
+            <div className="pt-5 mt-2 border-t border-yui-green-100">
+              {applied || alreadyApplied ? (
+                <div className="text-center py-2">
+                  <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
+                  <p className="text-lg font-bold text-yui-green-700">手を挙げました！</p>
+                  <p className="text-sm text-yui-earth-600 mt-1">
+                    募集した方からの連絡をお待ちください
+                  </p>
                 </div>
-              )}
+              ) : (
+                <>
+                  {/* 同意チェックボックス */}
+                  <div className="bg-yui-earth-50 rounded-xl p-4 mb-4 border border-yui-earth-200">
+                    <label className="flex items-center gap-3 cursor-pointer" style={{ minHeight: "48px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isAgreed}
+                        onChange={(e) => setIsAgreed(e.target.checked)}
+                        className="w-5 h-5 rounded border-2 border-yui-green-400 text-yui-green-600 focus:ring-yui-green-500 shrink-0 accent-yui-green-600"
+                      />
+                      <span className="text-sm font-bold text-yui-green-800">
+                        相手の農園のやり方を大切にすることに同意します
+                      </span>
+                    </label>
+                  </div>
 
-              <button
-                onClick={handlePreApply}
-                className="w-full py-4 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
-                style={{ minHeight: "56px" }}
-              >
-                手を挙げる
-              </button>
-            </>
+                  {error && (
+                    <div className="flex items-center gap-2 text-yui-danger text-sm mb-3 bg-red-50 p-4 rounded-xl border-2 border-red-200" role="alert">
+                      <AlertTriangle className="w-5 h-5 shrink-0" aria-hidden="true" />
+                      <span className="font-bold">{error}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handlePreApply}
+                    className="w-full py-4 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
+                    style={{ minHeight: "56px" }}
+                  >
+                    手を挙げる
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
 
       {isOwner && (
         <div className="bg-yui-earth-100 rounded-xl p-5 text-center">
@@ -299,7 +301,7 @@ export default function JobDetailPage() {
               className="text-sm bg-white text-yui-green-600 border border-yui-green-200 font-bold px-4 py-3 rounded-xl no-underline hover:bg-yui-green-50 transition-colors"
               style={{ minHeight: "44px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             >
-              手を挙げてくれた方の確認は「マイページ」の予定から →
+              手を挙げてくれた方の確認は「予定」から →
             </Link>
             <button
               onClick={handleDeleteClick}
@@ -343,11 +345,10 @@ export default function JobDetailPage() {
                 {["悪天候", "体調不良", "作業内容変更", "その他"].map((reason) => (
                   <label
                     key={reason}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
-                      cancelReason === reason
-                        ? "border-yui-green-500 bg-yui-green-50"
-                        : "border-slate-200 hover:border-yui-green-200"
-                    }`}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${cancelReason === reason
+                      ? "border-yui-green-500 bg-yui-green-50"
+                      : "border-slate-200 hover:border-yui-green-200"
+                      }`}
                   >
                     <input
                       type="radio"

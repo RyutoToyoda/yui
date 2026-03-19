@@ -44,6 +44,18 @@
  * UD文字サイズシステム（CSS変数）
  * =================================== */
 :root {
+  --ud-font-size-base: 16px;
+  --ud-font-size-sm: 14px;
+  --ud-font-size-xs: 12px;
+  --ud-font-size-lg: 18px;
+  --ud-font-size-xl: 22px;
+  --ud-font-size-2xl: 28px;
+  --ud-font-size-3xl: 34px;
+  --ud-line-height: 1.8;
+}
+
+/* 大きめ文字モード */
+html[data-font-size="large"] {
   --ud-font-size-base: 18px;
   --ud-font-size-sm: 15px;
   --ud-font-size-xs: 13px;
@@ -51,11 +63,10 @@
   --ud-font-size-xl: 24px;
   --ud-font-size-2xl: 30px;
   --ud-font-size-3xl: 36px;
-  --ud-line-height: 1.8;
 }
 
-/* 大きめ文字モード */
-html[data-font-size="large"] {
+/* とても大きい文字モード */
+html[data-font-size="xlarge"] {
   --ud-font-size-base: 20px;
   --ud-font-size-sm: 17px;
   --ud-font-size-xs: 15px;
@@ -63,17 +74,6 @@ html[data-font-size="large"] {
   --ud-font-size-xl: 28px;
   --ud-font-size-2xl: 34px;
   --ud-font-size-3xl: 40px;
-}
-
-/* とても大きい文字モード */
-html[data-font-size="xlarge"] {
-  --ud-font-size-base: 22px;
-  --ud-font-size-sm: 19px;
-  --ud-font-size-xs: 17px;
-  --ud-font-size-lg: 26px;
-  --ud-font-size-xl: 32px;
-  --ud-font-size-2xl: 38px;
-  --ud-font-size-3xl: 44px;
 }
 
 /* ===================================

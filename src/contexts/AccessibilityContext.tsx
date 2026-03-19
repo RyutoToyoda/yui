@@ -16,7 +16,7 @@ interface AccessibilityContextType {
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined);
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
-  const [fontSize, setFontSizeState] = useState<FontSize>("standard");
+  const [fontSize, setFontSizeState] = useState<FontSize>("large");
   const [highContrast, setHighContrastState] = useState(false);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
 
@@ -35,19 +35,21 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
     const savedSize = localStorage.getItem(getFontSizeStorageKey(currentUid)) as FontSize | null;
     const savedContrast = localStorage.getItem(getContrastStorageKey(currentUid));
 
-    // まずは標準表示に戻す（設定未保存ユーザーは必ず「普通」）
-    setFontSizeState("standard");
-    document.documentElement.removeAttribute("data-font-size");
+    // 高コントラストを初期化
     setHighContrastState(false);
     document.documentElement.classList.remove("ud-high-contrast");
 
+    // デフォルトを「大きめ(large)」に設定
+    let initialSize: FontSize = "large";
     if (savedSize && ["standard", "large", "xlarge"].includes(savedSize)) {
-      setFontSizeState(savedSize);
-      if (savedSize === "standard") {
-        document.documentElement.removeAttribute("data-font-size");
-      } else {
-        document.documentElement.setAttribute("data-font-size", savedSize);
-      }
+      initialSize = savedSize as FontSize;
+    }
+
+    setFontSizeState(initialSize);
+    if (initialSize === "standard") {
+      document.documentElement.removeAttribute("data-font-size");
+    } else {
+      document.documentElement.setAttribute("data-font-size", initialSize);
     }
 
     if (savedContrast === "true") {

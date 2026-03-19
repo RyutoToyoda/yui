@@ -227,7 +227,7 @@ export default function CreatePage() {
       <form onSubmit={handlePreSubmit} className="space-y-6 w-full min-w-0">
         <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-5 md:p-6 space-y-4 w-full min-w-0 overflow-x-hidden">
           <label htmlFor="job-title" className="block text-base font-bold text-yui-green-800">
-            どんなお手伝い？ <span className="text-yui-danger">（必須）</span>
+            お手伝いの内容 <span className="text-yui-danger">（必須）</span>
           </label>
           <textarea
             id="job-title"
@@ -241,18 +241,17 @@ export default function CreatePage() {
           />
 
           <div>
-            <p className="text-base font-bold text-yui-green-800 mb-2">何が必要？ <span className="text-yui-danger">（必須）</span></p>
+            <p className="text-base font-bold text-yui-green-800 mb-2">募集項目 <span className="text-yui-danger">（必須）</span></p>
             <div className="grid grid-cols-3 gap-2">
               {jobTypes.map((item) => (
                 <button
                   key={item.type}
                   type="button"
                   onClick={() => handleTypeChange(item.type)}
-                  className={`py-3 md:py-4 px-1 md:px-2 rounded-xl text-center font-bold border-2 transition-all shadow-sm ${
-                    selectedType === item.type
-                      ? "bg-yui-green-600 text-white border-yui-green-600 ring-2 ring-yui-green-200 ring-offset-1"
-                      : "bg-white text-yui-green-800 border-yui-green-200 hover:border-yui-green-400 hover:bg-yui-green-50"
-                  }`}
+                  className={`py-3 md:py-4 px-1 md:px-2 rounded-xl text-center font-bold border-2 transition-all shadow-sm ${selectedType === item.type
+                    ? "bg-yui-green-600 text-white border-yui-green-600 ring-2 ring-yui-green-200 ring-offset-1"
+                    : "bg-white text-yui-green-800 border-yui-green-200 hover:border-yui-green-400 hover:bg-yui-green-50"
+                    }`}
                 >
                   <span className="block text-sm md:text-base">{item.label}</span>
                 </button>
@@ -292,7 +291,7 @@ export default function CreatePage() {
           <div className="relative overflow-visible">
             <label htmlFor="job-location" className="relative z-10 text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
-              どこでやる？ <span className="text-yui-danger">（必須）</span>
+              場所 <span className="text-yui-danger">（必須）</span>
             </label>
             <div className="relative z-10 space-y-2">
               <div className="flex flex-col sm:flex-row gap-2 sm:items-end w-full min-w-0">
@@ -328,7 +327,7 @@ export default function CreatePage() {
             <div>
               <label htmlFor="job-date" className="text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
                 <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
-                いつやる？ <span className="text-yui-danger">（必須）</span>
+                日付 <span className="text-yui-danger">（必須）</span>
               </label>
               <input
                 id="job-date"
@@ -343,7 +342,7 @@ export default function CreatePage() {
             <div>
               <label htmlFor="job-start" className="text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
                 <Clock className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
-                時間は？ <span className="text-yui-danger">（必須）</span>
+                時間 <span className="text-yui-danger">（必須）</span>
               </label>
               <div className="flex items-center gap-2">
                 <input

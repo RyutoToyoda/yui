@@ -11,22 +11,15 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import HelpAdvisor from "@/components/HelpAdvisor";
 
 const fontSizeOptions = [
-  { value: "standard" as const, label: "普通", description: "標準のサイズです", sampleSize: "18px" },
-  { value: "large" as const, label: "大きめ", description: "少し大きめの文字です", sampleSize: "20px" },
-  { value: "xlarge" as const, label: "とても大きい", description: "もっとも読みやすいサイズです", sampleSize: "22px" },
+  { value: "standard" as const, label: "普通", description: "標準のサイズです", sampleSize: "16px" },
+  { value: "large" as const, label: "大きめ", description: "少し大きめの文字です", sampleSize: "18px" },
+  { value: "xlarge" as const, label: "とても大きい", description: "もっとも読みやすいサイズです", sampleSize: "20px" },
 ];
 
 export default function SettingsPage() {
   const { fontSize, setFontSize, highContrast, setHighContrast } = useAccessibility();
-  const { logout } = useAuth();
   const router = useRouter();
-  const [confirmLogout, setConfirmLogout] = useState(false);
   const [showHelpAdvisor, setShowHelpAdvisor] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
 
   return (
     <div className="py-3 space-y-4">
@@ -87,8 +80,7 @@ export default function SettingsPage() {
 
         {/* 高コントラストモード */}
         <div className="space-y-3 pt-4 border-t border-yui-earth-100">
-          <h3 className="text-base font-bold text-yui-green-700">画面のくっきりさ</h3>
-          <p className="text-sm text-yui-earth-600 mb-2">明るい場所や直射日光のもとでも見やすくなります。</p>
+          <h3 className="text-base font-bold text-yui-green-700 mb-2">画面のくっきりさ</h3>
           <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="画面のくっきりさを選ぶ">
             {/* 標準モード */}
             <button
@@ -176,36 +168,6 @@ export default function SettingsPage() {
           <MessageCircle className="w-5 h-5 text-yui-green-600 shrink-0 ml-3" aria-hidden="true" />
         </button>
       </section>
-
-      {/* ===============================================
-          👤 アカウント
-          =============================================== */}
-      <section aria-labelledby="account-heading" className="space-y-3">
-        <h2 id="account-heading" className="text-xl font-bold text-yui-green-800 flex items-center gap-2 pb-2 border-b-2 border-yui-green-200">
-          <LogOut className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
-          アカウント
-        </h2>
-        <button
-          onClick={() => setConfirmLogout(true)}
-          className="w-full py-4 bg-white text-yui-danger font-bold rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
-          style={{ minHeight: "56px" }}
-          aria-label="アプリからログアウト"
-        >
-          <LogOut className="w-5 h-5" aria-hidden="true" />
-          アプリからログアウト
-        </button>
-      </section>
-
-      <ConfirmDialog
-        isOpen={confirmLogout}
-        title="ログアウトしますか？"
-        message="ログアウトすると、もう一度ログインが必要になります。"
-        confirmLabel="ログアウトする"
-        cancelLabel="やめておく"
-        variant="danger"
-        onConfirm={handleLogout}
-        onCancel={() => setConfirmLogout(false)}
-      />
 
       <HelpAdvisor
         isOpen={showHelpAdvisor}

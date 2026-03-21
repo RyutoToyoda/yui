@@ -17,10 +17,13 @@ import {
   Clock,
   Users,
   Megaphone,
+  Tractor,
 } from "lucide-react";
 import type { JobType } from "@/types/firestore";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LocationPickerMap from "@/components/LocationPickerMap";
+import MultiSelectTag from "@/components/MultiSelectTag";
+import { EQUIPMENT_PRESETS } from "@/lib/equipment-data";
 
 type LocationPoint = {
   lat: number;
@@ -87,7 +90,7 @@ export default function CreatePage() {
   const [requiredPeople, setRequiredPeople] = useState(1);
 
   const [tokenRate, setTokenRate] = useState(1);
-  const [equipmentNeeded, setEquipmentNeeded] = useState("");
+  const [equipmentNeeded, setEquipmentNeeded] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [showDetails, setShowDetails] = useState(false);
 
@@ -172,7 +175,7 @@ export default function CreatePage() {
       tokenRatePerHour: tokenRate,
       totalTokens: calculateTotalTokens(),
       requiredPeople: selectedType === "equipment" ? 0 : requiredPeople,
-      equipmentNeeded: equipmentNeeded.trim(),
+      equipmentNeeded: equipmentNeeded.join("、"),
       location: location.trim(),
       locationLat: locationPoint?.lat,
       locationLng: locationPoint?.lng,
@@ -203,7 +206,7 @@ export default function CreatePage() {
               setSubmitted(false);
               setTitle("");
               setDescription("");
-              setEquipmentNeeded("");
+              setEquipmentNeeded([]);
               setSelectedType(null);
               setShowDetails(false);
             }}
@@ -285,6 +288,31 @@ export default function CreatePage() {
                 </button>
                 <span className="text-base font-bold text-yui-earth-600">名</span>
               </div>
+            </div>
+          )}
+
+          {selectedType && (selectedType === "equipment" || selectedType === "hybrid") && (
+            <div className="pt-2 border-t-2 border-dashed border-yui-green-100/50 mt-4">
+              <p className="text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2 mt-4">
+                <Tractor className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
+                使う農機具
+              </p>
+              <MultiSelectTag
+                selectedItems={equipmentNeeded}
+                presetOptions={EQUIPMENT_PRESETS}
+                placeholder="例：トラクター、田植え機"
+                label="農機具"
+                hideEmptyMessage={true}
+                alwaysOpen={true}
+                onAdd={(item) => {
+                  if (!equipmentNeeded.includes(item)) {
+                    setEquipmentNeeded([...equipmentNeeded, item]);
+                  }
+                }}
+                onRemove={(index) => {
+                  setEquipmentNeeded(equipmentNeeded.filter((_, i) => i !== index));
+                }}
+              />
             </div>
           )}
 
@@ -392,20 +420,6 @@ export default function CreatePage() {
 
           {showDetails && (
             <div className="mt-4 space-y-4 border-t border-yui-earth-100 pt-4">
-              {(selectedType === "equipment" || selectedType === "hybrid") && (
-                <div>
-                  <label htmlFor="job-equip" className="block text-base font-bold text-yui-green-800 mb-2">使う農機具</label>
-                  <input
-                    id="job-equip"
-                    type="text"
-                    value={equipmentNeeded}
-                    onChange={(e) => setEquipmentNeeded(e.target.value)}
-                    placeholder="例：トラクター、田植え機"
-                    className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
-                  />
-                </div>
-              )}
-
               <div>
                 <p className="block text-base font-bold text-yui-green-800 mb-2">ポイント単価（1時間あたり）</p>
                 <div className="flex flex-wrap gap-2 mb-3">

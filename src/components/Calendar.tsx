@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export type CalendarCellTone = "default" | "recruitment" | "availability" | "past";
+export type CalendarCellTone = "default" | "recruitment" | "volunteered" | "past";
 
 export type CalendarCell = {
   dateStr: string;
@@ -28,11 +28,11 @@ const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 function getCellToneClass(tone: CalendarCellTone) {
   switch (tone) {
     case "recruitment":
-      // 予定あり
-      return "bg-red-400 text-white font-bold border-red-500";
-    case "availability":
-      // 空き日
-      return "bg-green-200 text-green-900 font-bold border-green-400";
+      // 募集
+      return "text-white font-bold border-[#7a6552]";
+    case "volunteered":
+      // 予定（手を挙げた）
+      return "text-white font-bold border-[#2d5242]";
     case "past":
       // 過去
       return "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed";
@@ -57,12 +57,12 @@ export default function Calendar({
       {/* 色分け凡例 (コンパクト) */}
       <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 px-1">
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 bg-red-400 border border-red-500 rounded-sm" />
-          <span className="text-xs font-bold text-red-600">予定あり</span>
+          <div className="w-4 h-4 border border-[#7a6552] rounded-sm" style={{ backgroundColor: "#8c7361" }} />
+          <span className="text-xs font-bold" style={{ color: "#8c7361" }}>自分の募集</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 bg-green-200 border border-green-400 rounded-sm" />
-          <span className="text-xs font-bold text-yui-green-800">空き日</span>
+          <div className="w-4 h-4 border border-[#2d5242] rounded-sm" style={{ backgroundColor: "#468065" }} />
+          <span className="text-xs font-bold" style={{ color: "#468065" }}>手伝いの予定</span>
         </div>
       </div>
 
@@ -103,10 +103,14 @@ export default function Calendar({
             disabled={cell.disabled || cell.tone === "past"}
             className={`relative w-full min-w-0 aspect-square min-h-[3rem] rounded-lg border-2 flex flex-col items-center justify-center overflow-hidden transition-all ${getCellToneClass(cell.tone)} ${cell.selected ? "ring-[3px] ring-yui-green-600 ring-offset-1 z-10 scale-[1.05]" : ""
               } ${cell.disabled || cell.tone === "past" ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
+            style={{
+              minHeight: "48px",
+              ...(cell.tone === "recruitment" && { backgroundColor: "#8c7361" }),
+              ...(cell.tone === "volunteered" && { backgroundColor: "#468065" })
+            }}
             aria-label={cell.ariaLabel}
             aria-disabled={cell.disabled || cell.tone === "past"}
             aria-pressed={cell.selected}
-            style={{ minHeight: "48px" }}
           >
             <span className="text-sm md:text-base font-black leading-none">{cell.day}</span>
           </button>

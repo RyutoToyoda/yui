@@ -20,6 +20,8 @@ interface MultiSelectTagProps {
   label?: string;
   /** 空のときの「まだ登録されていません」を非表示にする */
   hideEmptyMessage?: boolean;
+  /** メニューを常に開いておくか（デフォルト: false） */
+  alwaysOpen?: boolean;
 }
 
 export default function MultiSelectTag({
@@ -31,8 +33,9 @@ export default function MultiSelectTag({
   onRemove,
   label = "項目",
   hideEmptyMessage = false,
+  alwaysOpen = false,
 }: MultiSelectTagProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(alwaysOpen);
   const [freeInput, setFreeInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,20 +44,26 @@ export default function MultiSelectTag({
     (opt) => !selectedItems.includes(opt)
   );
 
-  const handleAddPreset = (item: string) => {
+  const handleAddPreset = (e: React.MouseEvent, item: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!selectedItems.includes(item)) {
       onAdd(item);
-      setIsOpen(false);
+      setIsOpen(true);
     }
   };
 
-  const handleAddFreeInput = () => {
+  const handleAddFreeInput = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const trimmed = freeInput.trim();
     if (!trimmed) return;
     if (selectedItems.includes(trimmed)) return;
     onAdd(trimmed);
     setFreeInput("");
-    setIsOpen(false);
+    setIsOpen(true);
   };
 
   return (
@@ -87,23 +96,25 @@ export default function MultiSelectTag({
       ) : null}
 
       {/* 追加ボタン */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-yui-green-600 hover:text-yui-green-800 transition-colors"
-        style={{ minHeight: "32px" }}
-        type="button"
-        aria-expanded={isOpen}
-      >
-        {isOpen ? (
-          <ChevronDown className="w-4 h-4" aria-hidden="true" />
-        ) : (
-          <Plus className="w-4 h-4" aria-hidden="true" />
-        )}
-        {isOpen ? "閉じる" : `${label}を追加する`}
-      </button>
+      {!alwaysOpen && (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-yui-green-600 hover:text-yui-green-800 transition-colors"
+          style={{ minHeight: "32px" }}
+          type="button"
+          aria-expanded={isOpen}
+        >
+          {isOpen ? (
+            <ChevronDown className="w-4 h-4" aria-hidden="true" />
+          ) : (
+            <Plus className="w-4 h-4" aria-hidden="true" />
+          )}
+          {isOpen ? "閉じる" : `${label}を追加する`}
+        </button>
+      )}
 
       {/* 追加パネル */}
-      {isOpen && (
+      {(isOpen || alwaysOpen) && (
         <div className="w-full min-w-0 bg-yui-green-50/50 p-3 rounded-lg border border-yui-green-100 space-y-3 animate-in fade-in duration-200">
           {/* プリセット選択肢 */}
           {availableOptions.length > 0 && (
@@ -112,7 +123,7 @@ export default function MultiSelectTag({
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => handleAddPreset(opt)}
+                  onClick={(e) => handleAddPreset(e, opt)}
                   className="px-2.5 py-1 bg-white border border-yui-green-200 text-xs font-bold text-yui-green-700 rounded-lg hover:bg-yui-green-100 hover:border-yui-green-300 transition-colors"
                 >
                   + {opt}
@@ -138,14 +149,13 @@ export default function MultiSelectTag({
                   onKeyDown={(e) => {
                     if (e.nativeEvent.isComposing) return;
                     if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddFreeInput();
+                      handleAddFreeInput(e);
                     }
                   }}
                 />
                 <button
                   type="button"
-                  onClick={handleAddFreeInput}
+                  onClick={(e) => handleAddFreeInput(e)}
                   disabled={!freeInput.trim()}
                   className="w-full px-4 py-2 bg-yui-green-600 text-white text-sm font-bold rounded-lg hover:bg-yui-green-700 transition-colors disabled:opacity-50 disabled:bg-yui-earth-300 sm:w-auto sm:shrink-0"
                   style={{ minHeight: "36px" }}

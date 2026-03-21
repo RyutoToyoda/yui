@@ -106,7 +106,7 @@ export interface Availability {
 }
 
 // アプリ内通知
-export type NotificationType = "match" | "application" | "approved" | "completed" | "job_cancelled";
+export type NotificationType = "match" | "application" | "approved" | "rejected" | "completed" | "job_cancelled";
 
 export interface Notification {
   id: string;

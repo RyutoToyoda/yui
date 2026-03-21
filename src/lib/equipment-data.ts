@@ -45,3 +45,5 @@ export const EQUIPMENT_MASTER: EquipmentMaster[] = [
   { id: "light_van", name: "軽バン", hasSpecs: false },
   { id: "sprayer", name: "動噴", hasSpecs: false },
 ];
+
+export const EQUIPMENT_PRESETS = EQUIPMENT_MASTER.map(eq => eq.name);

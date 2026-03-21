@@ -206,7 +206,7 @@ export default function CreatePage() {
               setSubmitted(false);
               setTitle("");
               setDescription("");
-              setEquipmentNeeded("");
+              setEquipmentNeeded([]);
               setSelectedType(null);
               setShowDetails(false);
             }}

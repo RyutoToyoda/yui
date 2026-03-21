@@ -5,20 +5,12 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsGetJobs, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
-import { Coins, List, CalendarDays, Users, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { Coins, CalendarDays, Users, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import type { Job } from "@/types/firestore";
-import Calendar, { type CalendarCell } from "@/components/Calendar";
 
 export default function ExplorePage() {
   const { user } = useAuth();
-  const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() };
-  });
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
   const [openJobs, setOpenJobs] = useState<Job[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,9 +50,6 @@ export default function ExplorePage() {
     );
   }
 
-  // カレンダー用
-  const daysInMonth = new Date(currentMonth.year, currentMonth.month + 1, 0).getDate();
-
   const formatDateLocal = (date: Date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -88,23 +77,20 @@ export default function ExplorePage() {
     .sort((a, b) => getRecommendScore(b) - getRecommendScore(a))
     .slice(0, 3);
 
-  const orderedOpenJobs = [...openJobs].sort((a, b) => {
-    // 過去の募集は一番下へ
-    const aPast = a.date < todayStr ? 1 : 0;
-    const bPast = b.date < todayStr ? 1 : 0;
-    if (aPast !== bPast) return aPast - bPast;
+  const orderedOpenJobs = [...openJobs]
+    .filter((job) => job.date >= todayStr)
+    .sort((a, b) => {
+      // 優先度1: 自分のプロフィールに近いエリア（エリア一致）
+      const aLocMatch = (profileAnchor && a.location?.includes(profileAnchor)) ? 1 : 0;
+      const bLocMatch = (profileAnchor && b.location?.includes(profileAnchor)) ? 1 : 0;
+      if (aLocMatch !== bLocMatch) return bLocMatch - aLocMatch;
 
-    // 優先度1: 自分のプロフィールに近いエリア（エリア一致）
-    const aLocMatch = (profileAnchor && a.location?.includes(profileAnchor)) ? 1 : 0;
-    const bLocMatch = (profileAnchor && b.location?.includes(profileAnchor)) ? 1 : 0;
-    if (aLocMatch !== bLocMatch) return bLocMatch - aLocMatch;
+      // 優先度2: 日付が近い順（昇順）
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
 
-    // 優先度2: 日付が近い順（昇順）
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-
-    // 同日の場合は作成日の新しい順
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+      // 同日の場合は作成日の新しい順
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   let baseFilteredJobs = orderedOpenJobs;
 
@@ -152,56 +138,6 @@ export default function ExplorePage() {
 
   // Handle calendar view specifically: show only jobs for that date AT THE END
   let filteredJobs = baseFilteredJobs;
-  if (selectedDate && viewMode === "calendar") {
-    filteredJobs = baseFilteredJobs.filter((job) => job.date === selectedDate);
-  }
-
-  const getJobsForDate = (dateStr: string): Job[] => {
-    return baseFilteredJobs.filter((j) => j.date === dateStr);
-  };
-
-  const getHistoryForDate = (dateStr: string): Job[] => {
-    return allJobs.filter((j) => j.date === dateStr && j.status !== "open");
-  };
-
-  const calendarCells: CalendarCell[] = Array.from({ length: daysInMonth }, (_, index) => {
-    const day = index + 1;
-    const dateStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const jobCount = getJobsForDate(dateStr).length;
-    const historyCount = getHistoryForDate(dateStr).length;
-    const isPast = dateStr < todayStr;
-    const isDisabled = isPast && historyCount === 0;
-
-    return {
-      dateStr,
-      day,
-      tone: isPast ? "past" : jobCount > 0 ? "recruitment" : "default",
-      selected: selectedDate === dateStr,
-      disabled: isDisabled,
-      badges: isPast ? (historyCount > 0 ? ["履歴"] : undefined) : jobCount > 0 ? ["募集"] : undefined,
-      ariaLabel: `${dateStr}${jobCount > 0 ? ` 募集${jobCount}件` : ""}${historyCount > 0 ? ` 履歴${historyCount}件` : ""}${isPast ? " 過去日" : ""}`,
-    };
-  });
-
-  const prevMonth = () => {
-    setCurrentMonth((prev) => {
-      if (prev.month === 0) return { year: prev.year - 1, month: 11 };
-      return { ...prev, month: prev.month - 1 };
-    });
-    setSelectedDate(null);
-  };
-
-  const nextMonth = () => {
-    setCurrentMonth((prev) => {
-      if (prev.month === 11) return { year: prev.year + 1, month: 0 };
-      return { ...prev, month: prev.month + 1 };
-    });
-    setSelectedDate(null);
-  };
-
-  const selectedOpenJobs = selectedDate ? getJobsForDate(selectedDate) : [];
-  const selectedHistoryJobs = selectedDate ? getHistoryForDate(selectedDate) : [];
-  const isSelectedPast = selectedDate ? selectedDate < todayStr : false;
 
   return (
     <div className="py-1 space-y-4">
@@ -380,125 +316,73 @@ export default function ExplorePage() {
         </section>
       )}
 
-      {/* ビュー切り替え */}
-      <div className="flex bg-yui-green-50 rounded-xl p-1" role="tablist" aria-label="表示方法">
-        <button
-          onClick={() => { setViewMode("list"); setSelectedDate(null); }}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${viewMode === "list"
-            ? "bg-white text-yui-green-700 shadow-sm"
-            : "text-yui-earth-500"
-            }`}
-          role="tab"
-          aria-selected={viewMode === "list"}
-          style={{ minHeight: "44px" }}
-        >
-          <List className="w-4 h-4" aria-hidden="true" /> リスト
-        </button>
-        <button
-          onClick={() => setViewMode("calendar")}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${viewMode === "calendar"
-            ? "bg-white text-yui-green-700 shadow-sm"
-            : "text-yui-earth-500"
-            }`}
-          role="tab"
-          aria-selected={viewMode === "calendar"}
-          style={{ minHeight: "44px" }}
-        >
-          <CalendarDays className="w-4 h-4" aria-hidden="true" /> カレンダー
-        </button>
-      </div>
-
-      {/* カレンダービュー */}
-      {viewMode === "calendar" && (
-        <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 p-4">
-          <Calendar
-            year={currentMonth.year}
-            month={currentMonth.month}
-            cells={calendarCells}
-            onPrevMonth={prevMonth}
-            onNextMonth={nextMonth}
-            onSelectDate={(dateStr) => setSelectedDate((prev) => (prev === dateStr ? null : dateStr))}
-          />
-
-
-        </div>
-      )}
-
       {/* ジョブリスト */}
-      {(viewMode === "list" || (viewMode === "calendar" && selectedDate)) && (
-        <div className="space-y-3">
-          {selectedDate && (
-            <p className="text-sm text-yui-earth-600 font-medium">
-              {selectedDate} の募集（{filteredJobs.length}件）
-            </p>
-          )}
-          {filteredJobs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-              {filteredJobs.map((job) => {
-                const isOwnJob = job.creatorId === user.uid;
-                return (
-                  <Link
-                    key={job.id}
-                    href={`/explore/${job.id}`}
-                    className={`block relative h-full w-full min-w-0 overflow-hidden bg-white rounded-xl p-5 shadow-sm border-2 transition-colors no-underline ${isOwnJob ? "border-yui-accent/60 hover:border-yui-accent" : "border-yui-green-100 hover:border-yui-green-300"
-                      }`}
-                    aria-label={`${job.title} ${job.creatorName}さん ${job.date}`}
-                  >
-                    {isOwnJob && (
-                      <div className="absolute top-0 right-0 bg-yui-accent text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl z-10">
-                        自分の
-                      </div>
-                    )}
-                    <div className="flex w-full min-w-0 items-start justify-between h-full mt-1">
-                      <div className="flex-1 min-w-0 pr-2">
-                        <p className="text-xs font-bold text-yui-earth-500 mb-0.5">{job.creatorName}さん</p>
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <div className="flex items-center gap-1.5 bg-yui-green-50 px-2.5 py-0.5 rounded-full border border-yui-green-200">
-                            <span className="text-sm shrink-0" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                            <span className="text-xs text-yui-green-700 font-bold">
-                              {getJobTypeLabel(job.type)}
-                            </span>
-                          </div>
-                          {job.requiredPeople > 0 && (
-                            <span className="text-xs font-bold text-yui-earth-600 bg-yui-earth-100 px-2 py-0.5 rounded-full border border-yui-earth-200">
-                              {job.requiredPeople}人
-                            </span>
-                          )}
+      <div className="space-y-3">
+        {filteredJobs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+            {filteredJobs.map((job) => {
+              const isOwnJob = job.creatorId === user.uid;
+              return (
+                <Link
+                  key={job.id}
+                  href={`/explore/${job.id}`}
+                  className={`block relative h-full w-full min-w-0 overflow-hidden bg-white rounded-xl p-5 shadow-sm border-2 transition-colors no-underline ${isOwnJob ? "border-[#8c7361] hover:border-[#7a6552]" : "border-[#468065] hover:border-[#2d5242]"
+                    }`}
+                  aria-label={`${job.title} ${job.creatorName}さん ${job.date}`}
+                >
+                  {isOwnJob && (
+                    <div className="absolute top-0 right-0 text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl z-10" style={{ backgroundColor: "#8c7361" }}>
+                      自分の
+                    </div>
+                  )}
+                  <div className="flex w-full min-w-0 flex-col h-full mt-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-yui-earth-500 mb-0.5">{job.creatorName}さん</p>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 bg-yui-green-50 px-2.5 py-0.5 rounded-full border border-yui-green-200">
+                          <span className="text-sm shrink-0" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+                          <span className="text-xs text-yui-green-700 font-bold">
+                            {getJobTypeLabel(job.type)}
+                          </span>
                         </div>
+                        {job.requiredPeople > 0 && (
+                          <span className="text-xs font-bold text-yui-earth-600 bg-yui-earth-100 px-2 py-0.5 rounded-full border border-yui-earth-200">
+                            {job.requiredPeople}人
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-start justify-between gap-3 mb-1">
                         <h3 className="font-bold text-yui-green-800 text-base break-words leading-tight">{job.title}</h3>
-                        <div className="mt-1 space-y-0.5">
-                          <p className="text-xs text-yui-earth-600 flex items-center gap-1 min-w-0">
-                            <CalendarDays className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                            <span className="min-w-0 truncate">{job.date} {job.startTime}〜{job.endTime}</span>
-                          </p>
-                          <p className="text-xs text-yui-earth-600 flex items-center gap-1 min-w-0">
-                            <MapPin className="w-3.5 h-3.5 text-yui-green-600 shrink-0" aria-hidden="true" />
-                            <span className="min-w-0 truncate">{job.location ? job.location.replace(/[0-9０-９\-ー].*/, "").trim() : "（未指定）"}</span>
-                          </p>
+                        <div className="shrink-0 text-right">
+                          <div className="flex items-center gap-1 bg-yui-accent/10 px-2 py-1 rounded-full">
+                            <Coins className="w-3 h-3 text-yui-accent" aria-hidden="true" />
+                            <span className="text-sm font-bold text-yui-green-800">{job.totalTokens}</span>
+                            <span className="text-xs text-yui-earth-500">P</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="ml-3 shrink-0 text-right">
-                        <div className="flex items-center gap-1 bg-yui-accent/10 px-3 py-1.5 rounded-full">
-                          <Coins className="w-4 h-4 text-yui-accent" aria-hidden="true" />
-                          <span className="font-bold text-yui-green-800">{job.totalTokens}</span>
-                          <span className="text-xs text-yui-earth-500">P</span>
-                        </div>
-                        <p className="text-xs text-yui-earth-500 mt-1">
-                          {job.tokenRatePerHour}P/時間
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-yui-earth-600 flex items-center gap-1 min-w-0">
+                          <CalendarDays className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                          <span className="min-w-0 truncate">{job.date} {job.startTime}〜{job.endTime}</span>
+                        </p>
+                        <p className="text-xs text-yui-earth-600 flex items-center gap-1 min-w-0">
+                          <MapPin className="w-3.5 h-3.5 text-yui-green-600 shrink-0" aria-hidden="true" />
+                          <span className="min-w-0 truncate">{job.location ? job.location.replace(/[0-9０-９\-ー].*/, "").trim() : "（未指定）"}</span>
                         </p>
                       </div>
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl p-6 text-center text-yui-earth-500 shadow-sm border-2 border-yui-green-100">
-              {selectedDate ? "この日の募集はありません" : "今は募集がありません"}
-            </div>
-          )}
-        </div>
-      )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl p-6 text-center text-yui-earth-500 shadow-sm border-2 border-yui-green-100">
+            今は募集がありません
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -89,15 +89,28 @@ export default function JobDetailPage() {
       applicantId: user.uid,
       applicantName: user.name,
       isAgreedToRules: true,
-      status: "pending",
+      status: "approved",
       createdAt: new Date(),
     });
+    // Update job status to matched
+    await fsUpdateJob(job.id, { status: "matched" });
+    
     // 募集者に通知
     await fsCreateNotification({
       userId: job.creatorId,
       type: "application",
       title: "✋ 手を挙げてくれた方がいます",
       message: `${user.name}さんが「${job.title}」に手を挙げました。`,
+      jobId: job.id,
+      isRead: false,
+      createdAt: new Date(),
+    });
+    // 申し込み者に確認通知
+    await fsCreateNotification({
+      userId: user.uid,
+      type: "approved",
+      title: "✅ お手伝いが決まりました！",
+      message: `「${job.title}」のお手伝いが決まりました。当日よろしくお願いします。`,
       jobId: job.id,
       isRead: false,
       createdAt: new Date(),
@@ -143,9 +156,9 @@ export default function JobDetailPage() {
       </button>
 
       {/* ジョブ詳細カード */}
-      <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border-2 overflow-hidden" style={{ borderColor: job.creatorId === user?.uid ? "#8c7361" : "#468065" }}>
         {/* ヘッダー */}
-        <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 p-6 text-white">
+        <div style={{ backgroundColor: job.creatorId === user?.uid ? "#8c7361" : "#468065" }} className="p-6 text-white">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
             <span className="text-sm bg-white/20 font-bold px-3 py-1 rounded-full">
@@ -153,7 +166,7 @@ export default function JobDetailPage() {
             </span>
           </div>
           <h1 className="text-xl font-bold">{job.title}</h1>
-          <p className="text-yui-green-200 mt-1 font-medium">{job.creatorName}さん</p>
+          <p className="text-white mt-1 font-medium">{job.creatorName}さん</p>
         </div>
 
         {/* 詳細情報 */}

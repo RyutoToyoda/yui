@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 type LocationPoint = {
   lat: number;
   lng: number;
-  address?: string;
 };
 
 type LocationPickerMapProps = {

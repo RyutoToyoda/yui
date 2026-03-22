@@ -12,7 +12,6 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Job, Application } from "@/types/firestore";
 import {
   formatAddressByStatus,
-  getMapCoordinates,
   shouldShowMap,
   type AddressStatusType,
 } from "@/lib/address-service";

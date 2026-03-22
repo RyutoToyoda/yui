@@ -23,11 +23,13 @@ import type {
   Job,
   JobStatus,
   Application,
+  ApplicationEvaluation,
   Transaction,
   Availability,
   Notification,
   DayOfWeek,
   Ad,
+  UserTrustProfileSummary,
 } from "@/types/firestore";
 
 // ============================
@@ -93,6 +95,7 @@ function docToApplication(data: any, id: string): Application {
     applicantName: data.applicantName ?? "",
     isAgreedToRules: data.isAgreedToRules ?? false,
     status: data.status ?? "pending",
+    evaluation: data.evaluation === "good" || data.evaluation === "bad" ? data.evaluation : null,
     rating: data.rating,
     review: data.review,
     createdAt: toDate(data.createdAt),
@@ -331,6 +334,7 @@ export async function fsCreateApplication(app: Omit<Application, "id">): Promise
     applicantName: app.applicantName,
     isAgreedToRules: app.isAgreedToRules,
     status: app.status,
+    evaluation: app.evaluation ?? null,
     createdAt: Timestamp.fromDate(app.createdAt instanceof Date ? app.createdAt : new Date()),
   };
   const ref = await addDoc(collection(db, "applications"), data);
@@ -344,6 +348,80 @@ export async function fsUpdateApplication(id: string, updates: Partial<Applicati
     data.createdAt = Timestamp.fromDate(data.createdAt as Date);
   }
   await updateDoc(doc(db, "applications", id), data);
+}
+
+export async function fsRateApplication(
+  jobId: string,
+  applicationId: string,
+  ownerUid: string,
+  evaluation: ApplicationEvaluation
+): Promise<void> {
+  const appRef = doc(db, "applications", applicationId);
+  const [jobSnap, appSnap] = await Promise.all([
+    getDoc(doc(db, "jobs", jobId)),
+    getDoc(appRef),
+  ]);
+
+  if (!jobSnap.exists()) throw new Error("Job not found");
+  if (!appSnap.exists()) throw new Error("Application not found");
+
+  const jobData = jobSnap.data();
+  const appData = appSnap.data();
+
+  if (jobData.creatorId !== ownerUid) {
+    throw new Error("Only the owner can rate applicants");
+  }
+
+  if (appData.jobId !== jobId) {
+    throw new Error("Application does not belong to this job");
+  }
+
+  if (appData.evaluation === "good" || appData.evaluation === "bad") {
+    throw new Error("Already evaluated");
+  }
+
+  await updateDoc(appRef, { evaluation });
+}
+
+export async function fsGetUserTrustProfile(userId: string): Promise<UserTrustProfileSummary> {
+  const apps = await fsGetApplicationsByUser(userId);
+  const targets = apps.filter((a) => a.status === "approved" || a.status === "completed");
+
+  if (targets.length === 0) {
+    return { repeatCount: 0, histories: [] };
+  }
+
+  const uniqueJobIds = Array.from(new Set(targets.map((a) => a.jobId)));
+  const jobs = await Promise.all(uniqueJobIds.map((id) => fsGetJob(id)));
+  const jobMap = new Map<string, Job>();
+  jobs.forEach((job) => {
+    if (job) jobMap.set(job.id, job);
+  });
+
+  const byTitle = new Map<string, { count: number; good: number; bad: number }>();
+  const byOwner = new Map<string, number>();
+
+  for (const app of targets) {
+    const job = jobMap.get(app.jobId);
+    const title = job?.title || "その他のお手伝い";
+
+    const current = byTitle.get(title) ?? { count: 0, good: 0, bad: 0 };
+    current.count += 1;
+    if (app.evaluation === "good") current.good += 1;
+    if (app.evaluation === "bad") current.bad += 1;
+    byTitle.set(title, current);
+
+    if (job?.creatorId) {
+      byOwner.set(job.creatorId, (byOwner.get(job.creatorId) ?? 0) + 1);
+    }
+  }
+
+  const repeatCount = byOwner.size > 0 ? Math.max(...Array.from(byOwner.values())) : 0;
+  const histories = Array.from(byTitle.entries())
+    .map(([title, val]) => ({ title, count: val.count, good: val.good, bad: val.bad }))
+    .sort((a, b) => b.count - a.count);
+
+  return { repeatCount, histories };
 }
 
 // ============================

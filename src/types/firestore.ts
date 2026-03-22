@@ -64,6 +64,7 @@ export interface Job {
 }
 
 export type ApplicationStatus = "pending" | "approved" | "rejected" | "completed";
+export type ApplicationEvaluation = "good" | "bad";
 
 export interface Application {
   id: string;
@@ -72,9 +73,22 @@ export interface Application {
   applicantName: string;
   isAgreedToRules: boolean;
   status: ApplicationStatus;
+  evaluation: ApplicationEvaluation | null;
   rating?: number;
   review?: string;
   createdAt: Date;
+}
+
+export interface UserTrustHistoryItem {
+  title: string;
+  count: number;
+  good: number;
+  bad: number;
+}
+
+export interface UserTrustProfileSummary {
+  repeatCount: number;
+  histories: UserTrustHistoryItem[];
 }
 
 export interface Transaction {

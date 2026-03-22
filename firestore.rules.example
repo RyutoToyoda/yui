@@ -1,89 +1,35 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isJobOwner(jobId) {
-      return isSignedIn() &&
-        get(/databases/$(database)/documents/jobs/$(jobId)).data.creatorId == request.auth.uid;
-    }
-
-    function isValidEvaluation(value) {
-      return value == null || value == "good" || value == "bad";
-    }
-
-    function isValidMutualEvaluation(data) {
-      return isValidEvaluation(data.evaluation) &&
-        isValidEvaluation(data.ownerEvaluation) &&
-        isValidEvaluation(data.applicantEvaluation);
-    }
-
     // ユーザー情報の基本ルール
     match /users/{userId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if request.auth != null;
     }
     
     // 募集（Jobs）のルール
     match /jobs/{jobId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
-      allow update, delete: if isJobOwner(jobId);
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
     
     // 応募（Applications）のルール
     match /applications/{appId} {
-      allow read: if isSignedIn();
-
-      // 応募作成: 応募者本人のみ
-      allow create: if isSignedIn() &&
-        request.resource.data.applicantId == request.auth.uid &&
-        isValidMutualEvaluation(request.resource.data);
-
-      // 応募更新:
-      // 1) 応募者本人の更新
-      // 2) 募集オーナーによる status/evaluation 更新（👍/👎含む）
-      allow update: if isSignedIn() && (
-        resource.data.applicantId == request.auth.uid ||
-        (
-          isJobOwner(resource.data.jobId) &&
-          request.resource.data.applicantId == resource.data.applicantId &&
-          request.resource.data.jobId == resource.data.jobId &&
-          isValidMutualEvaluation(request.resource.data)
-        )
-      );
-
-      allow delete: if isSignedIn() && (
-        resource.data.applicantId == request.auth.uid ||
-        isJobOwner(resource.data.jobId)
-      );
+      allow read, write: if request.auth != null;
     }
     
     // 取引（Transactions）のルール
     match /transactions/{txId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
-      allow update, delete: if false;
+      allow read, write: if request.auth != null;
     }
     
     // スキマ時間（Availabilities）のルール
     match /availabilities/{availId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, write: if request.auth != null;
     }
     
     // 通知（Notifications）のルール
     match /notifications/{notifId} {
-      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
-
-      // クライアント通知作成を維持（既存実装互換）
-      allow create: if isSignedIn();
-
-      // 既存実装では既読更新が必要
-      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow delete: if false;
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
     // 【新規】広告（Ads）のルール
@@ -91,12 +37,12 @@ service cloud.firestore {
       // 誰でも読み取り可能（またはログイン済みユーザーのみ）
       allow read: if true; 
       // 管理者のみ書き込み可能（今回は簡易的にID等で判定するか、開発中は auth != null に設定）
-      allow write: if isSignedIn(); 
+      allow write: if request.auth != null; 
     }
     
     // 【新規】全ユーザーリスト（管理者用）の取得を許可
     match /{path=**}/users/{userDoc} {
-      allow list: if isSignedIn();
+      allow list: if request.auth != null;
     }
   }
 }

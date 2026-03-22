@@ -8,7 +8,6 @@ import { fsGetJobs, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-ser
 import { Coins, CalendarDays, Users, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import type { Job } from "@/types/firestore";
-import { extractCityLevelAddress } from "@/lib/address-service";
 
 export default function ExplorePage() {
   const { user } = useAuth();
@@ -369,11 +368,7 @@ export default function ExplorePage() {
                         </p>
                         <p className="text-xs text-yui-earth-600 flex items-center gap-1 min-w-0">
                           <MapPin className="w-3.5 h-3.5 text-yui-green-600 shrink-0" aria-hidden="true" />
-                          <span className="min-w-0 truncate">
-                            {job.location
-                              ? `${extractCityLevelAddress(job.location)}エリア`
-                              : "（未指定）"}
-                          </span>
+                          <span className="min-w-0 truncate">{job.location ? job.location.replace(/[0-9０-９\-ー].*/, "").trim() : "（未指定）"}</span>
                         </p>
                       </div>
                     </div>

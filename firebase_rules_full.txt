@@ -16,6 +16,12 @@ service cloud.firestore {
     function isValidEvaluation(value) {
       return value == null || value == "good" || value == "bad";
     }
+
+    function isValidMutualEvaluation(data) {
+      return isValidEvaluation(data.evaluation) &&
+        isValidEvaluation(data.ownerEvaluation) &&
+        isValidEvaluation(data.applicantEvaluation);
+    }
     
     // ユーザー情報
     match /users/{userId} {
@@ -34,14 +40,14 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() &&
         request.resource.data.applicantId == request.auth.uid &&
-        isValidEvaluation(request.resource.data.evaluation);
+        isValidMutualEvaluation(request.resource.data);
       allow update: if isSignedIn() && (
         resource.data.applicantId == request.auth.uid ||
         (
           isJobOwner(resource.data.jobId) &&
           request.resource.data.applicantId == resource.data.applicantId &&
           request.resource.data.jobId == resource.data.jobId &&
-          isValidEvaluation(request.resource.data.evaluation)
+          isValidMutualEvaluation(request.resource.data)
         )
       );
       allow delete: if isSignedIn() && (

@@ -73,7 +73,12 @@ export interface Application {
   applicantName: string;
   isAgreedToRules: boolean;
   status: ApplicationStatus;
-  evaluation: ApplicationEvaluation | null;
+  // legacy single-direction evaluation (kept for backward compatibility)
+  evaluation?: ApplicationEvaluation | null;
+  ownerEvaluation: ApplicationEvaluation | null;
+  applicantEvaluation: ApplicationEvaluation | null;
+  ownerEvaluationDone: boolean;
+  applicantEvaluationDone: boolean;
   rating?: number;
   review?: string;
   createdAt: Date;

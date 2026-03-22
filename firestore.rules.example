@@ -14,6 +14,12 @@ service cloud.firestore {
       return value == null || value == "good" || value == "bad";
     }
 
+    function isValidMutualEvaluation(data) {
+      return isValidEvaluation(data.evaluation) &&
+        isValidEvaluation(data.ownerEvaluation) &&
+        isValidEvaluation(data.applicantEvaluation);
+    }
+
     // ユーザー情報の基本ルール
     match /users/{userId} {
       allow read, write: if isSignedIn();
@@ -33,7 +39,7 @@ service cloud.firestore {
       // 応募作成: 応募者本人のみ
       allow create: if isSignedIn() &&
         request.resource.data.applicantId == request.auth.uid &&
-        isValidEvaluation(request.resource.data.evaluation);
+        isValidMutualEvaluation(request.resource.data);
 
       // 応募更新:
       // 1) 応募者本人の更新
@@ -44,7 +50,7 @@ service cloud.firestore {
           isJobOwner(resource.data.jobId) &&
           request.resource.data.applicantId == resource.data.applicantId &&
           request.resource.data.jobId == resource.data.jobId &&
-          isValidEvaluation(request.resource.data.evaluation)
+          isValidMutualEvaluation(request.resource.data)
         )
       );
 

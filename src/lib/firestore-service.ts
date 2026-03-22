@@ -14,7 +14,6 @@ import {
   Timestamp,
   runTransaction,
   writeBatch,
-  getCountFromServer,
   increment,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -214,12 +213,17 @@ export async function fsCreateUserIfAbsent(user: User): Promise<boolean> {
 }
 
 export async function fsUpdateUser(uid: string, updates: Partial<User>): Promise<void> {
-  const data: Record<string, unknown> = { ...updates };
-  delete data.uid;
-  if (data.createdAt instanceof Date) {
-    data.createdAt = Timestamp.fromDate(data.createdAt as Date);
+  try {
+    const data: Record<string, unknown> = { ...updates };
+    delete data.uid;
+    if (data.createdAt instanceof Date) {
+      data.createdAt = Timestamp.fromDate(data.createdAt as Date);
+    }
+    await updateDoc(doc(db, "users", uid), data);
+  } catch (error) {
+    console.error("fsUpdateUser error:", error);
+    throw error;
   }
-  await updateDoc(doc(db, "users", uid), data);
 }
 
 export async function fsGetAllUsers(): Promise<User[]> {
@@ -262,31 +266,36 @@ export async function fsGetJobsByUser(uid: string): Promise<Job[]> {
 }
 
 export async function fsCreateJob(job: Omit<Job, "id"> & { id?: string }): Promise<string> {
-  const data = {
-    creatorId: job.creatorId,
-    creatorName: job.creatorName,
-    type: job.type,
-    title: job.title,
-    description: job.description,
-    date: job.date,
-    startTime: job.startTime,
-    endTime: job.endTime,
-    tokenRatePerHour: job.tokenRatePerHour,
-    totalTokens: job.totalTokens,
-    requiredPeople: job.requiredPeople,
-    equipmentNeeded: job.equipmentNeeded,
-    location: job.location,
-    locationLat: job.locationLat ?? null,
-    locationLng: job.locationLng ?? null,
-    status: job.status,
-    createdAt: Timestamp.fromDate(job.createdAt instanceof Date ? job.createdAt : new Date()),
-  };
-  const ref = await addDoc(collection(db, "jobs"), data);
+  try {
+    const data = {
+      creatorId: job.creatorId,
+      creatorName: job.creatorName,
+      type: job.type,
+      title: job.title,
+      description: job.description,
+      date: job.date,
+      startTime: job.startTime,
+      endTime: job.endTime,
+      tokenRatePerHour: job.tokenRatePerHour,
+      totalTokens: job.totalTokens,
+      requiredPeople: job.requiredPeople,
+      equipmentNeeded: job.equipmentNeeded,
+      location: job.location,
+      locationLat: job.locationLat ?? null,
+      locationLng: job.locationLng ?? null,
+      status: job.status,
+      createdAt: Timestamp.fromDate(job.createdAt instanceof Date ? job.createdAt : new Date()),
+    };
+    const ref = await addDoc(collection(db, "jobs"), data);
 
-  // 自動マッチング
-  await runAutoMatch({ ...job, id: ref.id } as Job);
+    // 自動マッチング
+    await runAutoMatch({ ...job, id: ref.id } as Job);
 
-  return ref.id;
+    return ref.id;
+  } catch (error) {
+    console.error("fsCreateJob error:", error);
+    throw error;
+  }
 }
 
 export async function fsUpdateJob(id: string, updates: Partial<Job>): Promise<void> {
@@ -299,7 +308,103 @@ export async function fsUpdateJob(id: string, updates: Partial<Job>): Promise<vo
 }
 
 export async function fsDeleteJob(id: string): Promise<void> {
-  await deleteDoc(doc(db, "jobs", id));
+  const batch = writeBatch(db);
+  
+  // 1. Delete associated applications
+  const appsSnap = await getDocs(query(collection(db, "applications"), where("jobId", "==", id)));
+  appsSnap.docs.forEach((d) => batch.delete(d.ref));
+  
+  // 2. Delete associated notifications
+  const notifsSnap = await getDocs(query(collection(db, "notifications"), where("jobId", "==", id)));
+  notifsSnap.docs.forEach((d) => batch.delete(d.ref));
+  
+  // 3. Delete associated transactions
+  const transSnap = await getDocs(query(collection(db, "transactions"), where("jobId", "==", id)));
+  transSnap.docs.forEach((d) => batch.delete(d.ref));
+  
+  // 4. Delete the job itself
+  batch.delete(doc(db, "jobs", id));
+  
+  await batch.commit();
+}
+
+export async function fsCleanupOrphanedRecords(): Promise<{ jobs: number; apps: number; notifs: number; trans: number }> {
+  try {
+    const jobsSnap = await getDocs(collection(db, "jobs"));
+    
+    const validJobIds = new Set<string>();
+    const batch = writeBatch(db);
+    let batchCount = 0;
+    let deletedJobs = 0;
+    let deletedApps = 0;
+    let deletedNotifs = 0;
+    let deletedTrans = 0;
+
+    const commitBatchIfNeeded = async () => {
+      if (batchCount >= 400) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    };
+
+    // Evaluate Jobs
+    for (const docSnap of jobsSnap.docs) {
+      const data = docSnap.data();
+      // Purge cancelled jobs to drastically clean the DB
+      if (data.status === "cancelled") {
+        batch.delete(docSnap.ref);
+        deletedJobs++;
+        batchCount++;
+      } else {
+        validJobIds.add(docSnap.id);
+      }
+    }
+    await commitBatchIfNeeded();
+
+    const appsSnap = await getDocs(collection(db, "applications"));
+    const notifsSnap = await getDocs(collection(db, "notifications"));
+    const transSnap = await getDocs(collection(db, "transactions"));
+
+    for (const docSnap of appsSnap.docs) {
+      const data = docSnap.data();
+      // Purge orphans OR cancelled/rejected applications
+      if (!validJobIds.has(data.jobId) || data.status === "cancelled" || data.status === "rejected") {
+        batch.delete(docSnap.ref);
+        deletedApps++;
+        batchCount++;
+        await commitBatchIfNeeded();
+      }
+    }
+
+    for (const docSnap of notifsSnap.docs) {
+      const data = docSnap.data();
+      if (data.jobId && !validJobIds.has(data.jobId)) {
+        batch.delete(docSnap.ref);
+        deletedNotifs++;
+        batchCount++;
+        await commitBatchIfNeeded();
+      }
+    }
+
+    for (const docSnap of transSnap.docs) {
+      const data = docSnap.data();
+      if (data.jobId && !validJobIds.has(data.jobId)) {
+        batch.delete(docSnap.ref);
+        deletedTrans++;
+        batchCount++;
+        await commitBatchIfNeeded();
+      }
+    }
+
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+
+    return { jobs: deletedJobs, apps: deletedApps, notifs: deletedNotifs, trans: deletedTrans };
+  } catch (error) {
+    console.error("Cleanup failed:", error);
+    throw error;
+  }
 }
 
 // ============================
@@ -351,26 +456,38 @@ export async function fsUpdateApplication(id: string, updates: Partial<Applicati
 // ============================
 
 export async function fsGetTransactionsByUser(uid: string): Promise<Transaction[]> {
-  // Firestore does not support OR queries across fields, so we do 2 queries
-  const qFrom = query(collection(db, "transactions"), where("fromUserId", "==", uid));
-  const qTo = query(collection(db, "transactions"), where("toUserId", "==", uid));
-  const [snapFrom, snapTo] = await Promise.all([getDocs(qFrom), getDocs(qTo)]);
+  // Firestore does not support OR queries across fields
+  // Fetch all transactions and filter client-side to be safe
+  try {
+    const qFrom = query(collection(db, "transactions"), where("fromUserId", "==", uid));
+    const qTo = query(collection(db, "transactions"), where("toUserId", "==", uid));
+    const [snapFrom, snapTo] = await Promise.all([getDocs(qFrom), getDocs(qTo)]);
 
-  const seen = new Set<string>();
-  const results: Transaction[] = [];
+    const seen = new Set<string>();
+    const results: Transaction[] = [];
 
-  for (const d of [...snapFrom.docs, ...snapTo.docs]) {
-    if (seen.has(d.id)) continue;
-    seen.add(d.id);
-    results.push(docToTransaction(d.data(), d.id));
+    for (const d of [...snapFrom.docs, ...snapTo.docs]) {
+      if (seen.has(d.id)) continue;
+      seen.add(d.id);
+      results.push(docToTransaction(d.data(), d.id));
+    }
+
+    return results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  } catch (error) {
+    console.error("fsGetTransactionsByUser error:", error);
+    return [];
   }
-
-  return results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 // ============================
 // Token Transfer (Firestore Transaction)
 // ============================
+
+export function getPointsPerPerson(job: Partial<Job>): number {
+  if (!job) return 0;
+  const peopleFactor = job.type === "equipment" ? 1 : Math.max(1, job.requiredPeople || 1);
+  return Math.floor((job.totalTokens || 0) / peopleFactor);
+}
 
 export async function fsTransferTokens(
   fromUid: string,
@@ -448,20 +565,9 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
       const creatorData = creatorSnap.data();
       const creatorBalance = Number(creatorData.tokenBalance || 0);
 
-      // 1人あたりの獲得ポイント = 基準レート(ポイント/時) × 作業時間(h)
-      // Note: form values store hours/mins sometimes as strings. Use String().split() guarantees.
-      const tokenRate = Number(jobData.tokenRatePerHour || 1);
-      const start = String(jobData.startTime || "00:00").split(":").map(Number);
-      const end = String(jobData.endTime || "00:00").split(":").map(Number);
-      const startH = isNaN(start[0]) ? 0 : start[0];
-      const startM = isNaN(start[1]) ? 0 : start[1];
-      const endH = isNaN(end[0]) ? 0 : end[0];
-      const endM = isNaN(end[1]) ? 0 : end[1];
+      const pointsPerPerson = getPointsPerPerson(jobData);
       
-      const hours = Number((endH * 60 + endM - startH * 60 - startM) / 60);
-      const pointsPerPerson = Math.max(0, Math.round(hours * tokenRate * 10) / 10);
-      
-      // 募集者の総支払ポイント = (基準レート × 作業時間) × 参加人数
+      // 募集者の総支払ポイント
       const totalPaidPoints = pointsPerPerson * Number(approvedApps.length);
 
       // トランザクション前の事前チェック
@@ -522,6 +628,83 @@ export async function fsCompleteJobTransaction(jobId: string): Promise<boolean> 
     return true;
   } catch (error) {
     console.error("Job completion failed:", error);
+    throw error;
+  }
+}
+
+// ============================
+// Job Cancellation with Penalty (Atomic Transaction)
+// ============================
+
+export async function fsCompleteApplicationTransaction(jobId: string, applicationId: string): Promise<boolean> {
+  try {
+    const appSnap = await getDoc(doc(db, "applications", applicationId));
+    if (!appSnap.exists()) throw new Error("Application not found");
+    const application = { id: appSnap.id, ...appSnap.data() } as Application;
+    if (application.jobId !== jobId) throw new Error("Application does not match job");
+    if (application.status !== "approved") throw new Error("Application is not approved");
+
+    await runTransaction(db, async (transaction) => {
+      const jobRef = doc(db, "jobs", jobId);
+      const jobSnap = await transaction.get(jobRef);
+      if (!jobSnap.exists()) throw new Error("Job not found");
+      const jobData = jobSnap.data();
+
+      // Ensure job is not already completed
+      if (jobData.status === "completed") throw new Error("Job is already completed");
+
+      const creatorRef = doc(db, "users", jobData.creatorId);
+      const creatorSnap = await transaction.get(creatorRef);
+      if (!creatorSnap.exists()) throw new Error("Creator not found");
+      const creatorData = creatorSnap.data();
+      const creatorBalance = Number(creatorData.tokenBalance || 0);
+
+      const pointsPerPerson = getPointsPerPerson(jobData);
+      
+      if (isNaN(pointsPerPerson) || pointsPerPerson < 0) {
+        throw new Error(`Invalid calculated points: pointsPerPerson=${pointsPerPerson}`);
+      }
+
+      if (creatorBalance < pointsPerPerson) {
+        throw new Error(`Insufficient token balance (Balance: ${creatorBalance}, Required: ${pointsPerPerson})`);
+      }
+
+      const applicantRef = doc(db, "users", application.applicantId);
+      const applicantSnap = await transaction.get(applicantRef);
+      if (!applicantSnap.exists()) throw new Error("Applicant not found");
+      const applicantData = applicantSnap.data();
+      const applicantBalance = Number(applicantData.tokenBalance || 0);
+
+      // 募集者のポイントを「支払ポイント」分マイナスする
+      transaction.update(creatorRef, { tokenBalance: creatorBalance - pointsPerPerson });
+
+      // 参加者のポイントを「獲得ポイント」分プラスする
+      try {
+        transaction.update(applicantRef, { tokenBalance: applicantBalance + pointsPerPerson });
+      } catch (err: any) {
+        throw new Error("Failed to update applicant balance (Permission Denied): " + err.message);
+      }
+
+      // Record transaction
+      const txRef = doc(collection(db, "transactions"));
+      transaction.set(txRef, {
+        fromUserId: jobData.creatorId,
+        fromUserName: creatorData.name ?? "",
+        toUserId: application.applicantId,
+        toUserName: applicantData.name ?? "",
+        jobId,
+        amount: pointsPerPerson,
+        description: jobData.title ?? "",
+        createdAt: Timestamp.fromDate(new Date()),
+      });
+      
+      // Update application status
+      const appRef = doc(db, "applications", application.id);
+      transaction.update(appRef, { status: "completed" });
+    });
+    return true;
+  } catch (error) {
+    console.error("Single application completion failed:", error);
     throw error;
   }
 }
@@ -776,13 +959,13 @@ export async function fsGetNotificationsByUser(uid: string): Promise<Notificatio
  * onSnapshotやポーリングを使わず、マウント時・タブフォーカス時にオンデマンドで呼ぶ
  */
 export async function fsFetchUnreadCount(uid: string): Promise<number> {
+  // Avoid compound query - use client-side filtering instead
   const q = query(
     collection(db, "notifications"),
-    where("userId", "==", uid),
-    where("isRead", "==", false)
+    where("userId", "==", uid)
   );
-  const snapshot = await getCountFromServer(q);
-  return snapshot.data().count;
+  const snap = await getDocs(q);
+  return snap.docs.filter(d => !d.data().isRead).length;
 }
 
 /**
@@ -790,14 +973,19 @@ export async function fsFetchUnreadCount(uid: string): Promise<number> {
  * onSnapshotやポーリングを使わず、ページ表示時・リロード時にオンデマンドで呼ぶ
  */
 export async function fsFetchNotifications(uid: string, maxCount: number = 30): Promise<Notification[]> {
-  const q = query(
-    collection(db, "notifications"),
-    where("userId", "==", uid),
-    orderBy("createdAt", "desc"),
-    limit(maxCount)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => docToNotification(d.data(), d.id));
+  try {
+    const q = query(
+      collection(db, "notifications"),
+      where("userId", "==", uid),
+      orderBy("createdAt", "desc"),
+      limit(maxCount)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => docToNotification(d.data(), d.id));
+  } catch (error) {
+    console.error("fsFetchNotifications error:", error);
+    return [];
+  }
 }
 
 /**
@@ -808,18 +996,25 @@ export async function fsGetUnreadCountByUser(uid: string): Promise<number> {
 }
 
 export async function fsMarkNotificationRead(id: string): Promise<void> {
-  await updateDoc(doc(db, "notifications", id), { isRead: true });
+  try {
+    await updateDoc(doc(db, "notifications", id), { isRead: true });
+  } catch (error) {
+    console.error("fsMarkNotificationRead error:", error);
+    throw error;
+  }
 }
 
 export async function fsMarkAllNotificationsRead(uid: string): Promise<void> {
+  // Avoid compound query - use client-side filtering instead
   const q = query(
     collection(db, "notifications"),
-    where("userId", "==", uid),
-    where("isRead", "==", false)
+    where("userId", "==", uid)
   );
   const snap = await getDocs(q);
   const batch = writeBatch(db);
-  snap.docs.forEach((d) => batch.update(d.ref, { isRead: true }));
+  snap.docs
+    .filter(d => !d.data().isRead)
+    .forEach((d) => batch.update(d.ref, { isRead: true }));
   await batch.commit();
 }
 

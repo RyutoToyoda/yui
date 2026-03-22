@@ -18,6 +18,8 @@ import {
   Users,
   Megaphone,
   Tractor,
+  X,
+  Plus,
 } from "lucide-react";
 import type { JobType } from "@/types/firestore";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -222,7 +224,7 @@ export default function CreatePage() {
 
   return (
     <div className="space-y-4 w-full max-w-3xl mx-auto overflow-x-hidden">
-      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2">
+      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 mb-6">
         <Megaphone className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
         募集する
       </h1>

@@ -4,9 +4,9 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
+import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, getJobTypeEmoji, getJobTypeLabel, getPointsPerPerson, fsUpdateApplication, fsCompleteApplicationTransaction } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
-import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin } from "lucide-react";
+import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin, X } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Job, Application } from "@/types/firestore";
@@ -28,6 +28,9 @@ export default function JobDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelDetail, setCancelDetail] = useState<string>("");
+
+  // Confirmation dialog states
+  const [confirmAction, setConfirmAction] = useState<{ type: string; appId?: string } | null>(null);
 
   const jobId = params.id as string;
 
@@ -51,8 +54,10 @@ export default function JobDetailPage() {
 
   if (loading) {
     return (
-      <div className="px-4 py-10 text-center">
-        <p className="text-yui-earth-500">読み込み中...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-yui-earth-500 text-lg">読み込み中...</p>
+        </div>
       </div>
     );
   }
@@ -131,7 +136,7 @@ export default function JobDetailPage() {
         alert("キャンセル理由を選択してください");
         return;
       }
-      await fsCancelJob(job.id, user.uid, cancelReason, cancelDetail);
+      await fsCancelJob(job!.id, user.uid, cancelReason, cancelDetail);
       alert(approvedApplicants.length > 0
         ? "お手伝いの募集をキャンセルしました。応募者に通知を送りました。"
         : "募集をキャンセルしました");
@@ -142,6 +147,59 @@ export default function JobDetailPage() {
     } finally {
       setShowCancelModal(false);
     }
+  };
+
+  const handleReject = async (appId: string) => {
+    if (!job || !appId) return;
+    let applicantId: string | null = null;
+
+    try {
+      const app = approvedApplicants.find(a => a.id === appId);
+      if (app) applicantId = app.applicantId;
+
+      await fsUpdateApplication(appId, { status: "rejected" });
+
+      const updatedApps = await fsGetApplicationsByJob(job.id);
+      const approvedCount = updatedApps.filter((a) => a.status === "approved").length;
+
+      if (approvedCount < job.requiredPeople && job.status === "matched") {
+        await fsUpdateJob(job.id, { status: "open" });
+      }
+
+      if (applicantId) {
+        await fsCreateNotification({
+          userId: applicantId,
+          type: "rejected",
+          title: "❌ 応募が断られました",
+          message: `申し訳ありませんが、「${job.title}」のお手伝いは他の方が担当することになりました。`,
+          jobId: job.id,
+          isRead: false,
+          createdAt: new Date(),
+        });
+      }
+
+      // Reload data
+      const apps = await fsGetApplicationsByJob(job.id);
+      setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+    } catch (e) {
+      console.error("Failed to reject application:", e);
+      alert("処理に失敗しました");
+    }
+    setConfirmAction(null);
+  };
+
+  const handleSinglePayout = async (appId: string) => {
+    if (!job || !appId) return;
+    try {
+      await fsCompleteApplicationTransaction(job.id, appId);
+      // Reload data
+      const apps = await fsGetApplicationsByJob(job.id);
+      setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+    } catch (e: any) {
+      console.error("Individual payout error:", e);
+      alert(`ポイントの決済に失敗しました。\n原因: ${e.message || "残高が不足している可能性があります。"}`);
+    }
+    setConfirmAction(null);
   };
 
   return (
@@ -238,7 +296,7 @@ export default function JobDetailPage() {
                   <span className="text-xs font-bold text-yui-earth-700">お礼のポイント</span>
                 </div>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-xl font-bold text-yui-green-800">{job.totalTokens}P</span>
+                  <span className="text-xl font-bold text-yui-green-800">{getPointsPerPerson(job)}P</span>
                   <span className="text-[11px] font-bold text-yui-earth-500">
                     {job.tokenRatePerHour}P/時間
                   </span>
@@ -257,17 +315,17 @@ export default function JobDetailPage() {
           </div>
 
           {/* 応募セクション（メインカード内に統合） */}
-          {!isOwner && job.status === "open" && (
+          {!isOwner && (
             <div className="pt-5 mt-2 border-t border-yui-green-100">
-              {applied || alreadyApplied ? (
+              {(applied || alreadyApplied) ? (
                 <div className="text-center py-2">
                   <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
-                  <p className="text-lg font-bold text-yui-green-700">手を挙げました！</p>
+                  <p className="text-lg font-bold text-yui-green-700">手を上げました！</p>
                   <p className="text-sm text-yui-earth-600 mt-1">
                     募集した方からの連絡をお待ちください
                   </p>
                 </div>
-              ) : (
+              ) : job.status === "open" ? (
                 <>
                   {/* 同意チェックボックス */}
                   <div className="bg-yui-earth-50 rounded-xl p-4 mb-4 border border-yui-earth-200">
@@ -299,6 +357,10 @@ export default function JobDetailPage() {
                     手を挙げる
                   </button>
                 </>
+              ) : (
+                <div className="text-center py-2 text-yui-earth-600 text-sm">
+                  この募集は現在受け付けていません
+                </div>
               )}
             </div>
           )}
@@ -306,24 +368,53 @@ export default function JobDetailPage() {
       </div>
 
       {isOwner && (
-        <div className="bg-yui-earth-100 rounded-xl p-5 text-center">
-          <p className="text-sm text-yui-earth-600 font-medium">これはあなたが作った募集です</p>
-          <div className="flex flex-col gap-3 mt-4">
-            <Link
-              href="/schedule"
-              className="text-sm bg-white text-yui-green-600 border border-yui-green-200 font-bold px-4 py-3 rounded-xl no-underline hover:bg-yui-green-50 transition-colors"
-              style={{ minHeight: "44px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-            >
-              手を挙げてくれた方の確認は「予定」から →
-            </Link>
-            <button
-              onClick={handleDeleteClick}
-              className="flex items-center justify-center gap-2 text-sm bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 border border-red-200 transition-colors"
-              style={{ minHeight: "44px" }}
-            >
-              <Trash2 className="w-5 h-5" aria-hidden="true" />
-              この募集をキャンセルする
-            </button>
+        <div className="bg-white rounded-2xl shadow-sm border-2 overflow-hidden" style={{ borderColor: "#8c7361" }}>
+          <div style={{ backgroundColor: "#8c7361" }} className="p-6 text-white">
+            <h2 className="text-lg font-bold">参加者管理</h2>
+          </div>
+
+          <div className="p-5 space-y-4">
+            {approvedApplicants.length > 0 ? (
+              <div className="space-y-3">
+                {approvedApplicants.map((app) => (
+                  <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-yui-earth-50 rounded-xl p-3 md:p-4 border border-yui-earth-200 shadow-sm gap-3">
+                    <div>
+                      <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-sm mb-1">確定</span>
+                      <p className="font-bold text-sm text-yui-green-800">{app.applicantName}さん</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => setConfirmAction({ type: "single-payout", appId: app.id })}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-yui-green-100 text-yui-green-700 px-4 py-2.5 rounded-xl font-bold hover:bg-yui-green-200 transition-colors"
+                      >
+                        <Coins className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span className="text-xs">支払う</span>
+                      </button>
+                      <button
+                        onClick={() => setConfirmAction({ type: "reject", appId: app.id })}
+                        className="flex-shrink-0 text-red-500 p-2.5 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                        title="キャンセル"
+                      >
+                        <X className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-yui-earth-600 text-sm py-4">まだ参加者がいません</p>
+            )}
+
+            <div className="pt-3 mt-4 border-t border-yui-earth-200">
+              <button
+                onClick={handleDeleteClick}
+                className="w-full flex items-center justify-center gap-2 text-sm bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 border border-red-200 transition-colors"
+                style={{ minHeight: "44px" }}
+              >
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
+                この募集をキャンセルする
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -337,6 +428,33 @@ export default function JobDetailPage() {
         onConfirm={handleApply}
         onCancel={() => setShowConfirm(false)}
       />
+
+      {/* Rejection Confirmation */}
+      {confirmAction?.type === "reject" && (
+        <ConfirmDialog
+          isOpen={true}
+          title="お断りしますか？"
+          message="この方の応募をお断りします。相手に通知が届きます。"
+          confirmLabel="断る"
+          cancelLabel="やめておく"
+          variant="danger"
+          onConfirm={() => handleReject(confirmAction.appId!)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+
+      {/* Payout Confirmation */}
+      {confirmAction?.type === "single-payout" && (
+        <ConfirmDialog
+          isOpen={true}
+          title="この方にポイントを支払いますか？"
+          message="この方に個別でお礼のポイントを送信します。"
+          confirmLabel="支払う"
+          cancelLabel="キャンセル"
+          onConfirm={() => handleSinglePayout(confirmAction.appId!)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
 
       {/* キャンセル用の確認ダイアログ */}
       {showCancelModal && (

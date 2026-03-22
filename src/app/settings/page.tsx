@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import HelpAdvisor from "@/components/HelpAdvisor";
+import { fsCleanupOrphanedRecords } from "@/lib/firestore-service";
 
 const fontSizeOptions = [
   { value: "standard" as const, label: "普通", description: "標準のサイズです", sampleSize: "16px" },
@@ -20,6 +21,20 @@ export default function SettingsPage() {
   const { fontSize, setFontSize, highContrast, setHighContrast } = useAccessibility();
   const router = useRouter();
   const [showHelpAdvisor, setShowHelpAdvisor] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  
+  const handleCleanup = async () => {
+    if (!confirm("データベースのクリーンアップを実行しますか？（キャンセル済みの募集・応募や、孤立した不要データの一括削除）")) return;
+    setCleaning(true);
+    try {
+      const result = await fsCleanupOrphanedRecords();
+      alert(`クリーンアップ完了！\n削除された募集: ${result.jobs}\n削除された応募: ${result.apps}\n削除された通知: ${result.notifs}\n削除された取引: ${result.trans}`);
+    } catch (e: any) {
+      alert("クリーンアップに失敗しました: " + e.message);
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   return (
     <div className="py-3 space-y-4">
@@ -166,6 +181,21 @@ export default function SettingsPage() {
             </p>
           </div>
           <MessageCircle className="w-5 h-5 text-yui-green-600 shrink-0 ml-3" aria-hidden="true" />
+        </button>
+
+        {/* データベースクリーンアップ */}
+        <button
+          onClick={handleCleanup}
+          disabled={cleaning}
+          className="w-full flex items-center justify-between p-5 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 transition-all text-left shadow-sm mt-3"
+          style={{ minHeight: "72px" }}
+        >
+          <div className="flex-1">
+            <p className="font-bold text-red-700">不要なデータのクリーンアップ</p>
+            <p className="text-sm text-red-600 mt-0.5">
+              {cleaning ? "クリーンアップ中..." : "キャンセル済みの募集・応募や、不要なデータを一括削除します"}
+            </p>
+          </div>
         </button>
       </section>
 

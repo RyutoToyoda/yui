@@ -74,8 +74,10 @@ export default function ProfilePage() {
   }
   if (loading) {
     return (
-      <div className="px-4 py-10 text-center">
-        <p className="text-yui-earth-500">読み込み中...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-yui-earth-500 text-lg">読み込み中...</p>
+        </div>
       </div>
     );
   }
@@ -85,61 +87,81 @@ export default function ProfilePage() {
     if (!eqName.trim()) return;
     if (user.equipmentList?.includes(eqName.trim())) return;
 
-    // 仕様入力が必要な農機具かチェック
-    const master = EQUIPMENT_MASTER.find(m => m.name === eqName.trim());
-    if (master?.hasSpecs && !specTarget) {
-      setSpecTarget(eqName.trim());
+    try {
+      // 仕様入力が必要な農機具かチェック
+      const master = EQUIPMENT_MASTER.find(m => m.name === eqName.trim());
+      if (master?.hasSpecs && !specTarget) {
+        setSpecTarget(eqName.trim());
+        setSpecHorsepower("");
+        setSpecAttachments([]);
+        return;
+      }
+
+      const updated = [...(user.equipmentList || []), eqName.trim()];
+      await fsUpdateUser(user.uid, { equipmentList: updated });
+
+      if (specTarget && master?.hasSpecs) {
+        const newSpec = {
+          equipmentId: master.id,
+          horsepower: specHorsepower || null,
+          attachments: specAttachments.length > 0 ? specAttachments : null,
+        };
+        const updatedSpecs = [...(user.equipmentSpecs || []), newSpec];
+        await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs } as Record<string, unknown>);
+      }
+
+      refreshUser();
+      setSpecTarget(null);
       setSpecHorsepower("");
       setSpecAttachments([]);
-      return;
+    } catch (err) {
+      console.error("Failed to add equipment:", err);
+      alert("農機具の追加に失敗しました");
     }
-
-    const updated = [...(user.equipmentList || []), eqName.trim()];
-    await fsUpdateUser(user.uid, { equipmentList: updated });
-
-    if (specTarget && master?.hasSpecs) {
-      const newSpec = {
-        equipmentId: master.id,
-        horsepower: specHorsepower || null,
-        attachments: specAttachments.length > 0 ? specAttachments : null,
-      };
-      const updatedSpecs = [...(user.equipmentSpecs || []), newSpec];
-      await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs } as Record<string, unknown>);
-    }
-
-    refreshUser();
-    setSpecTarget(null);
-    setSpecHorsepower("");
-    setSpecAttachments([]);
   };
 
   const handleRemoveEquipment = async (index: number) => {
-    const eq = user.equipmentList?.[index];
-    const updated = (user.equipmentList || []).filter((_, i) => i !== index);
-    await fsUpdateUser(user.uid, { equipmentList: updated });
-    // 対応する仕様も削除
-    if (eq) {
-      const master = EQUIPMENT_MASTER.find(m => m.name === eq);
-      if (master && user.equipmentSpecs) {
-        const updatedSpecs = user.equipmentSpecs.filter(s => s.equipmentId !== master.id);
-        await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs } as Record<string, unknown>);
+    try {
+      const eq = user.equipmentList?.[index];
+      const updated = (user.equipmentList || []).filter((_, i) => i !== index);
+      await fsUpdateUser(user.uid, { equipmentList: updated });
+      // 対応する仕様も削除
+      if (eq) {
+        const master = EQUIPMENT_MASTER.find(m => m.name === eq);
+        if (master && user.equipmentSpecs) {
+          const updatedSpecs = user.equipmentSpecs.filter(s => s.equipmentId !== master.id);
+          await fsUpdateUser(user.uid, { equipmentSpecs: updatedSpecs } as Record<string, unknown>);
+        }
       }
+      refreshUser();
+    } catch (err) {
+      console.error("Failed to remove equipment:", err);
+      alert("農機具の削除に失敗しました");
     }
-    refreshUser();
   };
 
   const handleAddCrop = async (cropName: string) => {
     if (!cropName.trim()) return;
     if (user.crops?.includes(cropName.trim())) return;
-    const updated = [...(user.crops || []), cropName.trim()];
-    await fsUpdateUser(user.uid, { crops: updated });
-    refreshUser();
+    try {
+      const updated = [...(user.crops || []), cropName.trim()];
+      await fsUpdateUser(user.uid, { crops: updated });
+      refreshUser();
+    } catch (err) {
+      console.error("Failed to add crop:", err);
+      alert("作物の追加に失敗しました");
+    }
   };
 
   const handleRemoveCrop = async (index: number) => {
-    const updated = (user.crops || []).filter((_, i) => i !== index);
-    await fsUpdateUser(user.uid, { crops: updated });
-    refreshUser();
+    try {
+      const updated = (user.crops || []).filter((_, i) => i !== index);
+      await fsUpdateUser(user.uid, { crops: updated });
+      refreshUser();
+    } catch (err) {
+      console.error("Failed to remove crop:", err);
+      alert("作物の削除に失敗しました");
+    }
   };
 
   return (

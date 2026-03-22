@@ -4,19 +4,22 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import {
   fsGetJobs,
   fsGetJobsByUser,
   fsGetApplicationsByUser,
   fsGetApplicationsByJob,
   fsGetJob,
-  fsUpdateApplication,
-  fsUpdateJob,
-  fsCompleteJobTransaction,
   fsCreateNotification,
   fsFetchNotifications,
   getJobTypeEmoji,
   getJobTypeLabel,
+  getPointsPerPerson,
+  fsUpdateApplication,
+  fsUpdateJob,
+  fsCompleteJobTransaction,
+  fsCompleteApplicationTransaction,
 } from "@/lib/firestore-service";
 import type { Job, Application, Notification } from "@/types/firestore";
 import {
@@ -49,6 +52,7 @@ interface JobWithApps {
 
 export default function SchedulePage() {
   const { user, refreshUser } = useAuth();
+  const router = useRouter();
   const [confirmAction, setConfirmAction] = useState<{ type: string; appId?: string; jobId?: string; availId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,36 +93,40 @@ export default function SchedulePage() {
 
     // 管理中のジョブ + 応募者
     const managing = myJobs.filter((j) => j.status === "open" || j.status === "matched" || j.status === "in_progress");
-    const managingWithApps = await Promise.all(
-      managing.map(async (job) => {
-        const apps = await fsGetApplicationsByJob(job.id);
-        return { job, applications: apps };
-      })
-    );
-    setManagingJobsWithApps(managingWithApps);
-
+    
     // 予定
     const approved = myApps.filter((a) => a.status === "approved");
-    const upcomingWithJobs = await Promise.all(
-      approved.map(async (app) => {
-        const job = await fsGetJob(app.jobId);
-        return job ? { app, job } : null;
-      })
-    );
-    setUpcomingApps(upcomingWithJobs.filter(Boolean) as { app: Application; job: Job }[]);
-
+    
     // 履歴
     const completedApps = myApps.filter((a) => a.status === "completed");
-    const completedWithJobs = await Promise.all(
-      completedApps.map(async (app) => {
-        const job = await fsGetJob(app.jobId);
-        return job ? { app, job } : null;
-      })
-    );
-    setCompletedAppsWithJobs(completedWithJobs.filter(Boolean) as { app: Application; job: Job }[]);
+
+    // Batch all database queries in parallel
+    const [managingWithAppsResults, upcomingWithJobsResults, completedWithJobsResults] = await Promise.all([
+      Promise.all(
+        managing.map(async (job) => {
+          const apps = await fsGetApplicationsByJob(job.id);
+          return { job, applications: apps };
+        })
+      ),
+      Promise.all(
+        approved.map(async (app) => {
+          const job = await fsGetJob(app.jobId);
+          return job ? { app, job } : null;
+        })
+      ),
+      Promise.all(
+        completedApps.map(async (app) => {
+          const job = await fsGetJob(app.jobId);
+          return job ? { app, job } : null;
+        })
+      ),
+    ]);
+
+    setManagingJobsWithApps(managingWithAppsResults);
+    setUpcomingApps(upcomingWithJobsResults.filter(Boolean) as { app: Application; job: Job }[]);
+    setCompletedAppsWithJobs(completedWithJobsResults.filter(Boolean) as { app: Application; job: Job }[]);
 
     setCompletedJobs(myJobs.filter((j) => j.status === "completed"));
-
     setOpenRecruitmentJobs(allOpenJobs);
 
     // 重要通知
@@ -142,41 +150,10 @@ export default function SchedulePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  if (!user) return null;
-  if (loading) {
-    return (
-      <div className="px-4 py-10 text-center">
-        <p className="text-yui-earth-500">読み込み中...</p>
-      </div>
-    );
-  }
 
-  const handleApprove = async (applicationId: string, jobId: string) => {
-    if (!applicationId || !jobId) return;
-    await fsUpdateApplication(applicationId, { status: "approved" });
-    await fsUpdateJob(jobId, { status: "matched" });
-    const apps = await fsGetApplicationsByJob(jobId);
-    const app = apps.find((a) => a.id === applicationId);
-    const job = await fsGetJob(jobId);
-    if (app && job) {
-      await fsCreateNotification({
-        userId: app.applicantId,
-        type: "approved",
-        title: "✅ お手伝いが決まりました！",
-        message: `${user.name}さんの「${job.title}」のお手伝いが決まりました。当日よろしくお願いします。`,
-        jobId: jobId,
-        isRead: false,
-        createdAt: new Date(),
-      });
-    }
-    setConfirmAction(null);
-    await loadData();
-  };
 
   const handleReject = async (applicationId: string, jobId?: string) => {
     if (!applicationId) return;
-    
-    // Get application details to notify the applicant
     let applicantId: string | null = null;
     let jobTitle: string | null = null;
     
@@ -188,15 +165,12 @@ export default function SchedulePage() {
         if (app) applicantId = app.applicantId;
         if (job) jobTitle = job.title;
         
-        // Update application status to rejected
         await fsUpdateApplication(applicationId, { status: "rejected" });
         
-        // Check if there are any remaining approved applications
-        const allApps = await fsGetApplicationsByJob(jobId);
-        const hasApprovedApps = allApps.some((a) => a.status === "approved");
+        const updatedApps = await fsGetApplicationsByJob(jobId);
+        const approvedCount = updatedApps.filter((a) => a.status === "approved").length;
         
-        // If no more approved applications, revert job status back to open
-        if (!hasApprovedApps && job?.status === "matched") {
+        if (job && approvedCount < job.requiredPeople && job.status === "matched") {
           await fsUpdateJob(jobId, { status: "open" });
         }
       }
@@ -204,7 +178,6 @@ export default function SchedulePage() {
       console.error("Failed to get application/job details:", e);
     }
     
-    // Send rejection notification to applicant
     if (applicantId && jobTitle) {
       await fsCreateNotification({
         userId: applicantId,
@@ -216,7 +189,6 @@ export default function SchedulePage() {
         createdAt: new Date(),
       });
     }
-    
     setConfirmAction(null);
     await loadData();
   };
@@ -225,7 +197,6 @@ export default function SchedulePage() {
     if (!jobId) return;
     try {
       await fsCompleteJobTransaction(jobId);
-      refreshUser();
       setConfirmAction(null);
       await loadData();
     } catch (e: any) {
@@ -233,6 +204,45 @@ export default function SchedulePage() {
       alert(`ポイントの決済に失敗しました。\n原因: ${e.message || "残高が不足している可能性があります。"}`);
       setConfirmAction(null);
     }
+  };
+
+  const handleSinglePayout = async (appId: string, jobId: string) => {
+    if (!appId || !jobId) return;
+    try {
+      await fsCompleteApplicationTransaction(jobId, appId);
+      setConfirmAction(null);
+      await loadData();
+    } catch (e: any) {
+      console.error("個別ポイント決済エラー:", e);
+      alert(`ポイントの決済に失敗しました。\n原因: ${e.message || "残高が不足している可能性があります。"}`);
+      setConfirmAction(null);
+    }
+  };
+
+  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-yui-earth-500 text-lg">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleDateSelect = (dateStr: string) => {
+    // Get recruitment and volunteered jobs for this date
+    const recruitmentJobsForDate = managingJobsWithApps.filter(({ job }) => job.date === dateStr);
+    const volunteeredJobsForDate = upcomingApps.filter(({ job }) => job.date === dateStr);
+    
+    // If there's ONLY a self-owned recruitment job and NO volunteered jobs, redirect directly
+    if (recruitmentJobsForDate.length > 0 && volunteeredJobsForDate.length === 0) {
+      router.push(`/explore/${recruitmentJobsForDate[0].job.id}`);
+      return;
+    }
+    
+    // Otherwise, show the modal
+    setSelectedCalendarDate(dateStr);
   };
 
   const formatDateJP = (dateStr: string) => {
@@ -322,7 +332,7 @@ export default function SchedulePage() {
             cells={calendarCells}
             onPrevMonth={() => setCurrentDate(new Date(year, month - 1, 1))}
             onNextMonth={() => setCurrentDate(new Date(year, month + 1, 1))}
-            onSelectDate={setSelectedCalendarDate}
+            onSelectDate={handleDateSelect}
           />
         </div>
 
@@ -403,27 +413,27 @@ export default function SchedulePage() {
         />
       )}
 
-      {/* Confirmation Dialogs */}
-      {confirmAction?.type === "approve" && (
-        <ConfirmDialog
-          isOpen={true}
-          title="この方にお願いしますか？"
-          message="手を挙げてくれた方にお手伝いをお願いします。相手に通知が届きます。"
-          confirmLabel="おねがいする"
-          cancelLabel="まだ決めない"
-          onConfirm={() => handleApprove(confirmAction.appId!, confirmAction.jobId!)}
-          onCancel={() => setConfirmAction(null)}
-        />
-      )}
+      {/* Confirmation Dialogs for other purposes */}
       {confirmAction?.type === "reject" && (
         <ConfirmDialog
           isOpen={true}
           title="お断りしますか？"
-          message="この方のお手伝いをお断りします。相手に通知が届きます。"
-          confirmLabel="お断りする"
+          message="この方の応募をお断り（またはキャンセル）します。相手に通知が届きます。"
+          confirmLabel="断る"
           cancelLabel="やめておく"
           variant="danger"
           onConfirm={() => handleReject(confirmAction.appId!, confirmAction.jobId)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+      {confirmAction?.type === "single-payout" && (
+        <ConfirmDialog
+          isOpen={true}
+          title="この方にポイントを支払いますか？"
+          message="この方に個別でお礼のポイントを送信します。"
+          confirmLabel="支払う"
+          cancelLabel="キャンセル"
+          onConfirm={() => handleSinglePayout(confirmAction.appId!, confirmAction.jobId!)}
           onCancel={() => setConfirmAction(null)}
         />
       )}
@@ -431,15 +441,13 @@ export default function SchedulePage() {
         <ConfirmDialog
           isOpen={true}
           title="作業おわりにしますか？"
-          message="作業おわりにすると、お礼のポイントが自動で参加者全員に届きます。"
+          message="残りの参加者全員にお礼のポイントが支払われ、募集のステータスが完了になります。"
           confirmLabel="おわりにする"
           cancelLabel="まだおわっていない"
           onConfirm={() => handleComplete(confirmAction.jobId!)}
           onCancel={() => setConfirmAction(null)}
         />
-      )}
-
-    </div>
+      )}    </div>
   );
 }
 
@@ -490,22 +498,24 @@ function DetailModal({
                 
                 return (
                   <div key={job.id} className="bg-white rounded-2xl shadow-sm border-2 overflow-hidden" style={{ borderColor: "#8c7361" }}>
-                    {/* Header */}
-                    <div style={{ backgroundColor: "#8c7361" }} className="p-6 text-white">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                        <span className="text-sm bg-white/20 font-bold px-3 py-1 rounded-full">
-                          {getJobTypeLabel(job.type)}
-                        </span>
+                    <Link href={`/explore/${job.id}`} className="no-underline">
+                      <div style={{ backgroundColor: "#8c7361" }} className="p-6 text-white hover:opacity-90 transition-opacity">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-2xl" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+                          <span className="text-sm bg-white/20 font-bold px-3 py-1 rounded-full">
+                            {getJobTypeLabel(job.type)}
+                          </span>
+                          {approvedApps.length >= job.requiredPeople && job.requiredPeople > 0 && (
+                            <span className="text-sm bg-green-500 font-bold px-3 py-1 rounded-full text-white shadow-sm border border-green-400 ml-auto">人数達成</span>
+                          )}
+                        </div>
+                        <h1 className="text-xl font-bold">{job.title}</h1>
+                        <p className="text-white mt-1 font-medium">{job.creatorName}さん</p>
                       </div>
-                      <h1 className="text-xl font-bold">{job.title}</h1>
-                      <p className="text-white mt-1 font-medium">{job.creatorName}さん</p>
-                    </div>
+                    </Link>
 
-                    {/* 詳細情報 */}
                     <div className="p-5 space-y-4">
                       <div className="grid grid-cols-2 gap-3">
-                        {/* 作業日と時間 */}
                         <div className="bg-yui-green-50 rounded-xl p-4 col-span-2">
                           <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                             <CalendarDays className="w-5 h-5" aria-hidden="true" />
@@ -516,7 +526,6 @@ function DetailModal({
                           </p>
                         </div>
 
-                        {/* 作業場所 */}
                         <div className="bg-yui-green-50 rounded-xl p-3 px-4 col-span-2 flex items-center justify-between gap-3">
                           <div className="min-w-0 pr-1">
                             <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
@@ -529,7 +538,6 @@ function DetailModal({
                           </div>
                         </div>
 
-                        {/* 必要な人数 */}
                         {job.requiredPeople > 0 && (
                           <div className="bg-yui-green-50 rounded-xl p-4">
                             <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
@@ -540,7 +548,6 @@ function DetailModal({
                           </div>
                         )}
 
-                        {/* 農機具 */}
                         {job.equipmentNeeded && (
                           <div className="bg-yui-green-50 rounded-xl p-4">
                             <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
@@ -551,7 +558,6 @@ function DetailModal({
                           </div>
                         )}
 
-                        {/* ポイント情報 */}
                         <div className={`bg-yui-accent/10 rounded-xl p-4 flex flex-col justify-center ${((job.requiredPeople > 0 && job.equipmentNeeded) || (!job.requiredPeople && !job.equipmentNeeded)) ? 'col-span-2 flex-row items-center justify-between' : ''}`}>
                           <div>
                             <div className="flex items-center gap-1.5 text-yui-accent mb-1">
@@ -559,7 +565,7 @@ function DetailModal({
                               <span className="text-xs font-bold text-yui-earth-700">お礼のポイント</span>
                             </div>
                             <div className="flex items-baseline gap-1.5 mt-0.5">
-                              <span className="text-xl font-bold text-yui-green-800">{job.totalTokens}P</span>
+                              <span className="text-xl font-bold text-yui-green-800">{getPointsPerPerson(job)}P</span>
                               <span className="text-[11px] font-bold text-yui-earth-500">
                                 {job.tokenRatePerHour}P/時間
                               </span>
@@ -568,41 +574,48 @@ function DetailModal({
                         </div>
                       </div>
 
-                      {/* 説明 */}
-                      {job.description && (
-                        <div className="pt-2">
-                          <h3 className="text-sm font-bold text-yui-green-800 mb-2">作業の内容</h3>
-                          <p className="text-sm text-yui-earth-600 leading-relaxed whitespace-pre-wrap" style={{ lineHeight: "1.8" }}>
-                            {job.description}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Applicants Section */}
-                      {approvedApps.length > 0 && (
-                        <div className="border-t border-yui-green-100 pt-4 mt-4">
-                          <h3 className="text-sm font-bold text-yui-green-800 mb-3">応募済み ({approvedApps.length}名)</h3>
-                          <div className="space-y-2">
+                      {applications.length > 0 && (
+                        <div className="border-t-2 border-dashed border-yui-green-100 pt-4 mt-4">
+                          <h4 className="text-sm font-bold text-yui-green-800 mb-3">応募者管理</h4>
+                          <div className="space-y-3">
                             {approvedApps.map((app) => (
-                              <div key={app.id} className="flex items-center justify-between bg-red-50 rounded-xl p-3 border border-red-200">
+                              <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white rounded-xl p-3 md:p-4 border border-yui-green-200 shadow-sm gap-3">
                                 <div>
+                                  <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-sm mb-1">確定</span>
                                   <p className="font-bold text-sm text-yui-green-800">{app.applicantName}さん</p>
-                                  <p className="text-xs text-yui-earth-500">
-                                    {app.createdAt.toLocaleDateString("ja-JP")} に手を挙げた
-                                  </p>
                                 </div>
-                                <button
-                                  onClick={() => onSetConfirmAction({ type: "reject", appId: app.id, jobId: job.id })}
-                                  className="flex items-center justify-center p-2 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                                  style={{ minWidth: "40px", minHeight: "40px" }}
-                                  title="応募を断る"
-                                >
-                                  <X className="w-5 h-5" aria-hidden="true" />
-                                </button>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    onClick={() => onSetConfirmAction({ type: "single-payout", appId: app.id, jobId: job.id })}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-yui-green-100 text-yui-green-700 px-4 py-2.5 rounded-xl font-bold hover:bg-yui-green-200 transition-colors"
+                                  >
+                                    <Coins className="w-3.5 h-3.5" />
+                                    <span className="text-xs">支払う</span>
+                                  </button>
+                                  <button
+                                    onClick={() => onSetConfirmAction({ type: "reject", appId: app.id, jobId: job.id })}
+                                    className="flex-shrink-0 text-red-500 p-2.5 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                                    title="キャンセル"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>
                         </div>
+                      )}
+                      
+                      {approvedApps.length > 0 && (
+                         <div className="flex justify-end pt-3">
+                           <button
+                             className="w-full sm:w-auto px-6 py-3 bg-yui-green-600 text-white font-bold rounded-xl shadow-sm hover:bg-yui-green-700 transition-colors flex items-center justify-center gap-2"
+                             onClick={() => onSetConfirmAction({ type: "complete", jobId: job.id })}
+                           >
+                             <CheckCircle2 className="w-4 h-4" />
+                             全員に一括支払い（作業を完了する）
+                           </button>
+                         </div>
                       )}
                     </div>
                   </div>
@@ -685,7 +698,7 @@ function DetailModal({
                             <span className="text-xs font-bold text-yui-earth-700">お礼のポイント</span>
                           </div>
                           <div className="flex items-baseline gap-1.5 mt-0.5">
-                            <span className="text-xl font-bold text-yui-green-800">{job.totalTokens}P</span>
+                            <span className="text-xl font-bold text-yui-green-800">{getPointsPerPerson(job)}P</span>
                             <span className="text-[11px] font-bold text-yui-earth-500">
                               {job.tokenRatePerHour}P/時間
                             </span>

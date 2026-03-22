@@ -4,11 +4,12 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
+import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, fsRateApplication, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
 import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import UserTrustProfileModal from "@/components/UserTrustProfileModal";
 import type { Job, Application } from "@/types/firestore";
 import {
   formatAddressByStatus,
@@ -33,6 +34,8 @@ export default function JobDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelDetail, setCancelDetail] = useState<string>("");
+  const [trustTarget, setTrustTarget] = useState<{ userId: string; userName: string } | null>(null);
+  const [ratingTargetAppId, setRatingTargetAppId] = useState<string | null>(null);
 
   const jobId = params.id as string;
 
@@ -47,7 +50,7 @@ export default function JobDetailPage() {
       if (cancelled) return;
       setJob(jobData);
       setAlreadyApplied(apps.some((a) => a.applicantId === user!.uid));
-      setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+      setApprovedApplicants(apps.filter((a) => a.status === "approved" || a.status === "completed"));
       setLoading(false);
     }
     loadData();
@@ -109,6 +112,7 @@ export default function JobDetailPage() {
       applicantName: user.name,
       isAgreedToRules: true,
       status: "approved",
+      evaluation: null,
       createdAt: new Date(),
     });
     // Update job status to matched
@@ -142,6 +146,22 @@ export default function JobDetailPage() {
     setCancelReason("");
     setCancelDetail("");
     setShowCancelModal(true);
+  };
+
+  const handleRateApplicant = async (applicationId: string, evaluation: "good" | "bad") => {
+    if (!job || !isOwner) return;
+    setRatingTargetAppId(applicationId);
+    try {
+      await fsRateApplication(job.id, applicationId, user.uid, evaluation);
+      setApprovedApplicants((prev) =>
+        prev.map((app) => (app.id === applicationId ? { ...app, evaluation } : app))
+      );
+    } catch (e) {
+      console.error(e);
+      alert("評価の保存に失敗しました");
+    } finally {
+      setRatingTargetAppId(null);
+    }
   };
 
   const executeDeleteOrCancel = async () => {
@@ -185,7 +205,13 @@ export default function JobDetailPage() {
             </span>
           </div>
           <h1 className="text-xl font-bold">{job.title}</h1>
-          <p className="text-white mt-1 font-medium">{job.creatorName}さん</p>
+          <button
+            type="button"
+            onClick={() => setTrustTarget({ userId: job.creatorId, userName: job.creatorName })}
+            className="text-white mt-1 font-medium underline underline-offset-2"
+          >
+            {job.creatorName}さん
+          </button>
         </div>
 
         {/* 詳細情報 */}
@@ -327,6 +353,53 @@ export default function JobDetailPage() {
               )}
             </div>
           )}
+
+          {isOwner && job.status === "completed" && approvedApplicants.length > 0 && (
+            <div className="pt-5 mt-2 border-t border-yui-green-100 space-y-3">
+              <p className="text-sm font-bold text-yui-green-800">この手伝いはどうでしたか？</p>
+              {approvedApplicants.map((app) => {
+                const evaluated = app.evaluation === "good" || app.evaluation === "bad";
+                return (
+                  <div key={app.id} className="bg-yui-earth-50 border border-yui-earth-200 rounded-xl p-3">
+                    <button
+                      type="button"
+                      onClick={() => setTrustTarget({ userId: app.applicantId, userName: app.applicantName })}
+                      className="text-sm font-bold text-yui-green-800 underline underline-offset-2"
+                    >
+                      {app.applicantName}さん
+                    </button>
+
+                    {evaluated ? (
+                      <p className="text-sm text-yui-earth-700 mt-2">
+                        評価済みです：{app.evaluation === "good" ? "👍" : "👎"}
+                      </p>
+                    ) : (
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          disabled={ratingTargetAppId === app.id}
+                          onClick={() => handleRateApplicant(app.id, "good")}
+                          className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
+                          style={{ minHeight: "44px" }}
+                        >
+                          👍
+                        </button>
+                        <button
+                          type="button"
+                          disabled={ratingTargetAppId === app.id}
+                          onClick={() => handleRateApplicant(app.id, "bad")}
+                          className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
+                          style={{ minHeight: "44px" }}
+                        >
+                          👎
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -352,6 +425,13 @@ export default function JobDetailPage() {
           </div>
         </div>
       )}
+
+      <UserTrustProfileModal
+        isOpen={!!trustTarget}
+        onClose={() => setTrustTarget(null)}
+        userId={trustTarget?.userId ?? ""}
+        userName={trustTarget?.userName ?? ""}
+      />
 
       <ConfirmDialog
         isOpen={showConfirm}

@@ -10,6 +10,12 @@ import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, Ale
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Job, Application } from "@/types/firestore";
+import {
+  formatAddressByStatus,
+  getMapCoordinates,
+  shouldShowMap,
+  type AddressStatusType,
+} from "@/lib/address-service";
 
 export default function JobDetailPage() {
   const { user } = useAuth();
@@ -69,6 +75,20 @@ export default function JobDetailPage() {
   }
 
   const isOwner = job.creatorId === user.uid;
+  
+  // ✅ マッチング状態を判定
+  // - owner: 自分の募集
+  // - matched: 承認済みの応募が存在する（マッチング確定）
+  // - default: それ以外（未マッチ・応募前）
+  const currentUserApplication = approvedApplicants.find(
+    (app) => app.applicantId === user.uid
+  );
+  const addressStatus: AddressStatusType = isOwner
+    ? "owner"
+    : currentUserApplication
+      ? "matched"
+      : "default";
+
   const mapQuery =
     typeof job.locationLat === "number" && typeof job.locationLng === "number"
       ? `${job.locationLat},${job.locationLng}`
@@ -191,10 +211,16 @@ export default function JobDetailPage() {
                   <span className="text-xs font-bold">作業場所</span>
                 </div>
                 <p className="text-sm font-bold text-yui-green-800 line-clamp-2">
-                  {job.location || "（未指定）"}
+                  {formatAddressByStatus(job.location || "", addressStatus)}
                 </p>
+                {/* マッチング前の場合、プライバシー保護メッセージを表示 */}
+                {addressStatus === "default" && (
+                  <p className="text-xs text-yui-earth-500 mt-1">
+                    🔒 マッチング後に詳細な住所と地図を表示します
+                  </p>
+                )}
               </div>
-              {mapQuery && (
+              {shouldShowMap(addressStatus) && mapQuery && (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
                   target="_blank"

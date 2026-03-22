@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsCreateJob } from "@/lib/firestore-service";
 import { useRouter } from "next/navigation";
@@ -28,7 +28,6 @@ import { EQUIPMENT_PRESETS } from "@/lib/equipment-data";
 type LocationPoint = {
   lat: number;
   lng: number;
-  address?: string;
 };
 
 const jobTypes = [
@@ -51,25 +50,44 @@ const jobTypes = [
 
 const ratePresets = [1, 1.5, 2, 4];
 
+async function searchNominatim(query: string): Promise<LocationPoint | null> {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      query
+    )}&limit=1&accept-language=ja`
+  );
+  if (!response.ok) return null;
+  const results = await response.json();
+  if (!results || results.length === 0) return null;
+
+  const result = results[0];
+  return {
+    lat: parseFloat(result.lat),
+    lng: parseFloat(result.lon),
+  };
+}
+
+function removeTrailingAddressDetail(address: string): string {
+  return address.replace(/[0-9０-９\-ー丁目番地号\s]+$/, "").trim();
+}
+
 // 住所から座標を取得（順ジオコーディング）
 async function geocodeAddress(address: string): Promise<LocationPoint | null> {
-  if (!address.trim()) return null;
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        address
-      )}&limit=1&accept-language=ja`
-    );
-    if (!response.ok) return null;
-    const results = await response.json();
-    if (!results || results.length === 0) return null;
+  const trimmed = address.trim();
+  if (!trimmed) return null;
 
-    const result = results[0];
-    return {
-      lat: parseFloat(result.lat),
-      lng: parseFloat(result.lon),
-      address: result.display_name || address,
-    };
+  try {
+    // 1回目: ユーザー入力そのままで検索
+    const primary = await searchNominatim(trimmed);
+    if (primary) return primary;
+
+    // 2回目: 番地などの末尾詳細を削って再検索
+    const fallbackQuery = removeTrailingAddressDetail(trimmed);
+    if (!fallbackQuery || fallbackQuery === trimmed) return null;
+    const fallback = await searchNominatim(fallbackQuery);
+    if (fallback) return fallback;
+
+    return null;
   } catch (error) {
     console.error("Geocoding failed:", error);
     return null;
@@ -101,21 +119,18 @@ export default function CreatePage() {
 
   if (!user) return null;
 
-  // Auto-geocode location whenever user types (with debounce)
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      // 2文字以上で自動検索を実行
-      if (location.trim() && location.trim().length >= 2) {
-        setIsGeocoding(true);
-        const result = await geocodeAddress(location);
-        if (result) {
-          setLocationPoint(result);
-        }
-        setIsGeocoding(false);
-      }
-    }, 1000); // 1秒遅延
-    return () => clearTimeout(timer);
-  }, [location]);
+  const handleLocationBlur = async () => {
+    const normalized = location.trim();
+    if (!normalized || normalized.length < 2) return;
+
+    setIsGeocoding(true);
+    const result = await geocodeAddress(normalized);
+    if (result) {
+      // 住所文字列はユーザー入力値を保持し、座標だけ更新する。
+      setLocationPoint({ lat: result.lat, lng: result.lng });
+    }
+    setIsGeocoding(false);
+  };
 
   const calculateTotalTokens = () => {
     if (!startTime || !endTime || !startTime.includes(":") || !endTime.includes(":")) return 0;
@@ -328,10 +343,14 @@ export default function CreatePage() {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  onBlur={handleLocationBlur}
                   placeholder="例：長野県松本市中島〇丁目、または○○農園の西側の畑"
                   className="w-full sm:flex-1 min-w-0 px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
                   required
                 />
+                {isGeocoding && (
+                  <p className="text-xs text-yui-earth-500">住所から地図を検索中...</p>
+                )}
               </div>
             </div>
             <div className="relative z-0 mt-3 space-y-2 w-full max-w-full min-w-0 overflow-visible">
@@ -340,11 +359,6 @@ export default function CreatePage() {
                   value={locationPoint}
                   onSelect={(point) => {
                     setLocationPoint(point);
-                    if (point.address?.trim()) {
-                      setLocation(point.address);
-                    } else {
-                      setLocation(`${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`);
-                    }
                   }}
                 />
               </div>

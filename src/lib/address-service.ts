@@ -20,15 +20,35 @@ export type AddressStatusType = 'owner' | 'matched' | 'default';
  */
 export function extractCityLevelAddress(address: string): string {
   if (!address) return "";
-  
-  // メインのパターン：数字や「丁目」以降を削除
-  // 「2丁目」「2-1」「2番」「2号」など、番地以降を削して市区町村+町域レベル留める
-  const maskPattern = /(\d[0-9０-９\-ー丁番号].*$)/;
-  let masked = address.replace(maskPattern, "").trim();
-  
-  // さらに、末尾の「エリア」「付近」のような不要な接尾辞があれば削除
-  // （運用によって必要に応じて調整）
-  return masked;
+
+  const normalized = address.replace(/，/g, ",").trim();
+
+  // 旧データとして入り得る Nominatim 形式: "三条宮前町, 奈良市, 奈良県, 630-8121, 日本"
+  if (normalized.includes(",")) {
+    const segments = normalized
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((s) => !/^\d{3}-?\d{4}$/.test(s))
+      .filter((s) => s !== "日本" && s.toLowerCase() !== "japan");
+
+    const pref = segments.find((s) => /[都道府県]$/.test(s)) ?? "";
+    const city = segments.find((s) => /[市区町村郡]$/.test(s)) ?? "";
+    const town =
+      segments.find((s) => s !== pref && s !== city && !/[都道府県市区町村郡]$/.test(s)) ?? "";
+
+    const rebuilt = `${pref}${city}${town}`.trim();
+    if (rebuilt) return rebuilt;
+
+    return segments.slice(0, 3).join("").trim();
+  }
+
+  // 一般的な日本住所: 数字で始まる番地・号以降を削除
+  const masked = normalized
+    .replace(/[0-9０-９]+(?:丁目|番地?|号|\-|ー).*$|[0-9０-９]+-+[0-9０-９\-ー].*$/, "")
+    .trim();
+
+  return masked || normalized;
 }
 
 /**
@@ -55,15 +75,17 @@ export function extractPrefecture(address: string): string {
  * @returns ぼかした座標（市区町村レベルの誤差を含む）
  */
 export function obfuscateCoordinates(lat: number, lng: number): { lat: number; lng: number } {
-  // 市区町村レベルの精度を考慮し、小数第2位（約1km）までに限定
-  // さらに ±0.05 度（約5km）のランダムなオフセットを加える
-  const offset = 0.05;
-  const randomLat = (Math.random() - 0.5) * offset;
-  const randomLng = (Math.random() - 0.5) * offset;
-  
+  // 毎回値が揺れないよう、座標に基づく決定的オフセットを使う。
+  const pseudoRandom = (seed: number) => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
+  const latOffset = (pseudoRandom(lat * 97.13 + lng * 13.37) - 0.5) * 0.04;
+  const lngOffset = (pseudoRandom(lat * 31.71 + lng * 53.11) - 0.5) * 0.04;
+
   return {
-    lat: Math.round((lat + randomLat) * 100) / 100,
-    lng: Math.round((lng + randomLng) * 100) / 100,
+    lat: Math.round((lat + latOffset) * 100) / 100,
+    lng: Math.round((lng + lngOffset) * 100) / 100,
   };
 }
 
@@ -86,10 +108,12 @@ export function formatAddressByStatus(
   if (status === 'owner' || status === 'matched') {
     return address;
   }
-  
+
   // default の場合（応募前・未マッチ）：市区町村レベルまで削減
   const cityLevel = extractCityLevelAddress(address);
-  return addAreaSuffix ? `${cityLevel}エリア` : cityLevel;
+  if (!cityLevel) return "（未指定）";
+  if (!addAreaSuffix || cityLevel.endsWith("エリア")) return cityLevel;
+  return `${cityLevel}エリア`;
 }
 
 /**

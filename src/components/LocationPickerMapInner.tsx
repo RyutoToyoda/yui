@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { MapContainer, Marker, TileLayer, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 
 type LocationPoint = {
   lat: number;
   lng: number;
-  address?: string;
 };
 
 type LocationPickerMapProps = {
@@ -22,22 +21,6 @@ const markerIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
-
-async function reverseGeocode(lat: number, lng: number): Promise<string | undefined> {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ja`;
-    const res = await fetch(url, {
-      headers: {
-        "Accept-Language": "ja",
-      },
-    });
-    if (!res.ok) return undefined;
-    const data = await res.json();
-    return data?.display_name;
-  } catch {
-    return undefined;
-  }
-}
 
 function MapClickHandler({ onPick }: { onPick: (lat: number, lng: number) => void }) {
   useMapEvents({
@@ -57,18 +40,13 @@ function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }
 }
 
 export default function LocationPickerMapInner({ value, onSelect }: LocationPickerMapProps) {
-  const [isResolving, setIsResolving] = useState(false);
-
   const center = useMemo<[number, number]>(() => {
     if (value) return [value.lat, value.lng];
     return [35.6764, 139.65];
   }, [value]);
 
-  const handlePick = async (lat: number, lng: number) => {
-    setIsResolving(true);
-    const address = await reverseGeocode(lat, lng);
-    onSelect({ lat, lng, address });
-    setIsResolving(false);
+  const handlePick = (lat: number, lng: number) => {
+    onSelect({ lat, lng });
   };
 
   return (
@@ -89,7 +67,7 @@ export default function LocationPickerMapInner({ value, onSelect }: LocationPick
         {value && <Marker position={[value.lat, value.lng]} icon={markerIcon} />}
       </MapContainer>
       <p className="text-xs text-yui-earth-500">
-        地図をタップしてピンを置くと、より正確な場所を保存できます。{isResolving ? " 住所を取得中..." : ""}
+        地図をタップしてピンを置くと、より正確な場所を保存できます。
       </p>
     </div>
   );

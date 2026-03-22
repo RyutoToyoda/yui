@@ -4,18 +4,12 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, fsCompleteJobTransaction, fsSubmitOwnerEvaluation, fsSubmitApplicantEvaluation, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
+import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, getJobTypeEmoji, getJobTypeLabel } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
 import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import UserTrustProfileModal from "@/components/UserTrustProfileModal";
 import type { Job, Application } from "@/types/firestore";
-import {
-  formatAddressByStatus,
-  shouldShowMap,
-  type AddressStatusType,
-} from "@/lib/address-service";
 
 export default function JobDetailPage() {
   const { user } = useAuth();
@@ -34,26 +28,11 @@ export default function JobDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelDetail, setCancelDetail] = useState<string>("");
-  const [trustTarget, setTrustTarget] = useState<{ userId: string; userName: string } | null>(null);
-  const [ratingTargetAppId, setRatingTargetAppId] = useState<string | null>(null);
-  const [completing, setCompleting] = useState(false);
 
   const jobId = params.id as string;
 
-  const refreshPageData = async () => {
-    if (!user) return;
-    const [jobData, apps] = await Promise.all([
-      fsGetJob(jobId),
-      fsGetApplicationsByJob(jobId),
-    ]);
-    setJob(jobData);
-    setAlreadyApplied(apps.some((a) => a.applicantId === user.uid));
-    setApprovedApplicants(apps.filter((a) => a.status === "approved" || a.status === "completed"));
-  };
-
   useEffect(() => {
     if (!user) return;
-    const currentUid = user.uid;
     let cancelled = false;
     async function loadData() {
       const [jobData, apps] = await Promise.all([
@@ -62,8 +41,8 @@ export default function JobDetailPage() {
       ]);
       if (cancelled) return;
       setJob(jobData);
-      setAlreadyApplied(apps.some((a) => a.applicantId === currentUid));
-      setApprovedApplicants(apps.filter((a) => a.status === "approved" || a.status === "completed"));
+      setAlreadyApplied(apps.some((a) => a.applicantId === user!.uid));
+      setApprovedApplicants(apps.filter((a) => a.status === "approved"));
       setLoading(false);
     }
     loadData();
@@ -90,20 +69,6 @@ export default function JobDetailPage() {
   }
 
   const isOwner = job.creatorId === user.uid;
-  
-  // ✅ マッチング状態を判定
-  // - owner: 自分の募集
-  // - matched: 承認済みの応募が存在する（マッチング確定）
-  // - default: それ以外（未マッチ・応募前）
-  const currentUserApplication = approvedApplicants.find(
-    (app) => app.applicantId === user.uid
-  );
-  const addressStatus: AddressStatusType = isOwner
-    ? "owner"
-    : currentUserApplication
-      ? "matched"
-      : "default";
-
   const mapQuery =
     typeof job.locationLat === "number" && typeof job.locationLng === "number"
       ? `${job.locationLat},${job.locationLng}`
@@ -125,11 +90,6 @@ export default function JobDetailPage() {
       applicantName: user.name,
       isAgreedToRules: true,
       status: "approved",
-      evaluation: null,
-      ownerEvaluation: null,
-      applicantEvaluation: null,
-      ownerEvaluationDone: false,
-      applicantEvaluationDone: false,
       createdAt: new Date(),
     });
     // Update job status to matched
@@ -157,67 +117,12 @@ export default function JobDetailPage() {
     });
     setShowConfirm(false);
     setApplied(true);
-    await refreshPageData();
   };
 
   const handleDeleteClick = () => {
     setCancelReason("");
     setCancelDetail("");
     setShowCancelModal(true);
-  };
-
-  const handleCompleteJob = async () => {
-    if (!job || !isOwner) return;
-    setCompleting(true);
-    try {
-      await fsCompleteJobTransaction(job.id);
-      await refreshPageData();
-    } catch (e) {
-      console.error(e);
-      alert("作業完了に失敗しました");
-    } finally {
-      setCompleting(false);
-    }
-  };
-
-  const handleRateApplicant = async (applicationId: string, evaluation: "good" | "bad" | null) => {
-    if (!job || !isOwner) return;
-    setRatingTargetAppId(applicationId);
-    try {
-      await fsSubmitOwnerEvaluation(job.id, applicationId, user.uid, evaluation);
-      setApprovedApplicants((prev) =>
-        prev.map((app) => (
-          app.id === applicationId
-            ? { ...app, ownerEvaluation: evaluation, ownerEvaluationDone: true }
-            : app
-        ))
-      );
-    } catch (e) {
-      console.error(e);
-      alert("評価の保存に失敗しました");
-    } finally {
-      setRatingTargetAppId(null);
-    }
-  };
-
-  const handleRateOwner = async (evaluation: "good" | "bad" | null) => {
-    if (!job || !currentUserApplication) return;
-    setRatingTargetAppId(currentUserApplication.id);
-    try {
-      await fsSubmitApplicantEvaluation(job.id, currentUserApplication.id, user.uid, evaluation);
-      setApprovedApplicants((prev) =>
-        prev.map((app) => (
-          app.id === currentUserApplication.id
-            ? { ...app, applicantEvaluation: evaluation, applicantEvaluationDone: true }
-            : app
-        ))
-      );
-    } catch (e) {
-      console.error(e);
-      alert("評価の保存に失敗しました");
-    } finally {
-      setRatingTargetAppId(null);
-    }
   };
 
   const executeDeleteOrCancel = async () => {
@@ -261,13 +166,7 @@ export default function JobDetailPage() {
             </span>
           </div>
           <h1 className="text-xl font-bold">{job.title}</h1>
-          <button
-            type="button"
-            onClick={() => setTrustTarget({ userId: job.creatorId, userName: job.creatorName })}
-            className="text-white mt-1 font-medium underline underline-offset-2"
-          >
-            {job.creatorName}さん
-          </button>
+          <p className="text-white mt-1 font-medium">{job.creatorName}さん</p>
         </div>
 
         {/* 詳細情報 */}
@@ -292,16 +191,10 @@ export default function JobDetailPage() {
                   <span className="text-xs font-bold">作業場所</span>
                 </div>
                 <p className="text-sm font-bold text-yui-green-800 line-clamp-2">
-                  {formatAddressByStatus(job.location || "", addressStatus)}
+                  {job.location || "（未指定）"}
                 </p>
-                {/* マッチング前の場合、プライバシー保護メッセージを表示 */}
-                {addressStatus === "default" && (
-                  <p className="text-xs text-yui-earth-500 mt-1">
-                    🔒 マッチング後に詳細な住所と地図を表示します
-                  </p>
-                )}
               </div>
-              {shouldShowMap(addressStatus) && mapQuery && (
+              {mapQuery && (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
                   target="_blank"
@@ -409,103 +302,6 @@ export default function JobDetailPage() {
               )}
             </div>
           )}
-
-          {isOwner && job.status === "completed" && approvedApplicants.length > 0 && (
-            <div className="pt-5 mt-2 border-t border-yui-green-100 space-y-3">
-              <p className="text-sm font-bold text-yui-green-800">この手伝いはどうでしたか？</p>
-              {approvedApplicants.map((app) => {
-                const evaluated = app.ownerEvaluationDone;
-                return (
-                  <div key={app.id} className="bg-yui-earth-50 border border-yui-earth-200 rounded-xl p-3">
-                    <button
-                      type="button"
-                      onClick={() => setTrustTarget({ userId: app.applicantId, userName: app.applicantName })}
-                      className="text-sm font-bold text-yui-green-800 underline underline-offset-2"
-                    >
-                      {app.applicantName}さん
-                    </button>
-
-                    {evaluated ? (
-                      <p className="text-sm text-yui-earth-700 mt-2">
-                        評価済みです：{app.ownerEvaluation === "good" ? "👍" : app.ownerEvaluation === "bad" ? "👎" : "⏭️ スキップ"}
-                      </p>
-                    ) : (
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          type="button"
-                          disabled={ratingTargetAppId === app.id}
-                          onClick={() => handleRateApplicant(app.id, "good")}
-                          className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
-                          style={{ minHeight: "44px" }}
-                        >
-                          👍
-                        </button>
-                        <button
-                          type="button"
-                          disabled={ratingTargetAppId === app.id}
-                          onClick={() => handleRateApplicant(app.id, "bad")}
-                          className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
-                          style={{ minHeight: "44px" }}
-                        >
-                          👎
-                        </button>
-                        <button
-                          type="button"
-                          disabled={ratingTargetAppId === app.id}
-                          onClick={() => handleRateApplicant(app.id, null)}
-                          className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
-                          style={{ minHeight: "44px" }}
-                        >
-                          ⏭️
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {!isOwner && job.status === "completed" && currentUserApplication && (
-            <div className="pt-5 mt-2 border-t border-yui-green-100 space-y-3">
-              <p className="text-sm font-bold text-yui-green-800">{job.creatorName}さんの募集はどうでしたか？</p>
-              {currentUserApplication.applicantEvaluationDone ? (
-                <p className="text-sm text-yui-earth-700">
-                  評価済みです：{currentUserApplication.applicantEvaluation === "good" ? "👍" : currentUserApplication.applicantEvaluation === "bad" ? "👎" : "⏭️ スキップ"}
-                </p>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={ratingTargetAppId === currentUserApplication.id}
-                    onClick={() => handleRateOwner("good")}
-                    className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
-                    style={{ minHeight: "44px" }}
-                  >
-                    👍 よかった
-                  </button>
-                  <button
-                    type="button"
-                    disabled={ratingTargetAppId === currentUserApplication.id}
-                    onClick={() => handleRateOwner("bad")}
-                    className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
-                    style={{ minHeight: "44px" }}
-                  >
-                    👎 ミスマッチ
-                  </button>
-                  <button
-                    type="button"
-                    disabled={ratingTargetAppId === currentUserApplication.id}
-                    onClick={() => handleRateOwner(null)}
-                    className="px-4 py-2 rounded-lg border border-yui-green-200 text-sm font-bold disabled:opacity-60"
-                    style={{ minHeight: "44px" }}
-                  >
-                    ⏭️ スキップ
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -528,27 +324,9 @@ export default function JobDetailPage() {
               <Trash2 className="w-5 h-5" aria-hidden="true" />
               この募集をキャンセルする
             </button>
-            {(job.status === "matched" || job.status === "in_progress") && approvedApplicants.length > 0 && (
-              <button
-                onClick={handleCompleteJob}
-                disabled={completing}
-                className="flex items-center justify-center gap-2 text-sm bg-yui-green-600 text-white font-bold px-4 py-3 rounded-xl hover:bg-yui-green-700 disabled:opacity-60 transition-colors"
-                style={{ minHeight: "44px" }}
-              >
-                <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
-                ✅ 作業完了にする
-              </button>
-            )}
           </div>
         </div>
       )}
-
-      <UserTrustProfileModal
-        isOpen={!!trustTarget}
-        onClose={() => setTrustTarget(null)}
-        userId={trustTarget?.userId ?? ""}
-        userName={trustTarget?.userName ?? ""}
-      />
 
       <ConfirmDialog
         isOpen={showConfirm}

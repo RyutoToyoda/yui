@@ -23,13 +23,11 @@ import type {
   Job,
   JobStatus,
   Application,
-  ApplicationEvaluation,
   Transaction,
   Availability,
   Notification,
   DayOfWeek,
   Ad,
-  UserTrustProfileSummary,
 } from "@/types/firestore";
 
 // ============================
@@ -95,11 +93,6 @@ function docToApplication(data: any, id: string): Application {
     applicantName: data.applicantName ?? "",
     isAgreedToRules: data.isAgreedToRules ?? false,
     status: data.status ?? "pending",
-    evaluation: data.evaluation === "good" || data.evaluation === "bad" ? data.evaluation : null,
-    ownerEvaluation: data.ownerEvaluation === "good" || data.ownerEvaluation === "bad" ? data.ownerEvaluation : null,
-    applicantEvaluation: data.applicantEvaluation === "good" || data.applicantEvaluation === "bad" ? data.applicantEvaluation : null,
-    ownerEvaluationDone: data.ownerEvaluationDone ?? false,
-    applicantEvaluationDone: data.applicantEvaluationDone ?? false,
     rating: data.rating,
     review: data.review,
     createdAt: toDate(data.createdAt),
@@ -338,11 +331,6 @@ export async function fsCreateApplication(app: Omit<Application, "id">): Promise
     applicantName: app.applicantName,
     isAgreedToRules: app.isAgreedToRules,
     status: app.status,
-    evaluation: app.evaluation ?? null,
-    ownerEvaluation: app.ownerEvaluation ?? null,
-    applicantEvaluation: app.applicantEvaluation ?? null,
-    ownerEvaluationDone: app.ownerEvaluationDone ?? false,
-    applicantEvaluationDone: app.applicantEvaluationDone ?? false,
     createdAt: Timestamp.fromDate(app.createdAt instanceof Date ? app.createdAt : new Date()),
   };
   const ref = await addDoc(collection(db, "applications"), data);
@@ -356,145 +344,6 @@ export async function fsUpdateApplication(id: string, updates: Partial<Applicati
     data.createdAt = Timestamp.fromDate(data.createdAt as Date);
   }
   await updateDoc(doc(db, "applications", id), data);
-}
-
-export async function fsSubmitOwnerEvaluation(
-  jobId: string,
-  applicationId: string,
-  ownerUid: string,
-  evaluation: ApplicationEvaluation | null
-): Promise<void> {
-  const appRef = doc(db, "applications", applicationId);
-  const [jobSnap, appSnap] = await Promise.all([
-    getDoc(doc(db, "jobs", jobId)),
-    getDoc(appRef),
-  ]);
-
-  if (!jobSnap.exists()) throw new Error("Job not found");
-  if (!appSnap.exists()) throw new Error("Application not found");
-
-  const jobData = jobSnap.data();
-  const appData = appSnap.data();
-
-  if (jobData.creatorId !== ownerUid) {
-    throw new Error("Only the owner can rate applicants");
-  }
-
-  if (jobData.status !== "completed") {
-    throw new Error("Evaluation is available only after completion");
-  }
-
-  if (appData.jobId !== jobId) {
-    throw new Error("Application does not belong to this job");
-  }
-
-  if (appData.ownerEvaluationDone) {
-    throw new Error("Already evaluated");
-  }
-
-  await updateDoc(appRef, {
-    ownerEvaluation: evaluation,
-    ownerEvaluationDone: true,
-  });
-}
-
-export async function fsSubmitApplicantEvaluation(
-  jobId: string,
-  applicationId: string,
-  applicantUid: string,
-  evaluation: ApplicationEvaluation | null
-): Promise<void> {
-  const appRef = doc(db, "applications", applicationId);
-  const [jobSnap, appSnap] = await Promise.all([
-    getDoc(doc(db, "jobs", jobId)),
-    getDoc(appRef),
-  ]);
-
-  if (!jobSnap.exists()) throw new Error("Job not found");
-  if (!appSnap.exists()) throw new Error("Application not found");
-
-  const jobData = jobSnap.data();
-  const appData = appSnap.data();
-
-  if (jobData.status !== "completed") {
-    throw new Error("Evaluation is available only after completion");
-  }
-
-  if (appData.jobId !== jobId || appData.applicantId !== applicantUid) {
-    throw new Error("Only the matching applicant can evaluate this job");
-  }
-
-  if (appData.applicantEvaluationDone) {
-    throw new Error("Already evaluated");
-  }
-
-  await updateDoc(appRef, {
-    applicantEvaluation: evaluation,
-    applicantEvaluationDone: true,
-  });
-}
-
-export async function fsGetUserTrustProfile(userId: string): Promise<UserTrustProfileSummary> {
-  const [appsAsApplicant, jobsAsOwner] = await Promise.all([
-    fsGetApplicationsByUser(userId),
-    fsGetJobsByUser(userId),
-  ]);
-
-  const byTitle = new Map<string, { count: number; good: number; bad: number }>();
-  const repeatByOwner = new Map<string, number>();
-  const repeatByApplicant = new Map<string, number>();
-
-  const applicantTargets = appsAsApplicant.filter((a) => a.status === "approved" || a.status === "completed");
-  const applicantJobIds = Array.from(new Set(applicantTargets.map((a) => a.jobId)));
-  const applicantJobs = await Promise.all(applicantJobIds.map((id) => fsGetJob(id)));
-  const applicantJobMap = new Map<string, Job>();
-  applicantJobs.forEach((job) => {
-    if (job) applicantJobMap.set(job.id, job);
-  });
-
-  for (const app of applicantTargets) {
-    const job = applicantJobMap.get(app.jobId);
-    const title = job?.title || "その他のお手伝い";
-    const current = byTitle.get(title) ?? { count: 0, good: 0, bad: 0 };
-    current.count += 1;
-
-    const evalFromOwner = app.ownerEvaluation ?? app.evaluation ?? null;
-    if (evalFromOwner === "good") current.good += 1;
-    if (evalFromOwner === "bad") current.bad += 1;
-    byTitle.set(title, current);
-
-    if (job?.creatorId) {
-      repeatByOwner.set(job.creatorId, (repeatByOwner.get(job.creatorId) ?? 0) + 1);
-    }
-  }
-
-  const ownerTargets = jobsAsOwner.filter((j) => j.status === "completed");
-  const ownerAppsList = await Promise.all(ownerTargets.map((job) => fsGetApplicationsByJob(job.id)));
-  ownerTargets.forEach((job, idx) => {
-    const apps = ownerAppsList[idx].filter((a) => a.status === "approved" || a.status === "completed");
-    apps.forEach((app) => {
-      const title = job.title || "その他のお手伝い";
-      const current = byTitle.get(title) ?? { count: 0, good: 0, bad: 0 };
-      current.count += 1;
-
-      if (app.applicantEvaluation === "good") current.good += 1;
-      if (app.applicantEvaluation === "bad") current.bad += 1;
-      byTitle.set(title, current);
-
-      repeatByApplicant.set(app.applicantId, (repeatByApplicant.get(app.applicantId) ?? 0) + 1);
-    });
-  });
-
-  const repeatCount = Math.max(
-    repeatByOwner.size > 0 ? Math.max(...Array.from(repeatByOwner.values())) : 0,
-    repeatByApplicant.size > 0 ? Math.max(...Array.from(repeatByApplicant.values())) : 0
-  );
-
-  const histories = Array.from(byTitle.entries())
-    .map(([title, val]) => ({ title, count: val.count, good: val.good, bad: val.bad }))
-    .sort((a, b) => b.count - a.count);
-
-  return { repeatCount, histories };
 }
 
 // ============================

@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-yui-earth-50 flex flex-col items-center justify-center px-5 py-10">
       <Link
         href="/login"
-        className="flex items-center gap-1.5 text-yui-green-600 font-bold mb-8 hover:text-yui-green-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-yui-green-200 bg-white hover:bg-yui-green-50 hover:border-yui-green-400 transition-all text-yui-green-700 font-bold mb-8 shadow-sm"
       >
         <ArrowLeft className="w-5 h-5" />
         ログイン画面にもどる

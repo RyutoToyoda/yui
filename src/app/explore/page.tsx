@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsGetJobs, fsGetJobsByUser, fsGetApplicationsByJob, getJobTypeEmoji, getJobTypeLabel, getPointsPerPerson } from "@/lib/firestore-service";
-import { Coins, CalendarDays, Users, MapPin, Search, SlidersHorizontal, X, Wrench } from "lucide-react";
+import { Coins, CalendarDays, Users, MapPin, Search, SlidersHorizontal, X, Wrench, Clock } from "lucide-react";
 import Link from "next/link";
 import type { Job } from "@/types/firestore";
 
@@ -31,48 +31,57 @@ export default function ExplorePage() {
     let cancelled = false;
 
     async function loadJobs() {
-      const [jobs, userJobs] = await Promise.all([
-        fsGetJobs(),
-        fsGetJobsByUser(user!.uid)
-      ]);
-      if (cancelled) return;
-      setAllJobs(jobs);
+      try {
+        const [jobs, userJobs] = await Promise.all([
+          fsGetJobs(),
+          fsGetJobsByUser(user!.uid)
+        ]);
+        if (cancelled) return;
+        setAllJobs(jobs);
 
-      const open = jobs.filter((job) => job.status === "open");
-      const matched = jobs.filter((job) => job.status === "matched" || job.status === "in_progress");
-      const activeUserJobs = userJobs.filter(
-        (job) => job.status === "matched" || job.status === "in_progress"
-      );
-
-      const mergedMap = new Map();
-      open.forEach(j => mergedMap.set(j.id, j));
-      matched.forEach(j => mergedMap.set(j.id, j));
-      activeUserJobs.forEach(j => mergedMap.set(j.id, j));
-
-      // Check which jobs are full - use Promise.all for parallel queries
-      const fullJobs = new Set<string>();
-      if (matched.length > 0) {
-        const appPromises = matched.map(job => 
-          job.requiredPeople > 0 
-            ? fsGetApplicationsByJob(job.id).catch(() => [])
-            : Promise.resolve([])
+        const open = jobs.filter((job) => job.status === "open");
+        const matched = jobs.filter((job) => job.status === "matched" || job.status === "in_progress");
+        const activeUserJobs = userJobs.filter(
+          (job) => job.status === "matched" || job.status === "in_progress"
         );
-        const allAppsResults = await Promise.all(appPromises);
-        
-        matched.forEach((job, index) => {
-          if (job.requiredPeople > 0) {
-            const apps = allAppsResults[index] || [];
-            const approvedCount = apps.filter(a => a.status === "approved").length;
-            if (approvedCount >= job.requiredPeople) {
-              fullJobs.add(job.id);
-            }
-          }
-        });
-      }
-      setFullJobIds(fullJobs);
 
-      setOpenJobs(Array.from(mergedMap.values()));
-      setLoading(false);
+        const mergedMap = new Map();
+        open.forEach(j => mergedMap.set(j.id, j));
+        matched.forEach(j => mergedMap.set(j.id, j));
+        activeUserJobs.forEach(j => mergedMap.set(j.id, j));
+
+        // Check which jobs are full - use Promise.all for parallel queries
+        const fullJobs = new Set<string>();
+        if (matched.length > 0) {
+          const appPromises = matched.map(job => 
+            job.requiredPeople > 0 
+              ? fsGetApplicationsByJob(job.id).catch(() => [])
+              : Promise.resolve([])
+          );
+          const allAppsResults = await Promise.all(appPromises);
+          
+          matched.forEach((job, index) => {
+            if (job.requiredPeople > 0) {
+              const apps = allAppsResults[index] || [];
+              const approvedCount = apps.filter(a => a.status === "approved").length;
+              if (approvedCount >= job.requiredPeople) {
+                fullJobs.add(job.id);
+              }
+            }
+          });
+        }
+        setFullJobIds(fullJobs);
+
+        setOpenJobs(Array.from(mergedMap.values()));
+      } catch (error) {
+        console.error("Error loading jobs:", error);
+        setOpenJobs([]);
+        setFullJobIds(new Set());
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
 
     loadJobs();
@@ -95,6 +104,20 @@ export default function ExplorePage() {
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
+  };
+
+  const calculateHours = (startTime: string, endTime: string): number => {
+    if (!startTime || !endTime) return 0;
+    try {
+      const [startH, startM] = startTime.split(":").map(Number);
+      const [endH, endM] = endTime.split(":").map(Number);
+      if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) return 0;
+      const startMins = startH * 60 + startM;
+      const endMins = endH * 60 + endM;
+      return (endMins - startMins) / 60;
+    } catch {
+      return 0;
+    }
   };
 
   const todayStr = formatDateLocal(new Date());
@@ -205,7 +228,7 @@ export default function ExplorePage() {
     const Component = cardIsOwnJob ? Link : Link;
     const componentProps = {
       href: `/explore/${job.id}`,
-      className: `block relative h-full w-full min-w-0 overflow-hidden bg-white rounded-xl p-5 shadow-sm border-2 transition-colors no-underline ${bgGradient}`,
+      className: `block relative h-full w-full min-w-0 bg-white rounded-xl p-5 shadow-sm border-2 transition-colors no-underline ${bgGradient}`,
     };
 
     return (
@@ -215,55 +238,74 @@ export default function ExplorePage() {
         aria-label={`${job.title} ${job.creatorName}さん ${job.date}`}
       >
         {isOwnJob && !isRecommended && !isFull && (
-          <div className="absolute top-0 right-0 text-white text-sm font-bold px-3 py-2 rounded-bl-xl z-10" style={{ backgroundColor: "#8c7361" }}>
+          <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#8c7361" }}>
             自分の
           </div>
         )}
         {isRecommended && !isFull && (
-          <div className="absolute top-0 right-0 text-white text-sm font-bold px-3 py-2 rounded-bl-xl z-10" style={{ backgroundColor: "#4ade80" }}>
+          <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#4ade80" }}>
             おすすめ
           </div>
         )}
         {isFull && (
-          <div className="absolute top-0 right-0 text-white text-sm font-bold px-3 py-2 rounded-bl-xl z-10" style={{ backgroundColor: "#888888" }}>
+          <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#888888" }}>
             満員
           </div>
         )}
         <div className="flex w-full min-w-0 flex-col h-full mt-1">
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-bold mb-0.5 text-left ${isRecommended ? "text-green-700" : cardIsOwnJob ? "text-[#8c7361]" : "text-yui-earth-500"}`}>{job.creatorName}さん</p>
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <div className="flex items-center gap-1.5 bg-yui-green-50 px-2.5 py-0.5 rounded-full border border-yui-green-200">
-                <span className="text-sm shrink-0" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                <span className="text-xs text-yui-green-700 font-bold">
-                  {getJobTypeLabel(job.type)}
-                </span>
+          <p className={`text-xs font-bold mb-0.5 text-left ${isRecommended ? "text-green-700" : cardIsOwnJob ? "text-[#8c7361]" : "text-yui-earth-500"}`}>{job.creatorName}さん</p>
+          
+          {/* Two-column layout */}
+          <div className="flex justify-between items-stretch gap-3 mb-1 min-h-[110px]">
+            {/* Left side: Title + Info */}
+            <div className="flex flex-col flex-1 pb-1">
+              {/* Job title */}
+              <h3 className="font-bold text-yui-green-800 text-2xl break-words leading-tight mb-auto pb-2">{job.title}</h3>
+              
+              {/* Date, time, location */}
+              <div className="space-y-1.5">
+                <p className="text-sm text-yui-earth-700 font-bold flex items-center gap-1.5 min-w-0">
+                  <CalendarDays className="w-4 h-4 text-yui-green-600 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 truncate">{job.date}</span>
+                </p>
+                {job.startTime && job.endTime && (
+                  <p className="text-sm text-yui-earth-700 font-bold flex items-center gap-1.5 min-w-0">
+                    <Clock className="w-4 h-4 text-yui-green-600 shrink-0" aria-hidden="true" />
+                    <span className="min-w-0 truncate">{calculateHours(job.startTime, job.endTime)}時間</span>
+                  </p>
+                )}
+                {typeof job.location === 'string' && (
+                  <p className="text-sm text-yui-earth-700 font-bold flex items-center gap-1.5 min-w-0">
+                    <MapPin className="w-4 h-4 text-yui-green-600 shrink-0" aria-hidden="true" />
+                    <span className="min-w-0 truncate">{job.location.replace(/[0-9０-９\-ー].*/, "").trim() || "（未指定）"}</span>
+                  </p>
+                )}
               </div>
-              {job.requiredPeople > 0 && (
-                <span className="text-xs font-bold text-yui-earth-600 bg-yui-earth-100 px-2 py-0.5 rounded-full border border-yui-earth-200">
-                  {job.requiredPeople}人
-                </span>
-              )}
             </div>
-            <div className="flex items-start justify-between gap-3 mb-1">
-              <h3 className="font-bold text-yui-green-800 text-base break-words leading-tight">{job.title}</h3>
-              <div className="shrink-0 text-right">
-                <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-green-200 shadow-sm">
-                  <Coins className="w-3 h-3 text-yui-accent" aria-hidden="true" />
-                  <span className="text-sm font-bold text-yui-green-800">{getPointsPerPerson(job)}</span>
-                  <span className="text-xs text-yui-earth-500">P</span>
+            
+            {/* Right side: Pay and tags */}
+            <div className="flex flex-col items-end gap-1 shrink-0 h-full justify-between pb-0.5">
+              {/* Points earned */}
+              <div className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 transition-colors px-4 py-3 rounded-2xl border-2 border-amber-200 shadow-sm w-fit mb-1">
+                <Coins className="w-6 h-6 text-yui-accent" aria-hidden="true" />
+                <span className="text-2xl font-black text-yui-earth-800 tabular-nums leading-none tracking-tight">{getPointsPerPerson(job)}</span>
+                <span className="text-sm font-bold text-yui-earth-800 leading-none pt-1">P</span>
+              </div>
+
+              {/* Tags section */}
+              <div className="flex flex-col items-end gap-1">
+                <div className="flex items-center gap-1.5 bg-yui-green-50 px-2.5 py-0.5 rounded-full border border-yui-green-200">
+                  <span className="text-sm shrink-0" aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
+                  <span className="text-xs text-yui-green-700 font-bold">
+                    {getJobTypeLabel(job.type)}
+                  </span>
                 </div>
+                {job.requiredPeople > 0 && (
+                  <span className="text-xs font-bold text-yui-earth-600 bg-yui-earth-100 px-2 py-0.5 rounded-full border border-yui-earth-200">
+                    {job.requiredPeople}人
+                  </span>
+                )}
               </div>
-            </div>
-            <div className="space-y-0.5">
-              <p className="text-xs text-yui-earth-600 flex items-center gap-1 min-w-0">
-                <CalendarDays className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                <span className="min-w-0 truncate">{job.date} {job.startTime}〜{job.endTime}</span>
-              </p>
-              <p className="text-xs text-yui-earth-600 flex items-center gap-1 min-w-0">
-                <MapPin className="w-3.5 h-3.5 text-yui-green-600 shrink-0" aria-hidden="true" />
-                <span className="min-w-0 truncate">{job.location ? job.location.replace(/[0-9０-９\-ー].*/, "").trim() : "（未指定）"}</span>
-              </p>
             </div>
           </div>
         </div>
@@ -272,8 +314,11 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="py-1 space-y-4">
-      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800">お手伝い募集を探す</h1>
+    <div className="py-3 space-y-4 pb-20">
+      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+        <Search className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
+        お手伝い募集を探す
+      </h1>
 
       {/* 検索・絞り込み */}
       <div className="flex gap-2">

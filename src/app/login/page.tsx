@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import YuiLogo from "@/components/YuiLogo";
 import { PREFECTURES, getMunicipalities, isKantoPrefecture } from "@/lib/region-data";
 
 
@@ -72,28 +73,27 @@ export default function LoginPage() {
   };
 
   const inputClass =
-    "w-full px-4 py-4 text-base border-2 border-yui-earth-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-white placeholder:text-yui-earth-300";
+    "w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-yui-earth-50 placeholder:text-yui-earth-400";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-yui-green-800 via-yui-green-700 to-yui-green-900 flex flex-col items-center justify-center px-5">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-start px-5 pt-4 pb-8">
       {/* ロゴ */}
-      <div className="text-center mb-10">
-        <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-black/10">
-          <h1 className="text-5xl font-black text-white">結</h1>
+      <div className="text-center mb-0">
+        <div className="w-96 h-96 mx-auto mb-0 rounded-4xl flex items-center justify-center">
+          <YuiLogo width={560} height={560} />
         </div>
-        <p className="text-xl text-white/90 font-bold tracking-widest">Yui</p>
-        <p className="text-base text-white/60 mt-2 tracking-wide">農家のためのタイムバンク</p>
+        <p className="text-lg text-yui-earth-500 mt-0 tracking-wide">農家のためのタイムバンク</p>
       </div>
 
       {/* フォームカード */}
-      <div className="w-full max-w-[400px] bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/15 p-7">
+      <div className="w-full max-w-[400px] bg-white border-2 border-yui-green-200 rounded-3xl shadow-lg p-7 mt-1">
         {/* タブ切り替え */}
-        <div className="flex bg-yui-earth-100 rounded-2xl p-1 mb-6" role="tablist" aria-label="ログインまたは新規登録">
+        <div className="flex bg-yui-green-100 rounded-2xl p-1 mb-6" role="tablist" aria-label="ログインまたは新規登録">
           <button
             onClick={() => { setIsRegister(false); setError(""); setShowPassword(false); }}
             className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${!isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
-                : "text-yui-earth-500 hover:text-yui-earth-700"
+                : "text-yui-green-600 hover:text-yui-green-700"
               }`}
             role="tab"
             aria-selected={!isRegister}
@@ -105,7 +105,7 @@ export default function LoginPage() {
             onClick={() => { setIsRegister(true); setError(""); setShowPassword(false); }}
             className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
-                : "text-yui-earth-500 hover:text-yui-earth-700"
+                : "text-yui-green-600 hover:text-yui-green-700"
               }`}
             role="tab"
             aria-selected={isRegister}
@@ -125,7 +125,7 @@ export default function LoginPage() {
         {!isRegister ? (
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="login-email" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="login-email" className="block text-sm font-bold text-yui-green-700 mb-2">
                 メールアドレス
               </label>
               <input
@@ -140,7 +140,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="login-password" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="login-password" className="block text-sm font-bold text-yui-green-700 mb-2">
                 パスワード
               </label>
               <div className="relative">
@@ -183,7 +183,7 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
-              <label htmlFor="reg-email" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-email" className="block text-sm font-bold text-yui-green-700 mb-2">
                 メールアドレス <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
@@ -198,7 +198,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="reg-password" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-password" className="block text-sm font-bold text-yui-green-700 mb-2">
                 パスワード <span className="text-yui-danger text-xs font-bold">（6文字以上）</span>
               </label>
               <div className="relative">
@@ -226,7 +226,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div>
-              <label htmlFor="reg-name" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-name" className="block text-sm font-bold text-yui-green-700 mb-2">
                 お名前 <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
@@ -241,7 +241,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="reg-farm" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-farm" className="block text-sm font-bold text-yui-green-700 mb-2">
                 農園名 <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
@@ -255,7 +255,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="reg-prefecture" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-prefecture" className="block text-sm font-bold text-yui-green-700 mb-2">
                 お住まいの地域
               </label>
               <div className="space-y-3">
@@ -300,7 +300,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div>
-              <label htmlFor="reg-age" className="block text-sm font-bold text-yui-earth-700 mb-2">
+              <label htmlFor="reg-age" className="block text-sm font-bold text-yui-green-700 mb-2">
                 年齢層
               </label>
               <select

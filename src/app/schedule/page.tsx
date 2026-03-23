@@ -224,7 +224,7 @@ export default function SchedulePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-yui-earth-500 text-lg">読み込み中...</p>
+          <p className="text-yui-earth-500 text-2xl">読み込み中...</p>
         </div>
       </div>
     );
@@ -318,8 +318,8 @@ export default function SchedulePage() {
 
   return (
     <div className="py-3 space-y-4 pb-20">
-      <h1 className="text-xl font-bold text-yui-green-800 flex items-center gap-2 mb-2">
-        <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+        <CalendarDays className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
         予定
       </h1>
 
@@ -341,8 +341,8 @@ export default function SchedulePage() {
 
       {/* 重要通知 */}
       <section aria-labelledby="important-notice" className="space-y-3">
-        <h2 id="important-notice" className="text-xl font-bold text-yui-green-800 flex items-center gap-2">
-          <BellRing className="w-6 h-6 text-yui-accent" aria-hidden="true" />
+        <h2 id="important-notice" className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+          <BellRing className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
           お知らせ
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -509,7 +509,7 @@ function DetailModal({
                             <span className="text-sm bg-green-500 font-bold px-3 py-1 rounded-full text-white shadow-sm border border-green-400 ml-auto">人数達成</span>
                           )}
                         </div>
-                        <h1 className="text-xl font-bold">{job.title}</h1>
+                        <h1 className="text-2xl font-bold">{job.title}</h1>
                         <p className="text-white mt-1 font-medium">{job.creatorName}さん</p>
                       </div>
                     </Link>
@@ -519,7 +519,7 @@ function DetailModal({
                         <div className="bg-yui-green-50 rounded-xl p-4 col-span-2">
                           <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                             <CalendarDays className="w-5 h-5" aria-hidden="true" />
-                            <span className="text-xs font-bold">作業日と時間</span>
+                            <span className="text-sm font-bold">作業日と時間</span>
                           </div>
                           <p className="text-sm font-bold text-yui-green-800">
                             {job.date} &nbsp; {job.startTime}〜{job.endTime}
@@ -530,7 +530,7 @@ function DetailModal({
                           <div className="min-w-0 pr-1">
                             <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                               <MapPin className="w-4 h-4" aria-hidden="true" />
-                              <span className="text-xs font-bold">作業場所</span>
+                              <span className="text-sm font-bold">作業場所</span>
                             </div>
                             <p className="text-sm font-bold text-yui-green-800 line-clamp-2">
                               {job.location || "（未指定）"}
@@ -542,7 +542,7 @@ function DetailModal({
                           <div className="bg-yui-green-50 rounded-xl p-4">
                             <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                               <Users className="w-5 h-5" aria-hidden="true" />
-                              <span className="text-xs font-bold">必要な人数</span>
+                              <span className="text-sm font-bold">必要な人数</span>
                             </div>
                             <p className="text-sm font-bold text-yui-green-800">{job.requiredPeople}名</p>
                           </div>
@@ -552,7 +552,7 @@ function DetailModal({
                           <div className="bg-yui-green-50 rounded-xl p-4">
                             <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                               <Wrench className="w-5 h-5" aria-hidden="true" />
-                              <span className="text-xs font-bold">農機具</span>
+                              <span className="text-sm font-bold">農機具</span>
                             </div>
                             <p className="text-sm font-bold text-yui-green-800 break-words line-clamp-2">{job.equipmentNeeded}</p>
                           </div>

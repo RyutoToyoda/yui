@@ -1,24 +1,23 @@
 "use client";
 
-import { useState } from "react";
-
-const RAW_LOGO_SRC = "/images/logo.png";
+import Image from "next/image";
 
 type YuiLogoProps = {
   className?: string;
   alt?: string;
+  width?: number;
+  height?: number;
 };
 
-export default function YuiLogo({ className = "", alt = "結 Yui ロゴ" }: YuiLogoProps) {
-  // Remove image-specific classes like object-contain so they don't interfere with the text logo
-  const cleanClassName = className.replace('object-contain', '');
-
+export default function YuiLogo({ className = "", alt = "結 Yui ロゴ", width = 120, height = 120 }: YuiLogoProps) {
   return (
-    <span
-      className={`font-yui-logo text-yui-green-800 text-3xl font-black tracking-normal leading-none flex items-center ${cleanClassName}`}
-      aria-label={alt}
-    >
-      結 Yui
-    </span>
+    <Image
+      src="/branding/yui_logo.png"
+      alt={alt}
+      width={width}
+      height={height}
+      className={`${className}`}
+      priority
+    />
   );
 }

@@ -91,9 +91,12 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="py-3 space-y-4">
+    <div className="py-3 space-y-4 pb-20">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-yui-green-800">お知らせ</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2 flex-1">
+          <Bell className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
+          お知らせ
+        </h1>
         <div className="flex items-center gap-2">
           {/* 手動リロードボタン */}
           <button

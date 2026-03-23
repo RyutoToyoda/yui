@@ -34,22 +34,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Firebase Auth の状態を監視
   useEffect(() => {
+    // Timeout fallback: if auth doesn't initialize within 5 seconds, stop loading
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Firestore からユーザープロフィールを取得
-        const profile = await fsGetUser(firebaseUser.uid);
-        if (profile) {
-          setUser(profile);
+      try {
+        if (firebaseUser) {
+          // Firestore からユーザープロフィールを取得
+          const profile = await fsGetUser(firebaseUser.uid);
+          if (profile) {
+            setUser(profile);
+          } else {
+            // Auth にはいるが Firestore にはない場合（エッジケース）
+            setUser(null);
+          }
         } else {
-          // Auth にはいるが Firestore にはない場合（エッジケース）
           setUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error("Auth state change error:", error);
         setUser(null);
+      } finally {
+        setIsLoading(false);
+        clearTimeout(timeoutId);
       }
-      setIsLoading(false);
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const refreshUser = async () => {

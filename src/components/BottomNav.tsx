@@ -32,18 +32,18 @@ export default function BottomNav() {
           onClick={() => setShowAiChat(true)}
           className="absolute z-10 rounded-full bg-yui-green-600 hover:bg-yui-green-500 transition-all active:scale-95 border-none cursor-pointer"
           style={{
-            width: "160px",
-            height: "160px",
-            right: "-52px",
-            bottom: "-54px",
+            width: "200px",
+            height: "200px",
+            right: "-68px",
+            bottom: "-68px",
             boxShadow: "0 -4px 20px rgba(23,126,52,0.3)",
           }}
           aria-label="AI 相談を開く"
         >
           {/* Icon and text in the visible upper-left portion */}
-          <div className="absolute flex flex-col items-center" style={{ top: "32px", left: "40px" }}>
-            <Bot className="w-7 h-7 text-white" aria-hidden="true" />
-            <span className="mt-1 text-xs font-medium text-white whitespace-nowrap">
+          <div className="absolute flex flex-col items-center" style={{ top: "36px", left: "48px" }}>
+            <Bot className="w-10 h-10 text-white" aria-hidden="true" />
+            <span className="mt-2 text-sm font-medium text-white whitespace-nowrap">
               AI 相談
             </span>
           </div>
@@ -59,7 +59,7 @@ export default function BottomNav() {
                 <Link
                   key={tab.href}
                   href={tab.href}
-                  className={`flex-1 flex flex-col items-center py-3 no-underline transition-all ${isActive
+                  className={`flex-1 flex flex-col items-center py-2 no-underline transition-all ${isActive
                     ? "text-yui-green-700"
                     : "text-yui-earth-500 hover:text-yui-green-500"
                     }`}
@@ -67,16 +67,16 @@ export default function BottomNav() {
                   aria-label={tab.label}
                   style={{ minHeight: "64px" }}
                 >
-                  <div className="relative" style={{ minWidth: "52px", minHeight: "34px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div className="relative" style={{ minWidth: "72px", minHeight: "48px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {isActive && (
                       <div className="absolute -inset-1 bg-yui-green-100/80 rounded-xl" />
                     )}
                     <Icon
-                      className={`w-[26px] h-[26px] relative z-10 ${isActive ? "stroke-[2.5]" : ""}`}
+                      className={`w-[48px] h-[48px] relative z-10 ${isActive ? "stroke-[2.5]" : ""}`}
                       aria-hidden="true"
                     />
                   </div>
-                  <span className={`text-xs mt-1 ${isActive ? "font-bold" : "font-medium"}`}>
+                  <span className={`text-base mt-1 font-bold`}>
                     {tab.label}
                   </span>
                 </Link>
@@ -84,7 +84,7 @@ export default function BottomNav() {
             })}
 
             {/* Blank spacer for the AI circle area */}
-            <div className="flex-[1.2]" style={{ minHeight: "64px" }} />
+            <div className="flex-[1.2]" style={{ minHeight: "52px" }} />
           </div>
           {/* Safe area bottom padding for iPhones */}
           <div className="h-[env(safe-area-inset-bottom)]" />

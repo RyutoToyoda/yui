@@ -223,15 +223,15 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="space-y-4 w-full max-w-3xl mx-auto overflow-x-hidden">
-      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 mb-6">
+    <div className="py-3 space-y-4 pb-20 w-full max-w-3xl mx-auto overflow-x-hidden">
+      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
         <Megaphone className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
         募集する
       </h1>
 
       <form onSubmit={handlePreSubmit} className="space-y-6 w-full min-w-0">
         <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-5 md:p-6 space-y-4 w-full min-w-0 overflow-x-hidden">
-          <label htmlFor="job-title" className="block text-base font-bold text-yui-green-800">
+          <label htmlFor="job-title" className="block text-2xl font-bold text-yui-green-800">
             お手伝いの内容 <span className="text-yui-danger">（必須）</span>
           </label>
           <textarea
@@ -240,13 +240,13 @@ export default function CreatePage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例：田植えのお手伝い"
             rows={1}
-            className="w-full px-4 py-3 text-lg border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white resize-none"
+            className="w-full px-4 py-3 text-2xl border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white resize-none"
             style={{ lineHeight: "1.5" }}
             required
           />
 
           <div>
-            <p className="text-base font-bold text-yui-green-800 mb-2">募集項目 <span className="text-yui-danger">（必須）</span></p>
+            <p className="text-2xl font-bold text-yui-green-800 mb-2">募集項目 <span className="text-yui-danger">（必須）</span></p>
             <div className="grid grid-cols-3 gap-2">
               {jobTypes.map((item) => (
                 <button
@@ -319,7 +319,7 @@ export default function CreatePage() {
           )}
 
           <div className="relative overflow-visible">
-            <label htmlFor="job-location" className="relative z-10 text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
+            <label htmlFor="job-location" className="relative z-10 text-2xl font-bold text-yui-green-800 mb-2 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
               場所 <span className="text-yui-danger">（必須）</span>
             </label>
@@ -331,7 +331,7 @@ export default function CreatePage() {
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="例：長野県松本市中島〇丁目、または○○農園の西側の畑"
-                  className="w-full sm:flex-1 min-w-0 px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
+                  className="w-full sm:flex-1 min-w-0 px-4 py-4 text-2xl border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -355,7 +355,7 @@ export default function CreatePage() {
 
           <div className="space-y-5 w-full min-w-0 mt-4">
             <div>
-              <label htmlFor="job-date" className="text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
+              <label htmlFor="job-date" className="text-2xl font-bold text-yui-green-800 mb-2 flex items-center gap-2">
                 <CalendarDays className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
                 日付 <span className="text-yui-danger">（必須）</span>
               </label>
@@ -364,13 +364,13 @@ export default function CreatePage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-2 py-4 text-xl md:text-2xl text-center font-bold border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white font-mono tracking-tight"
+                className="w-full px-2 py-4 text-2xl text-center font-bold border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white font-mono tracking-tight"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="job-start" className="text-base font-bold text-yui-green-800 mb-2 flex items-center gap-2">
+              <label htmlFor="job-start" className="text-2xl font-bold text-yui-green-800 mb-2 flex items-center gap-2">
                 <Clock className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
                 時間 <span className="text-yui-danger">（必須）</span>
               </label>
@@ -380,16 +380,16 @@ export default function CreatePage() {
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full flex-1 px-0.5 py-4 text-xl md:text-2xl text-center font-bold border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white min-w-0 font-mono tracking-tight"
+                  className="w-full flex-1 px-0.5 py-4 text-2xl text-center font-bold border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white min-w-0 font-mono tracking-tight"
                   required
                 />
-                <span className="text-xl md:text-2xl font-bold text-yui-earth-500 shrink-0">〜</span>
+                <span className="text-2xl font-bold text-yui-earth-500 shrink-0">〜</span>
                 <input
                   id="job-end"
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full flex-1 px-0.5 py-4 text-xl md:text-2xl text-center font-bold border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white min-w-0 font-mono tracking-tight"
+                  className="w-full flex-1 px-0.5 py-4 text-2xl text-center font-bold border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white min-w-0 font-mono tracking-tight"
                   required
                 />
               </div>
@@ -408,7 +408,7 @@ export default function CreatePage() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-5 md:p-6">
+        <section className="bg-white rounded-3xl p-5 md:p-6">
           <button
             type="button"
             onClick={() => setShowDetails((prev) => !prev)}
@@ -421,9 +421,9 @@ export default function CreatePage() {
           </button>
 
           {showDetails && (
-            <div className="mt-4 space-y-4 border-t border-yui-earth-100 pt-4">
+            <div className="mt-4 space-y-4 pt-4">
               <div>
-                <p className="block text-base font-bold text-yui-green-800 mb-2">ポイント単価（1時間あたり）</p>
+                <p className="block text-2xl font-bold text-yui-green-800 mb-2">ポイント単価（1時間あたり）</p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {ratePresets.map((rate) => (
                     <button
@@ -446,7 +446,7 @@ export default function CreatePage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="作業の注意点や持ち物など（任意）"
                   rows={4}
-                  className="w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-xl focus:border-yui-green-500 focus:outline-none bg-white resize-none"
+                  className="w-full px-4 py-4 text-base rounded-xl focus:border-yui-green-500 focus:outline-none bg-white resize-none"
                 />
               </div>
             </div>

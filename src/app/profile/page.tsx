@@ -165,17 +165,12 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="py-3 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-yui-green-800">マイページ</h1>
-        <Link
-          href="/settings"
-          className="flex items-center gap-1.5 text-sm text-yui-green-600 font-bold no-underline hover:text-yui-green-800 transition-colors"
-          style={{ minHeight: "48px", display: "inline-flex", alignItems: "center" }}
-          aria-label="表示設定を変える"
-        >
-          <Settings className="w-5 h-5" aria-hidden="true" /> 設定
-        </Link>
+    <div className="py-3 space-y-4 pb-20">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+          <User className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
+          マイページ
+        </h1>
       </div>
 
       {/* プロフィールカード（統合） */}
@@ -268,9 +263,10 @@ export default function ProfilePage() {
           </div>
 
           {/* 農機具 */}
-          <div className="pt-3 border-t border-yui-green-100">
-            <h3 className="text-sm font-bold text-yui-green-800 flex items-center gap-2 mb-2">
-              <Tractor className="w-4 h-4 text-yui-green-600" aria-hidden="true" /> もっている農機具
+          <div className="pt-3">
+            <h3 className="text-xl font-bold text-yui-green-800 flex items-center gap-2 pb-2 mb-3">
+              <Tractor className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+              もっている農機具
             </h3>
             {editingProfile ? (
               specTarget ? (
@@ -381,9 +377,10 @@ export default function ProfilePage() {
           </div>
 
           {/* 作物 */}
-          <div className="pt-3 border-t border-yui-green-100">
-            <h3 className="text-sm font-bold text-yui-green-800 flex items-center gap-2 mb-2">
-              <Sprout className="w-4 h-4 text-yui-green-600" aria-hidden="true" /> 育てている作物
+          <div className="pt-3">
+            <h3 className="text-xl font-bold text-yui-green-800 flex items-center gap-2 pb-2 mb-3">
+              <Sprout className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+              育てている作物
             </h3>
             {editingProfile ? (
               <MultiSelectTag
@@ -410,7 +407,7 @@ export default function ProfilePage() {
 
           {/* 編集モード時の下部完了ボタン */}
           {editingProfile && (
-            <div className="pt-4 border-t border-yui-green-100">
+            <div className="pt-4">
               <button
                 onClick={async () => {
                   const loc = [editPrefecture, editMunicipality].filter(Boolean).join(" ");
@@ -432,14 +429,25 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ログアウト */}
+      {/* 設定ボタン */}
       <div className="pt-4 mt-8">
+        <Link
+          href="/settings"
+          className="w-full py-6 bg-white text-yui-green-600 font-bold text-lg rounded-xl border-2 border-yui-green-200 hover:bg-yui-green-50 transition-colors flex items-center justify-center gap-3 shadow-sm mb-4"
+          style={{ minHeight: "68px" }}
+          aria-label="表示設定を変える"
+        >
+          <Settings className="w-7 h-7" aria-hidden="true" />
+          設定
+        </Link>
+
+        {/* ログアウト */}
         <button
           onClick={() => setConfirmDelete({ type: "logout" })}
-          className="w-full py-4 bg-white text-yui-danger font-bold rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 shadow-sm mb-4"
-          style={{ minHeight: "56px" }}
+          className="w-full py-6 bg-white text-yui-danger font-bold text-lg rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-3 shadow-sm mb-4"
+          style={{ minHeight: "68px" }}
         >
-          <LogOut className="w-5 h-5" aria-hidden="true" />
+          <LogOut className="w-7 h-7" aria-hidden="true" />
           ログアウト
         </button>
       </div>

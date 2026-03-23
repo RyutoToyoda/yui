@@ -5,6 +5,7 @@ import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
+import YuiLogo from "@/components/YuiLogo";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -42,8 +43,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-yui-earth-50" role="status" aria-label="読み込み中">
         <div className="text-center">
-          <div className="font-yui-logo text-yui-green-800 mb-2" style={{ fontSize: '3.5rem' }}>結 Yui</div>
-          <p className="text-yui-green-600 text-lg font-bold">読み込み中...</p>
+          <YuiLogo width={600} height={600} className="mb-8" />
+          <p className="text-yui-green-600 text-xl font-bold">読み込み中...</p>
         </div>
       </div>
     );

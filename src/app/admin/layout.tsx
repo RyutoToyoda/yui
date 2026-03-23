@@ -42,8 +42,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden md:flex md:flex-col w-64 bg-yui-green-900 text-white shrink-0">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden">
-              <YuiLogo className="h-8 w-auto" alt="結 Yui" />
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+              <YuiLogo className="h-12 w-auto" alt="結 Yui" width={48} height={48} />
             </div>
             <div className="font-bold">
               <p className="text-sm leading-none opacity-60">Admin</p>
@@ -88,8 +88,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {/* モバイル用ロゴ */}
-              <div className="md:hidden w-8 h-8 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-yui-earth-100">
-                <YuiLogo className="h-6 w-auto" alt="結 Yui" />
+              <div className="md:hidden w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-yui-earth-100">
+                <YuiLogo className="h-8 w-auto" alt="結 Yui" width={32} height={32} />
               </div>
               <h2 className="text-base md:text-lg font-bold text-gray-800">結 Yui 管理システム</h2>
             </div>

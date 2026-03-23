@@ -104,13 +104,13 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-24 right-4 z-50 flex flex-col items-center gap-1 group"
-          aria-label="おたすけAIを開く"
+          aria-label="AI相談を開く"
         >
-          <div className="bg-yui-green-600 text-white p-4 rounded-full shadow-2xl shadow-yui-green-900/40 group-hover:bg-yui-green-700 transition-all transform group-hover:scale-110 border-4 border-white">
-            <MessageCircle className="w-8 h-8" />
+          <div className="bg-yui-green-600 text-white p-5 rounded-full shadow-2xl shadow-yui-green-900/40 group-hover:bg-yui-green-700 transition-all transform group-hover:scale-110 border-4 border-white">
+            <MessageCircle className="w-20 h-20" />
           </div>
-          <span className="bg-white px-3 py-1 rounded-full text-sm font-black text-yui-green-800 shadow-md border border-yui-green-100">
-            相談する
+          <span className="bg-white px-5 py-2 rounded-full text-lg font-black text-yui-green-800 shadow-md border border-yui-green-100">
+            AI 相談
           </span>
         </button>
       )}
@@ -119,26 +119,22 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
       {isOpen && (
         <div className="fixed inset-0 z-[60] flex flex-col w-full max-w-full overflow-x-hidden bg-yui-earth-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* ヘッダー */}
-          <header className="bg-yui-green-700 text-white px-4 py-4 md:p-5 flex items-center justify-between shadow-md">
+          <header className="bg-yui-green-700 text-white h-16 md:h-24 px-4 md:px-6 flex items-center justify-between shadow-md shrink-0">
             <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-full">
-                <Info className="w-6 h-6" />
+              <div className="bg-white/20 p-2 md:p-2.5 rounded-full">
+                <MessageCircle className="w-6 h-6 md:w-8 md:h-8" />
               </div>
-              <div>
-                <h2 className="text-xl font-black">おたすけAI</h2>
-                <p className="text-white/80 text-sm font-bold">アプリの使い方を教えます</p>
-              </div>
+              <h2 className="text-xl md:text-2xl font-black">AI 相談</h2>
             </div>
             <button
               onClick={() => {
                 setIsOpen(false);
                 onClose?.();
               }}
-              className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+              className="p-2 md:p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center h-12 w-12 md:h-14 md:w-14"
               aria-label="閉じる"
-              style={{ minHeight: "56px", minWidth: "56px" }}
             >
-              <X className="w-8 h-8" />
+              <X className="w-6 h-6 md:w-8 md:h-8" />
             </button>
           </header>
 
@@ -156,9 +152,6 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
                   <div className="w-full max-w-[92%] md:max-w-[85%] flex items-start gap-2">
                     <div className="min-w-0 flex-1 bg-white text-yui-earth-900 border border-yui-earth-100 rounded-3xl rounded-tl-none p-5 text-xl font-black leading-relaxed shadow-sm break-words">
                       <p>{msg.text}</p>
-                      <div className="text-[10px] mt-2 opacity-60 text-left">
-                        {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
                     </div>
                     <button
                       onClick={() => speak(msg.text)}
@@ -171,9 +164,6 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
                 ) : (
                   <div className="max-w-[90%] md:max-w-[85%] bg-yui-green-600 text-white rounded-3xl rounded-tr-none p-5 text-lg font-bold shadow-sm break-words">
                     <p>{msg.text}</p>
-                    <div className="text-[10px] mt-2 opacity-60 text-right">
-                      {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </div>
                   </div>
                 )}
               </div>
@@ -190,12 +180,26 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
           </div>
 
           {/* 操作エリア */}
-          <footer className="bg-white border-t border-yui-earth-200 p-4 md:p-6 pb-8 md:pb-10 space-y-4 md:space-y-6 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-            <p className="text-sm md:text-base font-bold text-yui-earth-600">困ったことを入力（音声入力）</p>
+          <footer className="bg-white border-t border-yui-earth-200 p-4 md:p-6 pb-8 md:pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] relative mt-8">
+            
+            {/* 巨大なマイクボタンを中央上に配置 */}
+            <div className="absolute left-1/2 -translate-x-1/2 -top-16">
+              <button
+                onClick={toggleListen}
+                className={`flex flex-col items-center justify-center w-32 h-32 rounded-full font-black transition-all shadow-xl border-4 border-white ${
+                  isListening
+                    ? "bg-red-500 text-white animate-pulse"
+                    : "bg-yui-green-600 text-white hover:bg-yui-green-700 hover:scale-105"
+                }`}
+                aria-label={isListening ? "聞き取りを停止" : "声で入力"}
+              >
+                <Mic className={`w-12 h-12 mb-1 ${isListening ? "animate-pulse" : ""}`} />
+                <span className="text-base">{isListening ? "聞き取り中" : "音声入力"}</span>
+              </button>
+            </div>
 
-            {/* モバイルでは縦積み / 画面幅に収める */}
-            <div className="flex flex-col md:flex-row gap-3 w-full">
-              <div className="w-full md:flex-1 min-w-0 flex gap-2">
+            <div className="pt-14 flex flex-col md:flex-row gap-3 w-full max-w-3xl mx-auto">
+              <div className="w-full flex gap-2">
                 <input
                   type="text"
                   value={inputText}
@@ -207,30 +211,13 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
                 <button
                   onClick={() => handleSend(inputText)}
                   disabled={!inputText.trim()}
-                  className="shrink-0 bg-yui-green-600 text-white px-4 py-3 rounded-2xl disabled:opacity-30 disabled:grayscale transition-all"
+                  className="shrink-0 bg-yui-green-600 text-white px-5 py-3 rounded-2xl disabled:opacity-30 disabled:grayscale transition-all"
                   aria-label="送信"
                 >
                   <Send className="w-6 h-6" />
                 </button>
               </div>
-
-              <button
-                onClick={toggleListen}
-                className={`w-full md:w-auto md:min-w-[180px] flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl font-black transition-all ${
-                  isListening
-                    ? "bg-red-500 text-white shadow-lg shadow-red-200"
-                    : "bg-yui-green-100 text-yui-green-700 hover:bg-yui-green-200"
-                }`}
-                aria-label={isListening ? "聞き取りを停止" : "声で入力"}
-              >
-                <Mic className="w-6 h-6" />
-                <span>{isListening ? "聞き取り中..." : "声で入力"}</span>
-              </button>
             </div>
-            
-            <p className="text-center text-yui-earth-400 text-sm font-bold">
-              ※音声で話しかけるのが一番かんたんです
-            </p>
           </footer>
         </div>
       )}

@@ -41,61 +41,99 @@
 }
 
 /* ===================================
- * UD文字サイズシステム（CSS変数）
+ * UD文字サイズシステム（4段階システム）
  * =================================== */
 :root {
-  --ud-font-size-base: 16px;
-  --ud-font-size-sm: 14px;
-  --ud-font-size-xs: 12px;
-  --ud-font-size-lg: 18px;
-  --ud-font-size-xl: 22px;
-  --ud-font-size-2xl: 28px;
-  --ud-font-size-3xl: 34px;
+  /* 普通 - Standard Mode */
+  --ud-font-size-title: 28px;      /* 2xl - Page headings */
+  --ud-font-size-subtitle: 22px;   /* xl - Section headings */
+  --ud-font-size-normal: 16px;     /* base - Body text */
+  --ud-font-size-small: 16px;      /* sm - Labels, captions */
   --ud-line-height: 1.8;
 }
 
-/* 大きめ文字モード */
+/* 大きめ文字モード - Large Mode */
 html[data-font-size="large"] {
-  --ud-font-size-base: 18px;
-  --ud-font-size-sm: 15px;
-  --ud-font-size-xs: 13px;
-  --ud-font-size-lg: 20px;
-  --ud-font-size-xl: 24px;
-  --ud-font-size-2xl: 30px;
-  --ud-font-size-3xl: 36px;
+  --ud-font-size-title: 30px;
+  --ud-font-size-subtitle: 24px;
+  --ud-font-size-normal: 18px;
+  --ud-font-size-small: 17px;
 }
 
-/* とても大きい文字モード */
+/* とても大きい文字モード - Extra Large Mode */
 html[data-font-size="xlarge"] {
-  --ud-font-size-base: 20px;
-  --ud-font-size-sm: 17px;
-  --ud-font-size-xs: 15px;
-  --ud-font-size-lg: 23px;
-  --ud-font-size-xl: 28px;
-  --ud-font-size-2xl: 34px;
-  --ud-font-size-3xl: 40px;
+  --ud-font-size-title: 34px;
+  --ud-font-size-subtitle: 28px;
+  --ud-font-size-normal: 20px;
+  --ud-font-size-small: 19px;
 }
 
 /* ===================================
  * 高コントラストモード
  * =================================== */
 html.ud-high-contrast {
-  --color-yui-green-900: #000000;
-  --color-yui-green-800: #0a2e10;
-  --color-yui-green-700: #145020;
-  --color-yui-earth-400: #5c4d42;
-  --color-yui-earth-500: #4a3d33;
-  --color-yui-earth-50: #ffffff;
-  --color-yui-earth-100: #f5f2ef;
+  /* High contrast mode - thicker borders and darker colors */
 }
 
 html.ud-high-contrast body {
-  background: #ffffff;
+  background: #163122 !important;
+  color: #a0a0a0 !important;
 }
 
-html.ud-high-contrast .card-premium {
-  background: #ffffff;
-  border-color: #143a1c;
+html.ud-high-contrast .bg-yui-earth-50 {
+  background-color: #163122 !important;
+}
+
+/* Make ONLY specific text elements off-white */
+/* Page title headings: 予定, お知らせ, 募集する, お手伝い募集を探す, マイページ */
+html.ud-high-contrast h1.text-yui-green-800 {
+  color: #e8e8e8 !important;
+}
+
+/* Section heading labels: 見やすさ設定, サポート */
+html.ud-high-contrast h2.text-yui-green-800 {
+  color: #e8e8e8 !important;
+}
+
+/* Sub-section headings in settings: 文字の大きさ, 画面のくっきりさ (text-yui-green-700) */
+html.ud-high-contrast h3.text-yui-green-700 {
+  color: #e8e8e8 !important;
+}
+
+/* Loading text: 読み込み中 (with text-lg class) */
+html.ud-high-contrast p.text-yui-earth-500.text-lg,
+html.ud-high-contrast p.text-yui-green-600.text-lg,
+html.ud-high-contrast p.text-gray-500.text-lg {
+  color: #e8e8e8 !important;
+}
+
+/* Icons for page titles and section headings */
+html.ud-high-contrast h1 svg,
+html.ud-high-contrast h2 svg {
+  color: #e8e8e8 !important;
+  stroke: #e8e8e8 !important;
+}
+
+/* Only override h3 svg icons for settings headings (text-yui-green-700) */
+html.ud-high-contrast h3.text-yui-green-700 svg {
+  color: #e8e8e8 !important;
+  stroke: #e8e8e8 !important;
+}
+
+html.ud-high-contrast button[class*="border"] {
+  border-width: 2.5px !important;
+  border-color: #1a1a1a !important;
+}
+
+html.ud-high-contrast input,
+html.ud-high-contrast select,
+html.ud-high-contrast textarea {
+  border-width: 2.5px !important;
+  border-color: #1a1a1a !important;
+}
+
+html.ud-high-contrast [class*="shadow-"] {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
 }
 
 @layer base {
@@ -104,7 +142,7 @@ html.ud-high-contrast .card-premium {
   }
 
   html {
-    font-size: var(--ud-font-size-base);
+    font-size: var(--ud-font-size-normal);
     scroll-behavior: smooth;
   }
 
@@ -154,7 +192,7 @@ html.ud-high-contrast .card-premium {
   select,
   textarea {
     transition: all 0.2s ease;
-    font-size: var(--ud-font-size-base);
+    font-size: var(--ud-font-size-normal);
   }
 
   input:focus,
@@ -220,5 +258,44 @@ html.ud-high-contrast .card-premium {
 
   .font-yui-logo {
     font-family: var(--font-yui-logo);
+  }
+}
+
+/* ===================================
+ * UD テキストサイズ・マッピング（4段階システム）
+ * =================================== */
+@layer utilities {
+  /* Title (2xl) - Page headings */
+  .text-3xl {
+    @apply text-[length:var(--ud-font-size-title)];
+  }
+
+  /* Subtitle (xl) - Section headings */
+  .text-2xl {
+    @apply text-[length:var(--ud-font-size-subtitle)];
+  }
+
+  /* Normal (base) - Body text */
+  .text-base {
+    @apply text-[length:var(--ud-font-size-normal)];
+  }
+
+  /* Small (sm) - Labels, captions */
+  .text-sm {
+    @apply text-[length:var(--ud-font-size-small)];
+  }
+
+  /* Map text-xl and text-lg to subtitle size */
+  .text-xl {
+    @apply text-[length:var(--ud-font-size-subtitle)] opacity-100;
+  }
+
+  .text-lg {
+    @apply text-[length:var(--ud-font-size-subtitle)] opacity-100;
+  }
+
+  /* Discourage use of text-xs */
+  .text-xs {
+    @apply text-[length:var(--ud-font-size-small)] opacity-100;
   }
 }

@@ -29,19 +29,19 @@ export default function Header() {
         className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b-2 border-yui-green-200/60 shadow-[0_1px_10px_rgba(20,58,28,0.08)]"
         role="banner"
       >
-        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
+        <div className="w-full">
           {/* Mobile Header */}
-          <div className="md:hidden h-16 flex items-center justify-between">
-            <Link href="/" className="shrink-0 no-underline" aria-label="結 Yui ホームへ">
-              <YuiLogo className="inline-block h-10 w-auto object-contain" />
+          <div className="md:hidden h-16 flex items-center justify-between px-4">
+            <Link href="/" className="shrink-0 no-underline -ml-4" aria-label="結 Yui ホームへ">
+              <YuiLogo className="h-16 w-auto" width={72} height={72} />
             </Link>
             <div className="flex items-center gap-2">
               <Link
                 href="/wallet"
-                className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 transition-colors px-2 py-1.5 rounded-2xl border border-amber-200 no-underline"
+                className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 transition-colors px-3 py-2 rounded-2xl border border-amber-200 no-underline"
                 aria-label={`所持ポイント ${user.tokenBalance ?? 0}`}
               >
-                <Coins className="w-5 h-5 text-yui-accent" aria-hidden="true" />
+                <Coins className="w-7 h-7 text-yui-accent" aria-hidden="true" />
                 <p className="text-base font-bold text-yui-earth-800 tabular-nums leading-none">
                   {user.tokenBalance ?? 0}P
                 </p>
@@ -49,18 +49,18 @@ export default function Header() {
               <Link
                 href="/profile"
                 aria-label="マイページ"
-                className="flex items-center justify-center w-10 h-10 rounded-full text-yui-green-700 hover:text-yui-green-900 hover:bg-yui-green-50 transition-colors"
+                className="flex items-center justify-center w-14 h-14 rounded-full text-yui-green-700 hover:text-yui-green-900 hover:bg-yui-green-50 transition-colors"
               >
-                <UserCircle className="w-6 h-6" />
+                <UserCircle className="w-8 h-8" />
               </Link>
             </div>
           </div>
 
           {/* Desktop Header */}
-          <div className="hidden md:flex h-20 items-center justify-between gap-6">
+          <div className="hidden md:flex h-24 items-center justify-between gap-6 px-6">
             <div className="flex items-center gap-8">
-              <Link href="/" className="no-underline" aria-label="結 Yui ホームへ">
-                <YuiLogo className="h-14 w-auto object-contain" />
+              <Link href="/" className="shrink-0 no-underline -ml-6" aria-label="結 Yui ホームへ">
+                <YuiLogo className="h-24 w-auto" width={96} height={96} />
               </Link>
               <nav className="flex items-center gap-2" aria-label="デスクトップメニュー">
                 <Link
@@ -92,7 +92,7 @@ export default function Header() {
                 className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 transition-colors px-3 py-1.5 rounded-2xl border border-amber-200 shrink-0 no-underline"
                 aria-label={`所持ポイント ${user.tokenBalance ?? 0}`}
               >
-                <Coins className="w-5 h-5 text-yui-accent" aria-hidden="true" />
+                <Coins className="w-7 h-7 text-yui-accent" aria-hidden="true" />
                 <div className="leading-tight">
                   <p className="text-xs font-bold text-yui-earth-500">所持ポイント</p>
                   <p className="text-lg font-bold text-yui-earth-800 tabular-nums">
@@ -108,7 +108,7 @@ export default function Header() {
                   }`}
                 style={{ minHeight: "52px", display: "inline-flex", alignItems: "center" }}
               >
-                <UserCircle className="w-5 h-5" />
+                <UserCircle className="w-6 h-6" />
                 設定・プロフ
               </Link>
             </div>

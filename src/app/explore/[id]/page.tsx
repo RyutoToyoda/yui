@@ -66,8 +66,9 @@ export default function JobDetailPage() {
     return (
       <div className="px-4 py-10 text-center">
         <p className="text-yui-earth-500 text-base">募集が見つかりませんでした</p>
-        <Link href="/explore" className="text-yui-green-600 font-bold mt-2 inline-block no-underline" style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}>
-          ← 募集の一覧にもどる
+        <Link href="/explore" className="flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-yui-green-200 bg-white hover:bg-yui-green-50 hover:border-yui-green-400 transition-all text-yui-green-700 font-bold mt-4 shadow-sm no-underline">
+          <ArrowLeft className="w-5 h-5" />
+          募集の一覧にもどる
         </Link>
       </div>
     );
@@ -97,8 +98,12 @@ export default function JobDetailPage() {
       status: "approved",
       createdAt: new Date(),
     });
-    // Update job status to matched
-    await fsUpdateJob(job.id, { status: "matched" });
+    
+    // Update job status to matched if full or if it doesn't require a specific number of people
+    const newApprovedCount = approvedApplicants.length + 1;
+    if (job.requiredPeople === 0 || newApprovedCount >= job.requiredPeople) {
+      await fsUpdateJob(job.id, { status: "matched" });
+    }
     
     // 募集者に通知
     await fsCreateNotification({
@@ -207,10 +212,10 @@ export default function JobDetailPage() {
       {/* 戻るボタン */}
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-1 text-yui-green-600 font-bold text-base hover:text-yui-green-800 transition-colors"
-        style={{ minHeight: "48px" }}
+        className="flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-yui-green-200 bg-white hover:bg-yui-green-50 hover:border-yui-green-400 transition-all text-yui-green-700 font-bold shadow-sm inline-flex"
       >
-        <ArrowLeft className="w-5 h-5" aria-hidden="true" /> もどる
+        <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+        もどる
       </button>
 
       {/* ジョブ詳細カード */}
@@ -271,9 +276,14 @@ export default function JobDetailPage() {
               <div className="bg-yui-green-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                   <Users className="w-5 h-5" aria-hidden="true" />
-                  <span className="text-xs font-bold">必要な人数</span>
+                  <span className="text-xs font-bold">集まった人数</span>
                 </div>
-                <p className="text-sm font-bold text-yui-green-800">{job.requiredPeople}名</p>
+                <p className="text-base font-bold text-yui-green-800 flex items-baseline gap-1">
+                  <span className="text-2xl">{approvedApplicants.length}</span>
+                  <span className="text-sm text-yui-earth-600 font-bold mx-0.5">/</span>
+                  <span className="text-lg">{job.requiredPeople}</span>
+                  <span className="text-sm">名</span>
+                </p>
               </div>
             )}
 
@@ -325,7 +335,7 @@ export default function JobDetailPage() {
                     募集した方からの連絡をお待ちください
                   </p>
                 </div>
-              ) : job.status === "open" ? (
+              ) : (job.status === "open" || (job.status === "matched" && (job.requiredPeople === 0 || approvedApplicants.length < job.requiredPeople))) ? (
                 <>
                   {/* 同意チェックボックス */}
                   <div className="bg-yui-earth-50 rounded-xl p-4 mb-4 border border-yui-earth-200">
@@ -368,7 +378,7 @@ export default function JobDetailPage() {
       </div>
 
       {isOwner && (
-        <div className="bg-white rounded-2xl shadow-sm border-2 overflow-hidden" style={{ borderColor: "#8c7361" }}>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div style={{ backgroundColor: "#8c7361" }} className="p-6 text-white">
             <h2 className="text-lg font-bold">参加者管理</h2>
           </div>
@@ -408,7 +418,7 @@ export default function JobDetailPage() {
             <div className="pt-3 mt-4 border-t border-yui-earth-200">
               <button
                 onClick={handleDeleteClick}
-                className="w-full flex items-center justify-center gap-2 text-sm bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 border border-red-200 transition-colors"
+                className="w-full flex items-center justify-center gap-2 text-sm bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 transition-colors"
                 style={{ minHeight: "44px" }}
               >
                 <Trash2 className="w-4 h-4" aria-hidden="true" />

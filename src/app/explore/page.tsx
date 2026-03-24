@@ -433,10 +433,11 @@ export default function ExplorePage() {
               <div className="flex flex-wrap gap-2">
                 {[
                   { id: "", label: "指定なし" },
+                  { id: "1", label: "1P以上" },
+                  { id: "2", label: "2P以上" },
+                  { id: "3", label: "3P以上" },
                   { id: "5", label: "5P以上" },
                   { id: "10", label: "10P以上" },
-                  { id: "20", label: "20P以上" },
-                  { id: "50", label: "50P以上" },
                 ].map((pt) => (
                   <button
                     key={pt.id}

@@ -353,15 +353,15 @@ export default function JobDetailPage() {
               ) : (job.status === "open" || (job.status === "matched" && (job.requiredPeople === 0 || approvedApplicants.length < job.requiredPeople))) ? (
                 <>
                   {/* 同意チェックボックス */}
-                  <div className="bg-yui-earth-50 rounded-xl p-4 mb-4 border border-yui-earth-200">
-                    <label className="flex items-center gap-3 cursor-pointer" style={{ minHeight: "48px" }}>
+                  <div className="bg-yui-earth-50 rounded-xl px-4 py-1.5 mb-4 border border-yui-earth-200">
+                    <label className="flex items-center gap-3 cursor-pointer" style={{ minHeight: "56px" }}>
                       <input
                         type="checkbox"
                         checked={isAgreed}
                         onChange={(e) => setIsAgreed(e.target.checked)}
-                        className="w-5 h-5 rounded border-2 border-yui-green-400 text-yui-green-600 focus:ring-yui-green-500 shrink-0 accent-yui-green-600"
+                        className="w-6 h-6 rounded border-2 border-yui-green-400 text-yui-green-600 focus:ring-yui-green-500 shrink-0 accent-yui-green-600"
                       />
-                      <span className="text-sm font-bold text-yui-green-800">
+                      <span className="text-base font-bold text-yui-green-800">
                         相手の農園のやり方を大切にすることに同意します
                       </span>
                     </label>

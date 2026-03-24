@@ -62,7 +62,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-yui-earth-50">
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Header />
-      <main id="main-content" className="w-full max-w-screen-xl mx-auto px-2 md:px-4 pb-28 md:pb-10 pt-2 md:pt-4" role="main">
+      <main id="main-content" className="w-full max-w-screen-xl mx-auto px-2 md:px-4 md:pb-10 pt-2 md:pt-4" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom, 0px))" }} role="main">
         {children}
       </main>
       <BottomNav />

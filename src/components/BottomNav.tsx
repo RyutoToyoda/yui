@@ -23,7 +23,8 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="fixed md:hidden bottom-0 left-0 right-0 z-50 pointer-events-none"
+        className="fixed md:hidden left-0 right-0 z-50 pointer-events-none"
+        style={{ bottom: "env(safe-area-inset-bottom, 0px)" }}
         aria-label="メインメニュー"
         role="navigation"
       >
@@ -86,8 +87,6 @@ export default function BottomNav() {
             {/* Blank spacer for the AI circle area */}
             <div className="flex-[1.2]" style={{ minHeight: "56px" }} />
           </div>
-          {/* Safe area bottom padding for iPhones */}
-          <div className="h-[env(safe-area-inset-bottom)]" />
         </div>
       </nav>
 

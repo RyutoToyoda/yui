@@ -138,7 +138,8 @@ export default function SchedulePage() {
             notif.type === "approved" ||
             notif.type === "job_cancelled" ||
             notif.type === "rejected" ||
-            notif.type === "match")
+            notif.type === "match" ||
+            notif.type === "payment_received")
       )
       .slice(0, 4);
     setImportantNotifications(actionableNotifs);

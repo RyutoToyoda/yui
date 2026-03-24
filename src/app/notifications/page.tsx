@@ -76,6 +76,7 @@ export default function NotificationsPage() {
       case "application": return <UserCheck className="w-5 h-5 text-blue-700" aria-hidden="true" />;
       case "approved": return <CheckCircle2 className="w-5 h-5 text-yui-success" aria-hidden="true" />;
       case "job_cancelled": return <XCircle className="w-5 h-5 text-red-600" aria-hidden="true" />;
+      case "rejected": return <XCircle className="w-5 h-5 text-red-600" aria-hidden="true" />;
       default: return <Bell className="w-5 h-5 text-yui-green-600" aria-hidden="true" />;
     }
   };
@@ -86,6 +87,7 @@ export default function NotificationsPage() {
       case "application": return "手を挙げた方";
       case "approved": return "お願い済み";
       case "job_cancelled": return "キャンセル";
+      case "rejected": return "見送り";
       default: return "お知らせ";
     }
   };
@@ -138,7 +140,7 @@ export default function NotificationsPage() {
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
                   notif.type === "match" ? "bg-orange-100 border-orange-200" :
                   notif.type === "approved" ? "bg-green-100 border-green-200" :
-                  notif.type === "job_cancelled" ? "bg-red-100 border-red-200" :
+                  notif.type === "job_cancelled" || notif.type === "rejected" ? "bg-red-100 border-red-200" :
                   "bg-blue-100 border-blue-200"
                 }`}>
                   {getNotificationIcon(notif.type)}
@@ -148,7 +150,7 @@ export default function NotificationsPage() {
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                       notif.type === "match" ? "bg-orange-100 text-orange-700 border border-orange-300" :
                       notif.type === "approved" ? "bg-green-100 text-green-700 border border-green-300" :
-                      notif.type === "job_cancelled" ? "bg-red-100 text-red-700 border border-red-300" :
+                      notif.type === "job_cancelled" || notif.type === "rejected" ? "bg-red-100 text-red-700 border border-red-300" :
                       "bg-blue-100 text-blue-700 border border-blue-300"
                     }`}>
                       {getNotificationTypeLabel(notif.type)}
@@ -166,7 +168,7 @@ export default function NotificationsPage() {
                     {notif.message}
                   </p>
                   {/* キャンセル通知の理由・詳細表示 */}
-                  {notif.type === "job_cancelled" && notif.reason && (
+                  {(notif.type === "job_cancelled" || notif.type === "rejected") && notif.reason && (
                     <div className="mt-2 p-3 bg-red-50 rounded-xl border border-red-200 space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-red-700">理由</span>

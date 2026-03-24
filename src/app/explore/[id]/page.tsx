@@ -44,7 +44,7 @@ export default function JobDetailPage() {
       ]);
       if (cancelled) return;
       setJob(jobData);
-      setAlreadyApplied(apps.some((a) => a.applicantId === user!.uid));
+      setAlreadyApplied(apps.some((a) => a.applicantId === user!.uid && a.status !== "rejected"));
       setApprovedApplicants(apps.filter((a) => a.status === "approved"));
       setLoading(false);
     }
@@ -159,7 +159,8 @@ export default function JobDetailPage() {
     let applicantId: string | null = null;
 
     try {
-      const app = approvedApplicants.find(a => a.id === appId);
+      const allApps = await fsGetApplicationsByJob(job.id);
+      const app = allApps.find((a) => a.id === appId);
       if (app) applicantId = app.applicantId;
 
       await fsUpdateApplication(appId, { status: "rejected" });

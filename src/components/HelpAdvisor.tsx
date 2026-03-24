@@ -40,6 +40,22 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
     }
   }, [externalIsOpen]);
 
+  // スクロール制御 (オーバーレイ時の背景スクロール防止)
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      // iOS Safari用のハック
+      
+    } else {
+      document.body.style.overflow = "";
+      
+    }
+    return () => {
+      document.body.style.overflow = "";
+      
+    };
+  }, [isOpen]);
+
   // メッセージが増えたら一番下までスクロール
   useEffect(() => {
     if (scrollRef.current) {
@@ -117,7 +133,7 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
 
       {/* 相談画面 (オーバーレイ) */}
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex flex-col w-full max-w-full overflow-x-hidden bg-yui-earth-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-0 z-[60] flex flex-col h-[100dvh] w-full max-w-full overflow-x-hidden bg-yui-earth-50 animate-in fade-in slide-in-from-bottom-4 duration-300 overscroll-none">
           {/* ヘッダー */}
           <header className="bg-yui-green-700 text-white h-16 md:h-24 px-4 md:px-6 flex items-center justify-between shadow-md shrink-0">
             <div className="flex items-center gap-3">
@@ -141,7 +157,7 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
           {/* メッセージ表示エリア */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-5 space-y-6 bg-gradient-to-b from-white to-yui-earth-50"
+            className="flex-1 overflow-y-auto overflow-x-hidden pt-4 md:pt-5 px-4 md:px-5 pb-32 md:pb-40 space-y-6 bg-gradient-to-b from-white to-yui-earth-50 overscroll-contain"
           >
             {messages.map((msg) => (
               <div

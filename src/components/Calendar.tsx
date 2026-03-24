@@ -85,7 +85,7 @@ export default function Calendar({
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 md:gap-2 w-full max-w-full items-stretch p-1 lg:p-1.5">
+      <div className="grid grid-cols-7 gap-1.5 md:gap-2 w-full max-w-full p-1 lg:p-1.5">
         {WEEKDAYS.map((day) => (
           <div key={day} className="text-center text-xs md:text-sm font-bold text-yui-earth-500 py-1">
             {day}
@@ -93,7 +93,7 @@ export default function Calendar({
         ))}
 
         {Array.from({ length: firstDayOffset }).map((_, idx) => (
-          <div key={`blank-${idx}`} className="aspect-square min-h-[3rem]" />
+          <div key={`blank-${idx}`} className="aspect-square" />
         ))}
 
         {cells.map((cell) => (
@@ -101,10 +101,9 @@ export default function Calendar({
             key={cell.dateStr}
             onClick={() => onSelectDate(cell.dateStr)}
             disabled={cell.disabled || cell.tone === "past"}
-            className={`relative w-full min-w-0 aspect-square min-h-[3rem] rounded-lg border-2 flex flex-col items-center justify-center overflow-hidden transition-all ${getCellToneClass(cell.tone)} ${cell.selected ? "ring-[3px] ring-yui-green-600 ring-offset-1 z-10 scale-[1.05]" : ""
+            className={`relative w-full min-w-0 aspect-square rounded-lg border-2 flex flex-col items-center justify-center overflow-hidden transition-all ${getCellToneClass(cell.tone)} ${cell.selected ? "ring-[3px] ring-yui-green-600 ring-offset-1 z-10 scale-[1.05]" : ""
               } ${cell.disabled || cell.tone === "past" ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
             style={{
-              minHeight: "48px",
               ...(cell.tone === "recruitment" && { backgroundColor: "#8c7361" }),
               ...(cell.tone === "volunteered" && { backgroundColor: "#468065" })
             }}

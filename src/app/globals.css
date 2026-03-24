@@ -134,14 +134,40 @@ html.ud-high-contrast textarea {
     color: #e8e8e8 !important;
   }
 
-  /* Make CollapsibleSection (like 履歴) have dark background in high contrast so the #e8e8e8 text is visible like お知らせ */
-  html.ud-high-contrast .border-yui-green-100 > button {
-    background-color: #163122 !important;
+/* Make CollapsibleSection (like 履歴) have dark background in high contrast so the #e8e8e8 text is visible like お知らせ */
+html.ud-high-contrast .border-yui-green-100 > button {
+  background-color: #163122 !important;
+}
 
-  html {
-    font-size: var(--ud-font-size-normal);
-    scroll-behavior: smooth;
-  }
+/* ConfirmDialog styling in high contrast mode */
+html.ud-high-contrast div[role="alertdialog"] {
+  background-color: #163122 !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] h2 {
+  color: #e8e8e8 !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] p {
+  color: #e8e8e8 !important;
+}
+
+/* Onboarding screen styling in high contrast mode */
+html.ud-high-contrast div[aria-label="結 Yuiの使い方"] {
+  background-color: #163122 !important;
+}
+
+html.ud-high-contrast div[aria-label="結 Yuiの使い方"] h1 {
+  color: #e8e8e8 !important;
+}
+
+html.ud-high-contrast div[aria-label="結 Yuiの使い方"] p {
+  color: #e8e8e8 !important;
+}
+
+html {
+  font-size: var(--ud-font-size-normal);
+  scroll-behavior: smooth;
 
   body {
     font-family: var(--font-sans);

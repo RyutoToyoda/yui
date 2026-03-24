@@ -19,12 +19,6 @@ export default function Header() {
   if (!isLoggedIn || !user) return null;
 
   return (
-    <>
-      {/* Skip Link */}
-      <a href="#main-content" className="skip-link">
-        メインコンテンツへ移動
-      </a>
-
       <header
         className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b-2 border-yui-green-200/60 shadow-[0_1px_10px_rgba(20,58,28,0.08)]"
         role="banner"
@@ -115,6 +109,5 @@ export default function Header() {
           </div>
         </div>
       </header>
-    </>
   );
 }

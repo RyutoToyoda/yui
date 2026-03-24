@@ -1019,19 +1019,33 @@ export async function fsMarkAllNotificationsRead(uid: string): Promise<void> {
 }
 
 export async function fsCreateNotification(notif: Omit<Notification, "id">): Promise<string> {
-  const data = {
-    userId: notif.userId,
-    type: notif.type,
-    title: notif.title,
-    message: notif.message,
-    jobId: notif.jobId ?? null,
-    reason: notif.reason ?? null,
-    detail: notif.detail ?? null,
-    isRead: notif.isRead,
-    createdAt: Timestamp.fromDate(notif.createdAt instanceof Date ? notif.createdAt : new Date()),
-  };
-  const ref = await addDoc(collection(db, "notifications"), data);
-  return ref.id;
+  try {
+    console.log("fsCreateNotification called with:", JSON.stringify(notif));
+    
+    if (!notif.userId) {
+      throw new Error("userId is required for notification");
+    }
+    
+    const data = {
+      userId: notif.userId,
+      type: notif.type,
+      title: notif.title,
+      message: notif.message,
+      jobId: notif.jobId ?? null,
+      reason: notif.reason ?? null,
+      detail: notif.detail ?? null,
+      isRead: notif.isRead,
+      createdAt: Timestamp.fromDate(notif.createdAt instanceof Date ? notif.createdAt : new Date()),
+    };
+    console.log("Notification data to save:", JSON.stringify(data));
+    
+    const ref = await addDoc(collection(db, "notifications"), data);
+    console.log("Notification created successfully with ID:", ref.id);
+    return ref.id;
+  } catch (error) {
+    console.error("fsCreateNotification error:", error);
+    throw error;
+  }
 }
 
 /**

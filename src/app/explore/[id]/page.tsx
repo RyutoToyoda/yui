@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, getJobTypeEmoji, getJobTypeLabel, getPointsPerPerson, fsUpdateApplication, fsCompleteApplicationTransaction } from "@/lib/firestore-service";
 import { useParams, useRouter } from "next/navigation";
-import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin, X } from "lucide-react";
+import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin, X, User } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Job, Application } from "@/types/firestore";
@@ -160,8 +160,11 @@ export default function JobDetailPage() {
 
     try {
       const allApps = await fsGetApplicationsByJob(job.id);
+      console.log("All applications for job:", allApps.map(a => ({ id: a.id, applicantId: a.applicantId, status: a.status })));
       const app = allApps.find((a) => a.id === appId);
+      console.log("Found application to reject:", app);
       if (app) applicantId = app.applicantId;
+      console.log("Applicant ID to notify:", applicantId);
 
       await fsUpdateApplication(appId, { status: "rejected" });
 
@@ -172,7 +175,20 @@ export default function JobDetailPage() {
         await fsUpdateJob(job.id, { status: "open" });
       }
 
-      if (applicantId) {
+      // Reload data
+      const apps = await fsGetApplicationsByJob(job.id);
+      setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+    } catch (e) {
+      console.error("Failed to reject application:", e);
+      alert("処理に失敗しました");
+      setConfirmAction(null);
+      return;
+    }
+
+    // Create notification separately with its own error handling
+    if (applicantId) {
+      try {
+        console.log("Creating rejection notification for applicantId:", applicantId);
         await fsCreateNotification({
           userId: applicantId,
           type: "rejected",
@@ -182,14 +198,12 @@ export default function JobDetailPage() {
           isRead: false,
           createdAt: new Date(),
         });
+        console.log("Rejection notification created successfully");
+      } catch (notifError) {
+        console.error("Failed to create rejection notification:", notifError);
       }
-
-      // Reload data
-      const apps = await fsGetApplicationsByJob(job.id);
-      setApprovedApplicants(apps.filter((a) => a.status === "approved"));
-    } catch (e) {
-      console.error("Failed to reject application:", e);
-      alert("処理に失敗しました");
+    } else {
+      console.warn("No applicantId found for rejection notification");
     }
     setConfirmAction(null);
   };
@@ -240,9 +254,9 @@ export default function JobDetailPage() {
             <div className="bg-yui-green-50 rounded-xl p-4 col-span-2">
               <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                 <CalendarDays className="w-5 h-5" aria-hidden="true" />
-                <span className="text-xs font-bold">作業日と時間</span>
+                <span className="text-sm font-bold">作業日と時間</span>
               </div>
-              <p className="text-sm font-bold text-yui-green-800">
+              <p className="text-base font-bold text-yui-green-800">
                 {job.date} &nbsp; {job.startTime}〜{job.endTime}
               </p>
             </div>
@@ -252,9 +266,9 @@ export default function JobDetailPage() {
               <div className="min-w-0 pr-1">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                   <MapPin className="w-4 h-4" aria-hidden="true" />
-                  <span className="text-xs font-bold">作業場所</span>
+                  <span className="text-sm font-bold">作業場所</span>
                 </div>
-                <p className="text-sm font-bold text-yui-green-800 line-clamp-2">
+                <p className="text-base font-bold text-yui-green-800 line-clamp-2">
                   {job.location || "（未指定）"}
                 </p>
               </div>
@@ -277,7 +291,7 @@ export default function JobDetailPage() {
               <div className="bg-yui-green-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                   <Users className="w-5 h-5" aria-hidden="true" />
-                  <span className="text-xs font-bold">集まった人数</span>
+                  <span className="text-sm font-bold">集まった人数</span>
                 </div>
                 <p className="text-base font-bold text-yui-green-800 flex items-baseline gap-1">
                   <span className="text-2xl">{approvedApplicants.length}</span>
@@ -293,9 +307,9 @@ export default function JobDetailPage() {
               <div className="bg-yui-green-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-yui-green-600 mb-1">
                   <Wrench className="w-5 h-5" aria-hidden="true" />
-                  <span className="text-xs font-bold">農機具</span>
+                  <span className="text-sm font-bold">農機具</span>
                 </div>
-                <p className="text-sm font-bold text-yui-green-800 break-words line-clamp-2">{job.equipmentNeeded}</p>
+                <p className="text-base font-bold text-yui-green-800 break-words line-clamp-2">{job.equipmentNeeded}</p>
               </div>
             )}
 
@@ -304,7 +318,7 @@ export default function JobDetailPage() {
               <div>
                 <div className="flex items-center gap-1.5 text-yui-accent mb-1">
                   <Coins className="w-5 h-5" aria-hidden="true" />
-                  <span className="text-xs font-bold text-yui-earth-700">お礼のポイント</span>
+                  <span className="text-sm font-bold text-yui-earth-700">お礼のポイント</span>
                 </div>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-xl font-bold text-yui-green-800">{getPointsPerPerson(job)}P</span>
@@ -319,8 +333,8 @@ export default function JobDetailPage() {
 
           {/* 説明 */}
           <div className="pt-2">
-            <h3 className="text-sm font-bold text-yui-green-800 mb-2">作業の内容</h3>
-            <p className="text-sm text-yui-earth-600 leading-relaxed whitespace-pre-wrap" style={{ lineHeight: "1.8" }}>
+            <h3 className="text-base font-bold text-yui-green-800 mb-2">作業の内容</h3>
+            <p className="text-base text-yui-earth-600 leading-relaxed whitespace-pre-wrap" style={{ lineHeight: "1.8" }}>
               {job.description}
             </p>
           </div>
@@ -393,33 +407,44 @@ export default function JobDetailPage() {
                       <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-sm mb-1">確定</span>
                       <p className="font-bold text-sm text-yui-green-800">{app.applicantName}さん</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex gap-2 flex-1">
                       <button
-                        onClick={() => setConfirmAction({ type: "single-payout", appId: app.id })}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-yui-green-100 text-yui-green-700 px-4 py-2.5 rounded-xl font-bold hover:bg-yui-green-200 transition-colors"
+                        onClick={() => router.push(`/user/${app.applicantId}`)}
+                        className="flex items-center justify-center gap-1 flex-1 text-yui-green-600 px-3 py-2.5 bg-yui-green-50 rounded-xl hover:bg-yui-green-100 transition-colors font-bold border border-yui-green-200"
+                        title="プロフィールを見る"
                       >
-                        <Coins className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span className="text-xs">支払う</span>
+                        <User className="w-4 h-4" aria-hidden="true" />
+                        <span className="text-xs">プロフィール表示</span>
                       </button>
-                      <button
-                        onClick={() => setConfirmAction({ type: "reject", appId: app.id })}
-                        className="flex-shrink-0 text-red-500 p-2.5 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-                        title="キャンセル"
-                      >
-                        <X className="w-4 h-4" aria-hidden="true" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setConfirmAction({ type: "single-payout", appId: app.id })}
+                          className="flex items-center justify-center gap-1 bg-yui-green-100 text-yui-green-700 px-4 py-2.5 rounded-xl font-bold hover:bg-yui-green-200 transition-colors border border-yui-green-300"
+                        >
+                          <Coins className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span className="text-xs">支払う</span>
+                        </button>
+                        <button
+                          onClick={() => setConfirmAction({ type: "reject", appId: app.id })}
+                          className="flex items-center justify-center gap-1 text-red-600 px-3 py-2.5 bg-red-50 rounded-xl hover:bg-red-100 transition-colors font-bold border border-red-200"
+                          title="却下する"
+                        >
+                          <X className="w-4 h-4" aria-hidden="true" />
+                          <span className="text-xs">断る</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-yui-earth-600 text-sm py-4">まだ参加者がいません</p>
+              <p className="text-center text-yui-earth-600 text-base py-4">まだ参加者がいません</p>
             )}
 
             <div className="pt-3 mt-4 border-t border-yui-earth-200">
               <button
                 onClick={handleDeleteClick}
-                className="w-full flex items-center justify-center gap-2 text-sm bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 transition-colors"
+                className="w-full flex items-center justify-center gap-2 text-base bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 transition-colors"
                 style={{ minHeight: "44px" }}
               >
                 <Trash2 className="w-4 h-4" aria-hidden="true" />

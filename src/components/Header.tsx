@@ -26,8 +26,9 @@ export default function Header() {
         <div className="w-full">
           {/* Mobile Header */}
           <div className="md:hidden h-16 flex items-center justify-between px-4">
-            <Link href="/" className="shrink-0 no-underline -ml-4" aria-label="結 Yui ホームへ">
+            <Link href="/" className="shrink-0 no-underline -ml-4 flex items-center gap-0" aria-label="結 Yui ホームへ">
               <YuiLogo className="h-16 w-auto" width={72} height={72} />
+              <span className="text-3xl text-yui-green-800" style={{ fontFamily: "'Yuji Syuku', serif", marginLeft: "-12px", fontWeight: "900", transform: "translateY(-4px)" }}>YUI</span>
             </Link>
             <div className="flex items-center gap-2">
               <Link
@@ -53,8 +54,9 @@ export default function Header() {
           {/* Desktop Header */}
           <div className="hidden md:flex h-24 items-center justify-between gap-6 px-6">
             <div className="flex items-center gap-8">
-              <Link href="/" className="shrink-0 no-underline -ml-6" aria-label="結 Yui ホームへ">
+              <Link href="/" className="shrink-0 no-underline -ml-6 flex items-center gap-0" aria-label="結 Yui ホームへ">
                 <YuiLogo className="h-24 w-auto" width={96} height={96} />
+                <span className="text-5xl text-yui-green-800" style={{ fontFamily: "'Yuji Syuku', serif", marginLeft: "-16px", fontWeight: "900", transform: "translateY(-6px)" }}>YUI</span>
               </Link>
               <nav className="flex items-center gap-2" aria-label="デスクトップメニュー">
                 <Link

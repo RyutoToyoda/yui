@@ -94,8 +94,8 @@ export default function NotificationsPage() {
 
   return (
     <div className="pt-1 space-y-3 pb-20">
-      <div className="flex items-center justify-between -mt-1 -mb-1">
-        <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 mb-1 flex-1">
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 flex-1">
           <Bell className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
           お知らせ
         </h1>
@@ -105,7 +105,6 @@ export default function NotificationsPage() {
             onClick={handleRefresh}
             disabled={refreshing}
             className="flex items-center gap-1.5 text-sm text-yui-earth-500 font-bold hover:text-yui-green-600 transition-colors disabled:opacity-50"
-            style={{ minHeight: "44px" }}
             aria-label="通知を更新する"
           >
             <RefreshCw className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -114,7 +113,6 @@ export default function NotificationsPage() {
             <button
               onClick={handleMarkAllRead}
               className="flex items-center gap-1.5 text-sm text-yui-green-600 font-bold hover:text-yui-green-800 transition-colors"
-              style={{ minHeight: "44px" }}
             >
               <CheckCheck className="w-5 h-5" aria-hidden="true" /> すべて読んだ
             </button>

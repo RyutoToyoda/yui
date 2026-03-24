@@ -717,11 +717,8 @@ export async function fsCompleteApplicationTransaction(jobId: string, applicatio
     await fsCreateNotification({
       userId: application.applicantId,
       type: "payment_received",
-      title: "🪙 お礼のポイントが届きました",
-      message: `「${jobTitle}」のお礼として${pointsPerPerson}Pを受け取りました。`,
-      jobId: jobId,
-      isRead: false,
-      createdAt: new Date(),
+  title: "🪙 ポイントを受け取りました",
+  message: `${pointsPerPerson}P獲得`,
     });
 
     return true;
@@ -905,7 +902,7 @@ export async function fsCancelJob(
         userId: app.applicantId,
         type: "job_cancelled",
         title: "作業がキャンセルされました",
-        message: `${jobData.creatorName}農園の作業「${jobData.title}」がキャンセルされました。`,
+        message: `「${jobData.title}」キャンセル`,
         jobId,
         reason: cancelReason,
         detail: cancelDetail || null,
@@ -1079,7 +1076,7 @@ export async function fsCreateWelcomeNotification(uid: string): Promise<void> {
     type: "match",
     title: "🌱 ようこそ「結 Yui」へ！",
     message:
-      "まずはマイページで、持っている農機具や手伝える時間を登録しましょう。登録するとご近所さんとマッチングしやすくなります！",
+      "プロフィール設定してマッチングしよう",
     isRead: false,
     createdAt: new Date(),
   });

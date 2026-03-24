@@ -125,7 +125,7 @@ export default function NotificationsPage() {
           {notifications.map((notif) => (
             <div
               key={notif.id}
-              className={`bg-white rounded-xl p-4 shadow-sm border-2 transition-colors relative cursor-pointer ${
+              className={`bg-white rounded-xl pt-3 pr-4 pl-4 pb-0 shadow-sm border-2 transition-colors relative cursor-pointer ${
                 notif.isRead
                   ? "border-yui-green-100"
                   : "border-orange-300 bg-orange-50/30"
@@ -134,7 +134,7 @@ export default function NotificationsPage() {
               role="article"
               aria-label={`${notif.isRead ? "" : "未読: "}${notif.title}`}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2">
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
                   notif.type === "match" ? "bg-orange-100 border-orange-200" :
                   notif.type === "approved" ? "bg-green-100 border-green-200" :
@@ -162,7 +162,7 @@ export default function NotificationsPage() {
                   <p className={`text-sm font-bold ${notif.isRead ? "text-yui-green-800" : "text-orange-800"}`}>
                     {notif.title}
                   </p>
-                  <p className="text-sm text-yui-earth-600 mt-1 leading-relaxed" style={{ lineHeight: "1.7" }}>
+                  <p className="text-sm text-yui-earth-600 leading-relaxed" style={{ lineHeight: "1.7" }}>
                     {notif.message}
                   </p>
                   {/* キャンセル通知の理由・詳細表示 */}
@@ -180,7 +180,7 @@ export default function NotificationsPage() {
                       )}
                     </div>
                   )}
-                  <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center justify-between mt-0.5">
                     <p className="text-xs text-yui-earth-400 font-medium">
                       {notif.createdAt.toLocaleDateString("ja-JP")} {notif.createdAt.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
                     </p>

@@ -82,6 +82,13 @@ export default function SchedulePage() {
     return `${y}-${m}-${d}`;
   };
 
+  const normalizeDate = (rawDate?: string) => {
+    if (!rawDate) return "";
+    return String(rawDate).slice(0, 10);
+  };
+
+  const isPayoutUnlockedByDate = (jobDate: string) => toLocalDateStr(new Date()) >= jobDate;
+
   const loadData = async () => {
     if (!user) return;
     const [myJobs, myApps, allOpenJobs, notifications] = await Promise.all([
@@ -158,6 +165,14 @@ export default function SchedulePage() {
 
   const handleReject = async (applicationId: string, jobId?: string) => {
     if (!applicationId) return;
+    if (jobId) {
+      const target = managingJobsWithApps.find(({ job }) => job.id === jobId)?.job;
+      if (target && isPayoutUnlockedByDate(target.date)) {
+        alert("作業日当日はお断りできません。ポイント支払いで完了してください。");
+        setConfirmAction(null);
+        return;
+      }
+    }
     let applicantId: string | null = null;
     let jobTitle: string | null = null;
     
@@ -200,6 +215,12 @@ export default function SchedulePage() {
   const handleComplete = async (jobId: string) => {
     if (!jobId) return;
     try {
+      const target = managingJobsWithApps.find(({ job }) => job.id === jobId)?.job;
+      if (target && !isPayoutUnlockedByDate(target.date)) {
+        alert("ポイントの支払いは作業日の当日から可能です。");
+        setConfirmAction(null);
+        return;
+      }
       await fsCompleteJobTransaction(jobId);
       setConfirmAction(null);
       await loadData();
@@ -213,6 +234,12 @@ export default function SchedulePage() {
   const handleSinglePayout = async (appId: string, jobId: string) => {
     if (!appId || !jobId) return;
     try {
+      const target = managingJobsWithApps.find(({ job }) => job.id === jobId)?.job;
+      if (target && !isPayoutUnlockedByDate(target.date)) {
+        alert("ポイントの支払いは作業日の当日から可能です。");
+        setConfirmAction(null);
+        return;
+      }
       await fsCompleteApplicationTransaction(jobId, appId);
       setConfirmAction(null);
       await refreshUser();
@@ -236,24 +263,12 @@ export default function SchedulePage() {
   }
 
   const handleDateSelect = (dateStr: string) => {
-    // Get recruitment and volunteered jobs for this date
-    const recruitmentJobsForDate = managingJobsWithApps.filter(({ job }) => job.date === dateStr);
-    const volunteeredJobsForDate = upcomingApps.filter(({ job }) => job.date === dateStr);
-    
-    if (recruitmentJobsForDate.length > 0) {
-      router.push(`/explore/${recruitmentJobsForDate[0].job.id}`);
-      return;
-    }
-
-    if (volunteeredJobsForDate.length > 0) {
-      router.push(`/explore/${volunteeredJobsForDate[0].job.id}`);
-      return;
-    }
+    setSelectedCalendarDate(dateStr);
   };
 
   const formatDateJP = (dateStr: string) => {
     if (!dateStr) return "";
-    const date = new Date(dateStr + "T00:00:00");
+    const date = new Date(normalizeDate(dateStr) + "T00:00:00");
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
@@ -277,17 +292,17 @@ export default function SchedulePage() {
   const todayStr = toLocalDateStr(new Date());
 
   const selectedDayRecruitments = selectedCalendarDate
-    ? openRecruitmentJobs.filter((job) => job.date === selectedCalendarDate)
+    ? openRecruitmentJobs.filter((job) => normalizeDate(job.date) === selectedCalendarDate)
     : [];
 
   const selectedDayHistories = selectedCalendarDate
     ? [
-      ...completedJobs.filter((job) => job.date === selectedCalendarDate).map((job) => ({
+      ...completedJobs.filter((job) => normalizeDate(job.date) === selectedCalendarDate).map((job) => ({
         id: `host-${job.id}`,
         title: job.title,
         owner: "自分の募集",
       })),
-      ...completedAppsWithJobs.filter(({ job }) => job.date === selectedCalendarDate).map(({ app, job }) => ({
+      ...completedAppsWithJobs.filter(({ job }) => normalizeDate(job.date) === selectedCalendarDate).map(({ app, job }) => ({
         id: `help-${app.id}`,
         title: job.title,
         owner: `${job.creatorName}さんの募集`,
@@ -295,23 +310,71 @@ export default function SchedulePage() {
     ]
     : [];
 
+  const selectedDayEvents = selectedCalendarDate
+    ? [
+      ...managingJobsWithApps
+        .filter(({ job }) => normalizeDate(job.date) === selectedCalendarDate)
+        .map(({ job }) => ({
+          key: `own-active-${job.id}`,
+          job,
+          roleLabel: "自分の募集",
+          roleTone: "recruitment" as const,
+          history: false,
+        })),
+      ...upcomingApps
+        .filter(({ job }) => normalizeDate(job.date) === selectedCalendarDate)
+        .map(({ app, job }) => ({
+          key: `help-active-${app.id}`,
+          job,
+          roleLabel: "参加した募集",
+          roleTone: "volunteered" as const,
+          history: false,
+        })),
+      ...completedJobs
+        .filter((job) => normalizeDate(job.date) === selectedCalendarDate)
+        .map((job) => ({
+          key: `own-history-${job.id}`,
+          job,
+          roleLabel: "自分の募集",
+          roleTone: "recruitment" as const,
+          history: true,
+        })),
+      ...completedAppsWithJobs
+        .filter(({ job }) => normalizeDate(job.date) === selectedCalendarDate)
+        .map(({ app, job }) => ({
+          key: `help-history-${app.id}`,
+          job,
+          roleLabel: "参加した募集",
+          roleTone: "volunteered" as const,
+          history: true,
+        })),
+    ]
+    : [];
+
   const calendarCells: CalendarCell[] = monthDays.map((date) => {
     const dateStr = toLocalDateStr(date);
-    const hasRecruitment = managingJobsWithApps.some(({ job }) => job.date === dateStr);
-    const hasUpcoming = upcomingApps.some(({ job }) => job.date === dateStr);
-    const hasHistory =
-      completedJobs.some((job) => job.date === dateStr) ||
-      completedAppsWithJobs.some(({ job }) => job.date === dateStr);
+    const hasRecruitmentUpcoming = managingJobsWithApps.some(({ job }) => normalizeDate(job.date) === dateStr);
+    const hasVolunteeredUpcoming = upcomingApps.some(({ job }) => normalizeDate(job.date) === dateStr);
+    const hasRecruitmentHistory = completedJobs.some((job) => normalizeDate(job.date) === dateStr);
+    const hasVolunteeredHistory = completedAppsWithJobs.some(({ job }) => normalizeDate(job.date) === dateStr);
+    const hasHistory = hasRecruitmentHistory || hasVolunteeredHistory;
     const isPast = dateStr < todayStr;
+
+    // Keep semantic colors even for past days; volunteered takes precedence over recruitment.
+    const hasVolunteered = hasVolunteeredUpcoming || hasVolunteeredHistory;
+    const hasRecruitment = hasRecruitmentUpcoming || hasRecruitmentHistory;
+    const isMixed = hasVolunteered && hasRecruitment;
 
     return {
       dateStr,
       day: date.getDate(),
-      // 優先順位: 予定（volunteered）> 募集（recruitment）> 過去 > デフォルト
-      tone: isPast ? "past" : hasUpcoming ? "volunteered" : hasRecruitment ? "recruitment" : "default",
+      // 優先順位: 予定/履歴（volunteered）> 募集/履歴（recruitment）> 過去（予定なし）> デフォルト
+      tone: hasVolunteered ? "volunteered" : hasRecruitment ? "recruitment" : isPast ? "past" : "default",
+      isMixed,
+      isPast,
       selected: selectedCalendarDate === dateStr,
-      badges: isPast ? (hasHistory ? ["履歴"] : undefined) : hasUpcoming ? ["予定"] : hasRecruitment ? ["募集"] : undefined,
-      ariaLabel: `${date.getDate()}日 ${isPast ? "過去日" : hasUpcoming ? "予定あり" : hasRecruitment ? "募集あり" : "未定"}`,
+      badges: isPast ? (hasHistory ? ["履歴"] : undefined) : isMixed ? ["予定", "募集"] : hasVolunteered ? ["予定"] : hasRecruitment ? ["募集"] : undefined,
+      ariaLabel: `${date.getDate()}日 ${isPast ? (hasHistory ? "履歴あり" : "過去日") : isMixed ? "予定と募集あり" : hasVolunteered ? "予定あり" : hasRecruitment ? "募集あり" : "未定"}`,
     };
   });
 
@@ -320,6 +383,18 @@ export default function SchedulePage() {
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  const renderHistoryTypeEmoji = (type: string) => {
+    if (type === "hybrid") {
+      return (
+        <span className="inline-flex flex-col items-center justify-center shrink-0 text-lg leading-none" aria-hidden="true">
+          <span className="block leading-none">🚜</span>
+          <span className="block leading-none">👤</span>
+        </span>
+      );
+    }
+    return <span className="text-lg shrink-0" aria-hidden="true">{getJobTypeEmoji(type)}</span>;
   };
 
   return (
@@ -341,6 +416,47 @@ export default function SchedulePage() {
             onSelectDate={handleDateSelect}
           />
         </div>
+
+        {selectedCalendarDate && (
+          <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-4 md:p-5 shadow-sm space-y-3" aria-labelledby="selected-day-events">
+            <h2 id="selected-day-events" className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
+              {formatDateJP(selectedCalendarDate)} の一覧
+            </h2>
+
+            {selectedDayEvents.length === 0 ? (
+              <div className="rounded-xl border border-yui-earth-200 bg-yui-earth-50 px-4 py-4 text-sm text-yui-earth-600 font-bold text-center">
+                この日は予定がありません
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {selectedDayEvents.map(({ key, job, roleLabel, roleTone, history }) => (
+                  <button
+                    key={key}
+                    onClick={() => router.push(`/explore/${job.id}`)}
+                    className="w-full text-left rounded-xl border-2 px-4 py-3 bg-white hover:bg-yui-earth-50 transition-colors"
+                    style={{ borderColor: roleTone === "recruitment" ? "#8c7361" : "#468065" }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold mb-0.5" style={{ color: roleTone === "recruitment" ? "#8c7361" : "#468065" }}>
+                          {roleLabel}
+                        </p>
+                        <p className="font-bold text-yui-green-800 truncate">{job.title}</p>
+                        <p className="text-xs text-yui-earth-500 truncate">{job.startTime}〜{job.endTime} / {job.location || "（未指定）"}</p>
+                      </div>
+                      {history && (
+                        <span className="text-[11px] font-bold px-2 py-1 rounded-full bg-yui-earth-100 border border-yui-earth-200 text-yui-earth-700 shrink-0">
+                          履歴
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
 
       </div>
@@ -384,47 +500,50 @@ export default function SchedulePage() {
         >
           <div className="space-y-3">
             {completedJobs.map((job) => (
-              <div key={job.id} className="bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                  <span className="ud-status-badge bg-yui-earth-200 text-yui-earth-700 border border-yui-earth-300">
-                    <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> 完了
-                  </span>
+              <Link key={job.id} href={`/explore/${job.id}`} className="block no-underline">
+              <div className="relative bg-white rounded-xl p-4 shadow-sm border-2 border-[#8c7361] bg-gradient-to-r from-[#f5f1ed] to-[#ebe5df] hover:brightness-[0.98] transition-colors">
+                <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#8c7361" }}>
+                  自分の
                 </div>
-                <h3 className="font-bold text-yui-green-800">{job.title}</h3>
-                <p className="text-sm text-yui-earth-500 flex items-center gap-1">
-                  <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
-                </p>
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <div className="min-w-0 flex items-center gap-3">
+                    {renderHistoryTypeEmoji(job.type)}
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-yui-green-800 truncate">{job.title}</h3>
+                      <p className="text-sm text-yui-earth-500 flex items-center gap-1">
+                        <CalendarDays className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{formatDateJP(job.date)}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
+              </Link>
             ))}
             {completedAppsWithJobs.map(({ app, job }) => (
-              <div key={app.id} className="bg-white rounded-xl p-5 shadow-sm border-2 border-yui-green-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <span aria-hidden="true">{getJobTypeEmoji(job.type)}</span>
-                  <span className="ud-status-badge bg-yui-earth-200 text-yui-earth-700 border border-yui-earth-300">
-                    <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> 完了
-                  </span>
+              <Link key={app.id} href={`/explore/${job.id}`} className="block no-underline">
+              <div className="relative bg-white rounded-xl p-4 shadow-sm border-2 border-yui-green-100 hover:bg-yui-green-50/40 transition-colors">
+                <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#468065" }}>
+                  参加した募集
                 </div>
-                <h3 className="font-bold text-yui-green-800">{job.title}</h3>
-                <p className="text-sm text-yui-earth-500 flex items-center gap-1">
-                  <CalendarDays className="w-4 h-4" aria-hidden="true" /> {formatDateJP(job.date)}
-                </p>
-                <p className="text-sm text-yui-earth-600 mt-1">{job.creatorName}さん</p>
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <div className="min-w-0 flex items-center gap-3">
+                    {renderHistoryTypeEmoji(job.type)}
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-yui-green-800 truncate">{job.title}</h3>
+                      <p className="text-sm text-yui-earth-500 flex items-center gap-1">
+                        <CalendarDays className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{formatDateJP(job.date)}</span>
+                      </p>
+                      <p className="text-sm text-yui-earth-600 truncate">{job.creatorName}さん</p>
+                    </div>
+                  </div>
+                </div>
               </div>
+              </Link>
             ))}
           </div>
         </CollapsibleSection>
-      )}
-
-      {/* Detail Modal - shows when clicking colored calendar date */}
-      {selectedCalendarDate && (
-        <DetailModal
-          dateStr={selectedCalendarDate}
-          onClose={() => setSelectedCalendarDate(null)}
-          recruitmentJobsWithApps={managingJobsWithApps.filter(({ job }) => job.date === selectedCalendarDate)}
-          volunteeredJobs={upcomingApps.filter(({ job }) => job.date === selectedCalendarDate).map(({ job }) => job)}
-          onSetConfirmAction={setConfirmAction}
-        />
       )}
 
       {/* Confirmation Dialogs for other purposes */}
@@ -470,12 +589,14 @@ function DetailModal({
   onClose,
   recruitmentJobsWithApps,
   volunteeredJobs,
+  todayStr,
   onSetConfirmAction,
 }: {
   dateStr: string;
   onClose: () => void;
   recruitmentJobsWithApps: { job: Job; applications: Application[] }[];
   volunteeredJobs: Job[];
+  todayStr: string;
   onSetConfirmAction: (action: { type: string; appId?: string; jobId?: string }) => void;
 }) {
   const formatDateJP = (dateStr: string) => {
@@ -509,6 +630,7 @@ function DetailModal({
             <>
               {recruitmentJobsWithApps.map(({ job, applications }) => {
                 const approvedApps = applications.filter((a) => a.status === "approved");
+                const isPayoutUnlocked = todayStr >= job.date;
                 
                 return (
                   <div key={job.id} className="bg-white rounded-2xl shadow-sm border-2 overflow-hidden" style={{ borderColor: "#8c7361" }}>
@@ -591,6 +713,16 @@ function DetailModal({
                       {applications.length > 0 && (
                         <div className="border-t-2 border-dashed border-yui-green-100 pt-4 mt-4">
                           <h4 className="text-sm font-bold text-yui-green-800 mb-3">応募者管理</h4>
+                          {!isPayoutUnlocked && approvedApps.length > 0 && (
+                            <div className="rounded-xl border border-yui-earth-300 bg-yui-earth-50 px-4 py-3 text-sm font-bold text-yui-earth-700 mb-3">
+                              支払いは作業日の当日から可能です（{job.date}）。
+                            </div>
+                          )}
+                          {isPayoutUnlocked && approvedApps.length > 0 && (
+                            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 mb-3">
+                              本日の作業分です。参加者へのポイント支払いをお願いします。
+                            </div>
+                          )}
                           <div className="space-y-3">
                             {approvedApps.map((app) => (
                               <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white rounded-xl p-3 md:p-4 border border-yui-green-200 shadow-sm gap-3">
@@ -601,15 +733,17 @@ function DetailModal({
                                 <div className="flex items-center gap-2 shrink-0">
                                   <button
                                     onClick={() => onSetConfirmAction({ type: "single-payout", appId: app.id, jobId: job.id })}
-                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-yui-green-100 text-yui-green-700 px-4 py-2.5 rounded-xl font-bold hover:bg-yui-green-200 transition-colors"
+                                    disabled={!isPayoutUnlocked}
+                                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl font-bold transition-colors ${isPayoutUnlocked ? "bg-yui-green-100 text-yui-green-700 hover:bg-yui-green-200" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
                                   >
                                     <Coins className="w-3.5 h-3.5" />
                                     <span className="text-xs">支払う</span>
                                   </button>
                                   <button
                                     onClick={() => onSetConfirmAction({ type: "reject", appId: app.id, jobId: job.id })}
-                                    className="flex-shrink-0 text-red-500 p-2.5 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-                                    title="キャンセル"
+                                    disabled={isPayoutUnlocked}
+                                    className={`flex-shrink-0 p-2.5 rounded-xl transition-colors ${isPayoutUnlocked ? "text-gray-400 bg-gray-100 cursor-not-allowed" : "text-red-500 bg-red-50 hover:bg-red-100"}`}
+                                    title={isPayoutUnlocked ? "当日はお断りできません" : "キャンセル"}
                                   >
                                     <X className="w-4 h-4" />
                                   </button>
@@ -623,7 +757,8 @@ function DetailModal({
                       {approvedApps.length > 0 && (
                          <div className="flex justify-end pt-3">
                            <button
-                             className="w-full sm:w-auto px-6 py-3 bg-yui-green-600 text-white font-bold rounded-xl shadow-sm hover:bg-yui-green-700 transition-colors flex items-center justify-center gap-2"
+                             disabled={!isPayoutUnlocked}
+                             className={`w-full sm:w-auto px-6 py-3 font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 ${isPayoutUnlocked ? "bg-yui-green-600 text-white hover:bg-yui-green-700" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}
                              onClick={() => onSetConfirmAction({ type: "complete", jobId: job.id })}
                            >
                              <CheckCircle2 className="w-4 h-4" />
@@ -761,7 +896,7 @@ function CollapsibleSection({
   onToggle,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   isExpanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;

@@ -25,6 +25,8 @@ export default function JobDetailPage() {
 
   // Cancellation states
   const [approvedApplicants, setApprovedApplicants] = useState<Application[]>([]);
+  const [workedApplicants, setWorkedApplicants] = useState<Application[]>([]);
+  const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelDetail, setCancelDetail] = useState<string>("");
@@ -44,8 +46,11 @@ export default function JobDetailPage() {
       ]);
       if (cancelled) return;
       setJob(jobData);
-      setAlreadyApplied(apps.some((a) => a.applicantId === user!.uid && a.status !== "rejected"));
+      const mine = apps.find((a) => a.applicantId === user!.uid && a.status !== "rejected") || null;
+      setMyApplication(mine);
+      setAlreadyApplied(!!mine);
       setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+      setWorkedApplicants(apps.filter((a) => a.status === "approved" || a.status === "completed"));
       setLoading(false);
     }
     loadData();
@@ -74,7 +79,16 @@ export default function JobDetailPage() {
     );
   }
 
+  const toLocalDateStr = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
   const isOwner = job.creatorId === user.uid;
+  const isPayoutUnlocked = toLocalDateStr(new Date()) >= job.date;
+  const isMyWorkCompleted = !!myApplication && (myApplication.status === "completed" || job.status === "completed");
   const mapQuery =
     typeof job.locationLat === "number" && typeof job.locationLng === "number"
       ? `${job.locationLat},${job.locationLng}`
@@ -130,6 +144,10 @@ export default function JobDetailPage() {
   };
 
   const handleDeleteClick = () => {
+    if (isPayoutUnlocked) {
+      alert("募集のキャンセルは作業日前まで可能です。");
+      return;
+    }
     setCancelReason("");
     setCancelDetail("");
     setShowCancelModal(true);
@@ -137,14 +155,15 @@ export default function JobDetailPage() {
 
   const executeDeleteOrCancel = async () => {
     try {
+      if (isPayoutUnlocked) {
+        alert("募集のキャンセルは作業日前まで可能です。");
+        return;
+      }
       if (!cancelReason) {
         alert("キャンセル理由を選択してください");
         return;
       }
       await fsCancelJob(job!.id, user.uid, cancelReason, cancelDetail);
-      alert(approvedApplicants.length > 0
-        ? "お手伝いの募集をキャンセルしました。応募者に通知を送りました。"
-        : "募集をキャンセルしました");
       router.push("/explore");
     } catch (e) {
       console.error(e);
@@ -156,6 +175,11 @@ export default function JobDetailPage() {
 
   const handleReject = async (appId: string) => {
     if (!job || !appId) return;
+    if (isPayoutUnlocked) {
+      alert("作業日当日はお断りできません。ポイント支払いで完了してください。");
+      setConfirmAction(null);
+      return;
+    }
     let applicantId: string | null = null;
 
     try {
@@ -178,6 +202,10 @@ export default function JobDetailPage() {
       // Reload data
       const apps = await fsGetApplicationsByJob(job.id);
       setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+      setWorkedApplicants(apps.filter((a) => a.status === "approved" || a.status === "completed"));
+      const mine = apps.find((a) => a.applicantId === user.uid && a.status !== "rejected") || null;
+      setMyApplication(mine);
+      setAlreadyApplied(!!mine);
     } catch (e) {
       console.error("Failed to reject application:", e);
       alert("処理に失敗しました");
@@ -210,11 +238,20 @@ export default function JobDetailPage() {
 
   const handleSinglePayout = async (appId: string) => {
     if (!job || !appId) return;
+    if (!isPayoutUnlocked) {
+      alert("ポイントの支払いは作業日の当日から可能です。");
+      setConfirmAction(null);
+      return;
+    }
     try {
       await fsCompleteApplicationTransaction(job.id, appId);
       // Reload data
       const apps = await fsGetApplicationsByJob(job.id);
       setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+      setWorkedApplicants(apps.filter((a) => a.status === "approved" || a.status === "completed"));
+      const mine = apps.find((a) => a.applicantId === user.uid && a.status !== "rejected") || null;
+      setMyApplication(mine);
+      setAlreadyApplied(!!mine);
       // Refresh user context to update points
       await refreshUser();
     } catch (e: any) {
@@ -344,7 +381,15 @@ export default function JobDetailPage() {
           {/* 応募セクション（メインカード内に統合） */}
           {!isOwner && (
             <div className="pt-5 mt-2 border-t border-yui-green-100">
-              {(applied || alreadyApplied) ? (
+              {isMyWorkCompleted ? (
+                <div className="text-center py-2">
+                  <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
+                  <p className="text-lg font-bold text-yui-green-700">このお手伝いは完了しました</p>
+                  <p className="text-sm text-yui-earth-600 mt-1">
+                    お疲れさまでした。履歴に保存されています。
+                  </p>
+                </div>
+              ) : (applied || alreadyApplied) ? (
                 <div className="text-center py-2">
                   <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
                   <p className="text-lg font-bold text-yui-green-700">手を上げました！</p>
@@ -401,12 +446,26 @@ export default function JobDetailPage() {
           </div>
 
           <div className="p-5 space-y-4">
-            {approvedApplicants.length > 0 ? (
+            {!isPayoutUnlocked && approvedApplicants.length > 0 && (
+              <div className="rounded-xl border border-yui-earth-300 bg-yui-earth-50 px-4 py-3 text-sm font-bold text-yui-earth-700">
+                支払いは作業日の当日から可能です（{job.date}）。
+              </div>
+            )}
+
+            {isPayoutUnlocked && approvedApplicants.length > 0 && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                本日の作業分です。参加者へのポイント支払いをお願いします。
+              </div>
+            )}
+
+            {workedApplicants.length > 0 ? (
               <div className="space-y-3">
-                {approvedApplicants.map((app) => (
+                {workedApplicants.map((app) => (
                   <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-yui-earth-50 rounded-xl p-3 md:p-4 border border-yui-earth-200 shadow-sm gap-3">
                     <div>
-                      <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-sm mb-1">確定</span>
+                      <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-sm mb-1 ${app.status === "completed" ? "bg-yui-earth-200 text-yui-earth-700" : "bg-green-100 text-green-700"}`}>
+                        {app.status === "completed" ? "支払い済み" : "確定"}
+                      </span>
                       <p className="font-bold text-sm text-yui-green-800">{app.applicantName}さん</p>
                     </div>
                     <div className="flex gap-2 flex-1">
@@ -418,23 +477,31 @@ export default function JobDetailPage() {
                         <User className="w-4 h-4" aria-hidden="true" />
                         <span className="text-xs">プロフィール表示</span>
                       </button>
+                      {app.status === "approved" ? (
                       <div className="flex gap-2">
                         <button
                           onClick={() => setConfirmAction({ type: "single-payout", appId: app.id })}
-                          className="flex items-center justify-center gap-1 bg-yui-green-100 text-yui-green-700 px-4 py-2.5 rounded-xl font-bold hover:bg-yui-green-200 transition-colors border border-yui-green-300"
+                          disabled={!isPayoutUnlocked}
+                          className={`flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl font-bold transition-colors border ${isPayoutUnlocked ? "bg-yui-green-100 text-yui-green-700 hover:bg-yui-green-200 border-yui-green-300" : "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"}`}
                         >
                           <Coins className="w-3.5 h-3.5" aria-hidden="true" />
                           <span className="text-xs">支払う</span>
                         </button>
                         <button
                           onClick={() => setConfirmAction({ type: "reject", appId: app.id })}
-                          className="flex items-center justify-center gap-1 text-red-600 px-3 py-2.5 bg-red-50 rounded-xl hover:bg-red-100 transition-colors font-bold border border-red-200"
-                          title="却下する"
+                          disabled={isPayoutUnlocked}
+                          className={`flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl transition-colors font-bold border ${isPayoutUnlocked ? "text-gray-400 bg-gray-100 border-gray-300 cursor-not-allowed" : "text-red-600 bg-red-50 hover:bg-red-100 border-red-200"}`}
+                          title={isPayoutUnlocked ? "当日はお断りできません" : "却下する"}
                         >
                           <X className="w-4 h-4" aria-hidden="true" />
                           <span className="text-xs">断る</span>
                         </button>
                       </div>
+                      ) : (
+                        <div className="flex items-center px-3 py-2.5 rounded-xl bg-yui-earth-100 text-yui-earth-700 border border-yui-earth-200 text-xs font-bold">
+                          支払い完了
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -443,16 +510,19 @@ export default function JobDetailPage() {
               <p className="text-center text-yui-earth-600 text-base py-4">まだ参加者がいません</p>
             )}
 
-            <div className="pt-3 mt-4 border-t border-yui-earth-200">
-              <button
-                onClick={handleDeleteClick}
-                className="w-full flex items-center justify-center gap-2 text-base bg-red-50 text-red-600 font-bold px-4 py-3 rounded-xl hover:bg-red-100 transition-colors"
-                style={{ minHeight: "44px" }}
-              >
-                <Trash2 className="w-4 h-4" aria-hidden="true" />
-                この募集をキャンセルする
-              </button>
-            </div>
+            {job.status !== "completed" && (
+              <div className="pt-3 mt-4 border-t border-yui-earth-200">
+                <button
+                  onClick={handleDeleteClick}
+                  disabled={isPayoutUnlocked}
+                  className={`w-full flex items-center justify-center gap-2 text-base font-bold px-4 py-3 rounded-xl transition-colors ${isPayoutUnlocked ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
+                  style={{ minHeight: "44px" }}
+                >
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                  この募集をキャンセルする
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

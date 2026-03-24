@@ -47,7 +47,7 @@ const jobTypes = [
   {
     type: "hybrid" as JobType,
     label: "両方",
-    defaultRate: 4,
+    defaultRate: 1,
   },
 ];
 

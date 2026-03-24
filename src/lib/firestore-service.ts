@@ -650,6 +650,15 @@ export async function fsCompleteApplicationTransaction(jobId: string, applicatio
     const jobData = jobSnap.data();
     const jobTitle = jobData?.title ?? "";
 
+    const approvedAppsBeforeSnap = await getDocs(
+      query(
+        collection(db, "applications"),
+        where("jobId", "==", jobId),
+        where("status", "==", "approved")
+      )
+    );
+    const approvedBeforeCount = approvedAppsBeforeSnap.docs.length;
+
     let pointsPerPerson = 0;
     let applicantName = "";
 
@@ -711,14 +720,21 @@ export async function fsCompleteApplicationTransaction(jobId: string, applicatio
       // Update application status
       const appRef = doc(db, "applications", application.id);
       transaction.update(appRef, { status: "completed" });
+
+      // If no approved applications remain after this payout, close the job.
+      if (approvedBeforeCount <= 1) {
+        transaction.update(jobRef, { status: "completed" });
+      }
     });
 
     // Create notification for applicant after transaction completes
     await fsCreateNotification({
       userId: application.applicantId,
       type: "payment_received",
-  title: "🪙 ポイントを受け取りました",
-  message: `${pointsPerPerson}P獲得`,
+      title: "🪙 ポイントを受け取りました",
+      message: `${pointsPerPerson}P獲得`,
+      isRead: false,
+      createdAt: new Date(),
     });
 
     return true;
@@ -865,12 +881,12 @@ export async function fsCancelJob(
   cancelReason: string,
   cancelDetail: string = ""
 ): Promise<void> {
-  // 応募者全員（pending / approved）を取得
+  // 応募者全員（pending / approved / completed）を取得
   const appsSnap = await getDocs(
     query(
       collection(db, "applications"),
       where("jobId", "==", jobId),
-      where("status", "in", ["pending", "approved"])
+      where("status", "in", ["pending", "approved", "completed"])
     )
   );
   const applicants = appsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Application));
@@ -910,9 +926,11 @@ export async function fsCancelJob(
         createdAt: now,
       });
 
-      // 応募ステータスも cancelled に更新
-      const appRef = doc(db, "applications", app.id);
-      transaction.update(appRef, { status: "cancelled" });
+      // 未完了の応募のみ cancelled に更新（完了済みレコードは保持）
+      if (app.status !== "completed") {
+        const appRef = doc(db, "applications", app.id);
+        transaction.update(appRef, { status: "cancelled" });
+      }
     });
 
     // 3. 見えないペナルティ（ホストのキャンセル統計を蓄積）

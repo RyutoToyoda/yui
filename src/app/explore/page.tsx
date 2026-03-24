@@ -15,6 +15,7 @@ export default function ExplorePage() {
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [fullJobIds, setFullJobIds] = useState<Set<string>>(new Set());
+  const [payoutReminderJobIds, setPayoutReminderJobIds] = useState<Set<string>>(new Set());
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,8 +51,12 @@ export default function ExplorePage() {
         matched.forEach(j => mergedMap.set(j.id, j));
         activeUserJobs.forEach(j => mergedMap.set(j.id, j));
 
+        const today = new Date();
+        const todayStrLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
         // Check which jobs are full - use Promise.all for parallel queries
         const fullJobs = new Set<string>();
+        const reminderJobs = new Set<string>();
         if (matched.length > 0) {
           const appPromises = matched.map(job => 
             job.requiredPeople > 0 
@@ -68,15 +73,66 @@ export default function ExplorePage() {
                 fullJobs.add(job.id);
               }
             }
+
+            if (job.creatorId === user!.uid && job.date <= todayStrLocal) {
+              const hasUnpaidApproved = (allAppsResults[index] || []).some((a) => a.status === "approved");
+              if (hasUnpaidApproved) {
+                reminderJobs.add(job.id);
+              }
+            }
           });
         }
+
+        const ownInProgressJobs = activeUserJobs.filter(
+          (job) =>
+            job.creatorId === user!.uid &&
+            job.status === "in_progress" &&
+            job.date <= todayStrLocal &&
+            !matched.some((m) => m.id === job.id)
+        );
+        if (ownInProgressJobs.length > 0) {
+          const ownInProgressApps = await Promise.all(
+            ownInProgressJobs.map((job) => fsGetApplicationsByJob(job.id).catch(() => []))
+          );
+          ownInProgressJobs.forEach((job, index) => {
+            const apps = ownInProgressApps[index] || [];
+            const hasUnpaidApproved = apps.some((a) => a.status === "approved");
+            if (hasUnpaidApproved) {
+              reminderJobs.add(job.id);
+            }
+          });
+        }
+
+        // Include past own jobs in any active status (including open/not-full) when they still have unpaid approved participants.
+        const ownPastActiveJobs = userJobs.filter(
+          (job) =>
+            job.creatorId === user!.uid &&
+            job.date <= todayStrLocal &&
+            job.status !== "completed" &&
+            job.status !== "cancelled"
+        );
+        if (ownPastActiveJobs.length > 0) {
+          const ownPastApps = await Promise.all(
+            ownPastActiveJobs.map((job) => fsGetApplicationsByJob(job.id).catch(() => []))
+          );
+          ownPastActiveJobs.forEach((job, index) => {
+            const apps = ownPastApps[index] || [];
+            const hasUnpaidApproved = apps.some((a) => a.status === "approved");
+            if (hasUnpaidApproved) {
+              reminderJobs.add(job.id);
+            }
+          });
+        }
+
         setFullJobIds(fullJobs);
+        setPayoutReminderJobIds(reminderJobs);
 
         setOpenJobs(Array.from(mergedMap.values()));
       } catch (error) {
         console.error("Error loading jobs:", error);
         setOpenJobs([]);
         setFullJobIds(new Set());
+        setPayoutReminderJobIds(new Set());
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -217,8 +273,11 @@ export default function ExplorePage() {
 
   const JobCard = ({ job, isRecommended, isOwnJob, isFull, onOwnJobClick }: { job: Job, isRecommended?: boolean, isOwnJob?: boolean, isFull?: boolean, onOwnJobClick?: (job: Job) => void }) => {
     const cardIsOwnJob = job.creatorId === user.uid;
+    const showPayoutReminder = cardIsOwnJob && payoutReminderJobIds.has(job.id);
     const bgGradient = isRecommended 
       ? "border-green-200 bg-gradient-to-r from-green-50 to-lime-50 hover:border-green-300"
+      : showPayoutReminder
+      ? "border-red-300 bg-gradient-to-r from-[#f5f1ed] via-[#f1e1d8] to-red-50 hover:border-red-400"
       : cardIsOwnJob 
       ? "border-[#8c7361] bg-gradient-to-r from-[#f5f1ed] to-[#ebe5df] hover:border-[#7a6552]"
       : isFull
@@ -237,21 +296,25 @@ export default function ExplorePage() {
         {...componentProps}
         aria-label={`${job.title} ${job.creatorName}さん ${job.date}`}
       >
-        {isOwnJob && !isRecommended && !isFull && (
-          <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#8c7361" }}>
-            自分の
-          </div>
-        )}
-        {isRecommended && !isFull && (
+        {cardIsOwnJob ? (
+          showPayoutReminder ? (
+            <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10 bg-red-600">
+              未支払い
+            </div>
+          ) : (
+            <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#8c7361" }}>
+              自分の
+            </div>
+          )
+        ) : isRecommended && !isFull ? (
           <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#4ade80" }}>
             おすすめ
           </div>
-        )}
-        {isFull && (
+        ) : isFull ? (
           <div className="absolute -top-[2px] -right-[2px] text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10" style={{ backgroundColor: "#888888" }}>
             満員
           </div>
-        )}
+        ) : null}
         <div className="flex w-full min-w-0 flex-col">
           <p className={`text-xs font-bold mb-0.5 text-left ${isRecommended ? "text-green-700" : cardIsOwnJob ? "text-[#8c7361]" : "text-yui-earth-500"}`}>{job.creatorName}さん</p>
           
@@ -467,7 +530,14 @@ export default function ExplorePage() {
 
       {/* 自分の募集 - Show FIRST, no title */}
       {(() => {
-        const ownJobs = filteredJobs.filter(job => job.creatorId === user.uid);
+        const ownJobs = filteredJobs
+          .filter(job => job.creatorId === user.uid)
+          .sort((a, b) => {
+            const aIsPayoutMode = payoutReminderJobIds.has(a.id) ? 1 : 0;
+            const bIsPayoutMode = payoutReminderJobIds.has(b.id) ? 1 : 0;
+            if (aIsPayoutMode !== bIsPayoutMode) return bIsPayoutMode - aIsPayoutMode;
+            return a.date.localeCompare(b.date);
+          });
         return ownJobs.length > 0 ? (
           <section aria-labelledby="own-jobs-heading" className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
@@ -512,7 +582,7 @@ export default function ExplorePage() {
 
       {/* 満員ジョブ - Show at the BOTTOM as low priority */}
       {(() => {
-        const fullJobs = filteredJobs.filter(job => fullJobIds.has(job.id));
+        const fullJobs = filteredJobs.filter(job => fullJobIds.has(job.id) && job.creatorId !== user.uid);
         return fullJobs.length > 0 ? (
           <section aria-labelledby="full-jobs-heading" className="space-y-3 mt-6 pt-4 border-t-2 border-yui-earth-200">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
@@ -528,7 +598,7 @@ export default function ExplorePage() {
       {(() => {
         const ownJobs = filteredJobs.filter(job => job.creatorId === user.uid);
         const otherJobs = filteredJobs.filter(job => job.creatorId !== user.uid && !fullJobIds.has(job.id));
-        const fullJobs = filteredJobs.filter(job => fullJobIds.has(job.id));
+        const fullJobs = filteredJobs.filter(job => fullJobIds.has(job.id) && job.creatorId !== user.uid);
         
         if (ownJobs.length === 0 && otherJobs.length === 0 && fullJobs.length === 0) {
           return (

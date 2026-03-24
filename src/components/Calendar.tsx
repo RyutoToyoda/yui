@@ -8,6 +8,8 @@ export type CalendarCell = {
   dateStr: string;
   day: number;
   tone: CalendarCellTone;
+  isMixed?: boolean;
+  isPast?: boolean;
   selected?: boolean;
   disabled?: boolean;
   badges?: string[];
@@ -35,7 +37,7 @@ function getCellToneClass(tone: CalendarCellTone) {
       return "text-white font-bold border-[#2d5242]";
     case "past":
       // 過去
-      return "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed";
+      return "bg-gray-200 text-gray-500 border-gray-300";
     default:
       // 何も設定されていない未来の日
       return "bg-gray-50 text-gray-700 border-gray-300";
@@ -100,15 +102,19 @@ export default function Calendar({
           <button
             key={cell.dateStr}
             onClick={() => onSelectDate(cell.dateStr)}
-            disabled={cell.disabled || cell.tone === "past"}
+            disabled={cell.disabled}
             className={`relative w-full min-w-0 aspect-square rounded-lg border-2 flex flex-col items-center justify-center overflow-hidden transition-all ${getCellToneClass(cell.tone)} ${cell.selected ? "ring-[3px] ring-yui-green-600 ring-offset-1 z-10 scale-[1.05]" : ""
-              } ${cell.disabled || cell.tone === "past" ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"}`}
+              } ${cell.disabled ? "cursor-not-allowed opacity-70" : "hover:brightness-[0.98]"} ${cell.isPast ? "opacity-80 saturate-50" : ""}`}
             style={{
+              ...(cell.isMixed && {
+                background: "linear-gradient(135deg, #8c7361 0%, #8c7361 50%, #468065 50%, #468065 100%)",
+                borderColor: "#4e5f54",
+              }),
               ...(cell.tone === "recruitment" && { backgroundColor: "#8c7361" }),
               ...(cell.tone === "volunteered" && { backgroundColor: "#468065" })
             }}
             aria-label={cell.ariaLabel}
-            aria-disabled={cell.disabled || cell.tone === "past"}
+            aria-disabled={cell.disabled}
             aria-pressed={cell.selected}
           >
             <span className="text-sm md:text-base font-black leading-none">{cell.day}</span>

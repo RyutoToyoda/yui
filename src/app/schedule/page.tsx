@@ -40,6 +40,7 @@ import {
   MapPin,
   Users,
   Wrench,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -160,10 +161,13 @@ export default function SchedulePage() {
     try {
       if (jobId) {
         const apps = await fsGetApplicationsByJob(jobId);
+        console.log("All applications for job:", apps.map(a => ({ id: a.id, applicantId: a.applicantId, status: a.status })));
         const app = apps.find((a) => a.id === applicationId);
+        console.log("Found application to reject:", app);
         const job = await fsGetJob(jobId);
         if (app) applicantId = app.applicantId;
         if (job) jobTitle = job.title;
+        console.log("Applicant ID and Job Title:", { applicantId, jobTitle });
         
         await fsUpdateApplication(applicationId, { status: "rejected" });
         
@@ -176,18 +180,30 @@ export default function SchedulePage() {
       }
     } catch (e) {
       console.error("Failed to get application/job details:", e);
+      alert("処理に失敗しました");
+      setConfirmAction(null);
+      return;
     }
     
+    // Create notification separately with its own error handling
     if (applicantId && jobTitle) {
-      await fsCreateNotification({
-        userId: applicantId,
-        type: "rejected",
-        title: "❌ 応募が断られました",
-        message: `申し訳ありませんが、「${jobTitle}」のお手伝いは他の方が担当することになりました。`,
-        jobId: jobId || "",
-        isRead: false,
-        createdAt: new Date(),
-      });
+      try {
+        console.log("Creating rejection notification for applicantId:", applicantId);
+        await fsCreateNotification({
+          userId: applicantId,
+          type: "rejected",
+          title: "❌ 応募が断られました",
+          message: `申し訳ありませんが、「${jobTitle}」のお手伝いは他の方が担当することになりました。`,
+          jobId: jobId || "",
+          isRead: false,
+          createdAt: new Date(),
+        });
+        console.log("Rejection notification created successfully");
+      } catch (notifError) {
+        console.error("Failed to create rejection notification:", notifError);
+      }
+    } else {
+      console.warn("Missing applicantId or jobTitle for rejection notification", { applicantId, jobTitle });
     }
     setConfirmAction(null);
     await loadData();
@@ -411,6 +427,7 @@ export default function SchedulePage() {
           recruitmentJobsWithApps={managingJobsWithApps.filter(({ job }) => job.date === selectedCalendarDate)}
           volunteeredJobs={upcomingApps.filter(({ job }) => job.date === selectedCalendarDate).map(({ job }) => job)}
           onSetConfirmAction={setConfirmAction}
+          router={router}
         />
       )}
 
@@ -458,12 +475,14 @@ function DetailModal({
   recruitmentJobsWithApps,
   volunteeredJobs,
   onSetConfirmAction,
+  router,
 }: {
   dateStr: string;
   onClose: () => void;
   recruitmentJobsWithApps: { job: Job; applications: Application[] }[];
   volunteeredJobs: Job[];
   onSetConfirmAction: (action: { type: string; appId?: string; jobId?: string }) => void;
+  router: ReturnType<typeof useRouter>;
 }) {
   const formatDateJP = (dateStr: string) => {
     if (!dateStr) return "";
@@ -582,7 +601,7 @@ function DetailModal({
                             {approvedApps.map((app) => (
                               <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white rounded-xl p-3 md:p-4 border border-yui-green-200 shadow-sm gap-3">
                                 <div>
-                                  <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-sm mb-1">確定</span>
+                                  <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text[10px] font-bold rounded-sm mb-1">確定</span>
                                   <p className="font-bold text-sm text-yui-green-800">{app.applicantName}さん</p>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
@@ -594,11 +613,11 @@ function DetailModal({
                                     <span className="text-xs">支払う</span>
                                   </button>
                                   <button
-                                    onClick={() => onSetConfirmAction({ type: "reject", appId: app.id, jobId: job.id })}
-                                    className="flex-shrink-0 text-red-500 p-2.5 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-                                    title="キャンセル"
+                                    onClick={() => router.push(`/user/${app.applicantId}`)}
+                                    className="flex-shrink-0 text-yui-green-600 p-2.5 bg-yui-green-50 rounded-xl hover:bg-yui-green-100 transition-colors"
+                                    title="プロフィールを見る"
                                   >
-                                    <X className="w-4 h-4" />
+                                    <User className="w-4 h-4" />
                                   </button>
                                 </div>
                               </div>

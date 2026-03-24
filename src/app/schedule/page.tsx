@@ -245,6 +245,11 @@ export default function SchedulePage() {
       router.push(`/explore/${volunteeredJobsForDate[0].job.id}`);
       return;
     }
+  };
+
+  const formatDateJP = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr + "T00:00:00");
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];

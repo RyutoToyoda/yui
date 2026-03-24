@@ -12,7 +12,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Job, Application } from "@/types/firestore";
 
 export default function JobDetailPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const params = useParams();
   const router = useRouter();
   const [isAgreed, setIsAgreed] = useState(false);
@@ -215,6 +215,8 @@ export default function JobDetailPage() {
       // Reload data
       const apps = await fsGetApplicationsByJob(job.id);
       setApprovedApplicants(apps.filter((a) => a.status === "approved"));
+      // Refresh user context to update points
+      await refreshUser();
     } catch (e: any) {
       console.error("Individual payout error:", e);
       alert(`ポイントの決済に失敗しました。\n原因: ${e.message || "残高が不足している可能性があります。"}`);

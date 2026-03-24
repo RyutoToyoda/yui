@@ -644,6 +644,15 @@ export async function fsCompleteApplicationTransaction(jobId: string, applicatio
     if (application.jobId !== jobId) throw new Error("Application does not match job");
     if (application.status !== "approved") throw new Error("Application is not approved");
 
+    // Get job data before transaction for notification later
+    const jobSnap = await getDoc(doc(db, "jobs", jobId));
+    if (!jobSnap.exists()) throw new Error("Job not found");
+    const jobData = jobSnap.data();
+    const jobTitle = jobData?.title ?? "";
+
+    let pointsPerPerson = 0;
+    let applicantName = "";
+
     await runTransaction(db, async (transaction) => {
       const jobRef = doc(db, "jobs", jobId);
       const jobSnap = await transaction.get(jobRef);
@@ -659,7 +668,7 @@ export async function fsCompleteApplicationTransaction(jobId: string, applicatio
       const creatorData = creatorSnap.data();
       const creatorBalance = Number(creatorData.tokenBalance || 0);
 
-      const pointsPerPerson = getPointsPerPerson(jobData);
+      pointsPerPerson = getPointsPerPerson(jobData);
       
       if (isNaN(pointsPerPerson) || pointsPerPerson < 0) {
         throw new Error(`Invalid calculated points: pointsPerPerson=${pointsPerPerson}`);
@@ -674,6 +683,7 @@ export async function fsCompleteApplicationTransaction(jobId: string, applicatio
       if (!applicantSnap.exists()) throw new Error("Applicant not found");
       const applicantData = applicantSnap.data();
       const applicantBalance = Number(applicantData.tokenBalance || 0);
+      applicantName = applicantData.name ?? "";
 
       // 募集者のポイントを「支払ポイント」分マイナスする
       transaction.update(creatorRef, { tokenBalance: creatorBalance - pointsPerPerson });
@@ -702,6 +712,18 @@ export async function fsCompleteApplicationTransaction(jobId: string, applicatio
       const appRef = doc(db, "applications", application.id);
       transaction.update(appRef, { status: "completed" });
     });
+
+    // Create notification for applicant after transaction completes
+    await fsCreateNotification({
+      userId: application.applicantId,
+      type: "payment_received",
+      title: "🪙 お礼のポイントが届きました",
+      message: `「${jobTitle}」のお礼として${pointsPerPerson}Pを受け取りました。`,
+      jobId: jobId,
+      isRead: false,
+      createdAt: new Date(),
+    });
+
     return true;
   } catch (error) {
     console.error("Single application completion failed:", error);

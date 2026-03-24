@@ -144,6 +144,8 @@ export default function SchedulePage() {
     setImportantNotifications(actionableNotifs);
 
     setLoading(false);
+    // Refresh user context to update points
+    await refreshUser();
   };
 
   useEffect(() => {
@@ -212,6 +214,7 @@ export default function SchedulePage() {
     try {
       await fsCompleteApplicationTransaction(jobId, appId);
       setConfirmAction(null);
+      await refreshUser();
       await loadData();
     } catch (e: any) {
       console.error("個別ポイント決済エラー:", e);

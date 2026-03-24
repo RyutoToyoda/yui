@@ -165,9 +165,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="py-3 space-y-4 pb-20">
+    <div className="pt-1 space-y-3 pb-20">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+        <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 mb-1">
           <User className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
           マイページ
         </h1>
@@ -175,7 +175,7 @@ export default function ProfilePage() {
 
       {/* プロフィールカード（統合） */}
       <div className="bg-white rounded-2xl shadow-sm border-2 border-yui-green-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 px-5 py-6 text-white relative">
+        <div className="bg-gradient-to-r from-yui-green-600 to-yui-green-700 px-5 py-4 text-white relative">
           {/* 編集ボタン（右上） */}
           <button
             onClick={async () => {
@@ -201,11 +201,15 @@ export default function ProfilePage() {
             {editingProfile ? "完了" : "変更"}
           </button>
 
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
-            <User className="w-8 h-8 text-white" aria-hidden="true" />
+          <div className="flex items-center gap-4 mt-0.5">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+              <User className="w-8 h-8 text-white" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">{user.name}</h2>
+              {user.farmName && <p className="text-yui-green-100 text-base font-medium">{user.farmName}</p>}
+            </div>
           </div>
-          <h2 className="text-xl font-bold">{user.name}</h2>
-          <p className="text-yui-green-200 text-sm font-medium">{user.farmName}</p>
         </div>
 
         <div className="p-5 space-y-4">
@@ -213,7 +217,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <MapPin className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
             <div className="flex-1">
-              <p className="text-xs text-yui-earth-500 font-medium">お住まいの地域</p>
+              <p className="text-base text-yui-earth-500 font-medium">お住まいの地域</p>
               {editingProfile && editingLocation ? (
                 <div className="mt-1 space-y-3">
                   <div className="space-y-2">
@@ -248,7 +252,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm font-bold text-yui-green-800">{user.location || "まだ設定していません"}</p>
+                <p className="text-base font-bold text-yui-green-800">{user.location || "まだ設定していません"}</p>
               )}
             </div>
           </div>
@@ -257,15 +261,15 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <User className="w-5 h-5 text-yui-green-500 shrink-0" aria-hidden="true" />
             <div>
-              <p className="text-xs text-yui-earth-500 font-medium">年齢層</p>
-              <p className="text-sm font-bold text-yui-green-800">{user.ageGroup}</p>
+              <p className="text-base text-yui-earth-500 font-medium">年齢層</p>
+              <p className="text-base font-bold text-yui-green-800">{user.ageGroup}</p>
             </div>
           </div>
 
           {/* 農機具 */}
           <div className="pt-3">
-            <h3 className="text-xl font-bold text-yui-green-800 flex items-center gap-2 pb-2 mb-3">
-              <Tractor className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+            <h3 className="text-base text-yui-earth-500 font-bold flex items-center gap-2 mb-2">
+              <Tractor className="w-5 h-5 text-yui-green-500" aria-hidden="true" />
               もっている農機具
             </h3>
             {editingProfile ? (
@@ -378,8 +382,8 @@ export default function ProfilePage() {
 
           {/* 作物 */}
           <div className="pt-3">
-            <h3 className="text-xl font-bold text-yui-green-800 flex items-center gap-2 pb-2 mb-3">
-              <Sprout className="w-6 h-6 text-yui-green-600" aria-hidden="true" />
+            <h3 className="text-base text-yui-earth-500 font-bold flex items-center gap-2 mb-2">
+              <Sprout className="w-5 h-5 text-yui-green-500" aria-hidden="true" />
               育てている作物
             </h3>
             {editingProfile ? (
@@ -430,24 +434,24 @@ export default function ProfilePage() {
       </div>
 
       {/* 設定ボタン */}
-      <div className="pt-4 mt-8">
+      <div className="pt-2 mt-4">
         <Link
           href="/settings"
-          className="w-full py-6 bg-white text-yui-green-600 font-bold text-lg rounded-xl border-2 border-yui-green-200 hover:bg-yui-green-50 transition-colors flex items-center justify-center gap-3 shadow-sm mb-4"
-          style={{ minHeight: "68px" }}
+          className="w-full py-4 bg-white text-yui-green-600 font-bold text-base rounded-xl border-2 border-yui-green-200 hover:bg-yui-green-50 transition-colors flex items-center justify-center gap-2 shadow-sm mb-3"
+          style={{ minHeight: "56px" }}
           aria-label="表示設定を変える"
         >
-          <Settings className="w-7 h-7" aria-hidden="true" />
+          <Settings className="w-5 h-5" aria-hidden="true" />
           設定
         </Link>
 
         {/* ログアウト */}
         <button
           onClick={() => setConfirmDelete({ type: "logout" })}
-          className="w-full py-6 bg-white text-yui-danger font-bold text-lg rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-3 shadow-sm mb-4"
-          style={{ minHeight: "68px" }}
+          className="w-full py-4 bg-white text-yui-danger font-bold text-base rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 shadow-sm mb-3"
+          style={{ minHeight: "56px" }}
         >
-          <LogOut className="w-7 h-7" aria-hidden="true" />
+          <LogOut className="w-5 h-5" aria-hidden="true" />
           ログアウト
         </button>
       </div>

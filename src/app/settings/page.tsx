@@ -9,9 +9,9 @@ import { useState } from "react";
 import HelpAdvisor from "@/components/HelpAdvisor";
 
 const fontSizeOptions = [
-  { value: "standard" as const, label: "普通", description: "標準のサイズです", sampleSize: "16px" },
-  { value: "large" as const, label: "大きめ", description: "少し大きめの文字です", sampleSize: "20px" },
-  { value: "xlarge" as const, label: "とても大きい", description: "もっとも読みやすいサイズです", sampleSize: "24px" },
+  { value: "standard" as const, label: "普通", description: "標準のサイズです", sampleSize: "12px" },
+  { value: "large" as const, label: "大きめ", description: "少し大きめの文字です", sampleSize: "14px" },
+  { value: "xlarge" as const, label: "とても大きい", description: "もっとも読みやすいサイズです", sampleSize: "16px" },
 ];
 
 export default function SettingsPage() {

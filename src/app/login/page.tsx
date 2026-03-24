@@ -73,43 +73,43 @@ export default function LoginPage() {
   };
 
   const inputClass =
-    "w-full px-4 py-4 text-base border-2 border-yui-green-200 rounded-2xl focus:border-yui-green-500 focus:outline-none bg-yui-earth-50 placeholder:text-yui-earth-400";
+    "w-full px-3 py-2 text-sm border border-yui-green-200 rounded-lg focus:border-yui-green-500 focus:outline-none bg-yui-earth-50 placeholder:text-yui-earth-400";
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-start px-5 pt-4 pb-8">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-5 py-4">
       {/* ロゴ */}
       <div className="text-center mb-0">
-        <div className="w-96 h-96 mx-auto mb-0 rounded-4xl flex items-center justify-center">
-          <YuiLogo width={560} height={560} />
+        <div className="w-40 h-40 mx-auto mb-0 mt-0 flex items-center justify-center">
+          <YuiLogo width={240} height={240} />
         </div>
-        <p className="text-lg text-yui-earth-500 mt-0 tracking-wide">農家のためのタイムバンク</p>
+        <p className="text-sm text-yui-earth-500 mt-0 mb-0 tracking-wide">農家のためのタイムバンク</p>
       </div>
 
       {/* フォームカード */}
-      <div className="w-full max-w-[400px] bg-white border-2 border-yui-green-200 rounded-3xl shadow-lg p-7 mt-1">
+      <div className="w-full max-w-[400px] bg-white border-2 border-yui-green-200 rounded-3xl shadow-lg p-5">
         {/* タブ切り替え */}
-        <div className="flex bg-yui-green-100 rounded-2xl p-1 mb-6" role="tablist" aria-label="ログインまたは新規登録">
+        <div className="flex bg-yui-green-100 rounded-xl p-1 mb-4" role="tablist" aria-label="ログインまたは新規登録">
           <button
             onClick={() => { setIsRegister(false); setError(""); setShowPassword(false); }}
-            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${!isRegister
+            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${!isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
                 : "text-yui-green-600 hover:text-yui-green-700"
               }`}
             role="tab"
             aria-selected={!isRegister}
-            style={{ minHeight: "48px" }}
+            style={{ minHeight: "40px" }}
           >
             ログイン
           </button>
           <button
             onClick={() => { setIsRegister(true); setError(""); setShowPassword(false); }}
-            className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${isRegister
+            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${isRegister
                 ? "bg-white text-yui-green-700 shadow-sm"
                 : "text-yui-green-600 hover:text-yui-green-700"
               }`}
             role="tab"
             aria-selected={isRegister}
-            style={{ minHeight: "48px" }}
+            style={{ minHeight: "40px" }}
           >
             はじめて使う
           </button>
@@ -123,9 +123,9 @@ export default function LoginPage() {
         )}
 
         {!isRegister ? (
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-3">
             <div>
-              <label htmlFor="login-email" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="login-email" className="block text-sm font-bold text-yui-green-700 mb-1">
                 メールアドレス
               </label>
               <input
@@ -140,7 +140,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="login-password" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="login-password" className="block text-sm font-bold text-yui-green-700 mb-1">
                 パスワード
               </label>
               <div className="relative">
@@ -158,32 +158,32 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-yui-earth-400 hover:text-yui-earth-700 rounded-xl hover:bg-yui-earth-100 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-yui-earth-400 hover:text-yui-earth-700 rounded-xl hover:bg-yui-earth-100 transition-colors"
                 >
                   {showPassword
-                    ? <EyeOff className="w-6 h-6" aria-hidden="true" />
-                    : <Eye className="w-6 h-6" aria-hidden="true" />}
+                    ? <EyeOff className="w-5 h-5" aria-hidden="true" />
+                    : <Eye className="w-5 h-5" aria-hidden="true" />}
                 </button>
               </div>
             </div>
             <button
               type="submit"
-              className="w-full py-4 gradient-primary text-white text-lg font-bold rounded-2xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20"
-              style={{ minHeight: "56px" }}
+              className="w-full py-2.5 gradient-primary text-white text-base font-bold rounded-xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20"
+              style={{ minHeight: "44px" }}
             >
               ログインする
             </button>
 
             <div className="text-center pt-1 space-y-1">
-              <p className="text-sm text-yui-earth-500 font-medium">
+              <p className="text-xs text-yui-earth-500 font-medium">
                 ご登録のメールアドレス・パスワードを入力してください。
               </p>
             </div>
           </form>
         ) : (
-          <form onSubmit={handleRegister} className="space-y-5">
+          <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <label htmlFor="reg-email" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="reg-email" className="block text-sm font-bold text-yui-green-700 mb-1">
                 メールアドレス <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
@@ -198,7 +198,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="reg-password" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="reg-password" className="block text-sm font-bold text-yui-green-700 mb-1">
                 パスワード <span className="text-yui-danger text-xs font-bold">（6文字以上）</span>
               </label>
               <div className="relative">
@@ -217,16 +217,16 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-yui-earth-400 hover:text-yui-earth-700 rounded-xl hover:bg-yui-earth-100 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-yui-earth-400 hover:text-yui-earth-700 rounded-xl hover:bg-yui-earth-100 transition-colors"
                 >
                   {showPassword
-                    ? <EyeOff className="w-6 h-6" aria-hidden="true" />
-                    : <Eye className="w-6 h-6" aria-hidden="true" />}
+                    ? <EyeOff className="w-5 h-5" aria-hidden="true" />
+                    : <Eye className="w-5 h-5" aria-hidden="true" />}
                 </button>
               </div>
             </div>
             <div>
-              <label htmlFor="reg-name" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="reg-name" className="block text-sm font-bold text-yui-green-700 mb-1">
                 お名前 <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
@@ -241,7 +241,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="reg-farm" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="reg-farm" className="block text-sm font-bold text-yui-green-700 mb-1">
                 農園名 <span className="text-yui-danger text-xs font-bold">（必ず入力）</span>
               </label>
               <input
@@ -255,10 +255,10 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="reg-prefecture" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="reg-prefecture" className="block text-sm font-bold text-yui-green-700 mb-1">
                 お住まいの地域
               </label>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <select
                   id="reg-prefecture"
                   value={prefecture}
@@ -300,7 +300,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div>
-              <label htmlFor="reg-age" className="block text-sm font-bold text-yui-green-700 mb-2">
+              <label htmlFor="reg-age" className="block text-sm font-bold text-yui-green-700 mb-1">
                 年齢層
               </label>
               <select
@@ -319,18 +319,18 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
-              className="w-full py-4 gradient-primary text-white text-lg font-bold rounded-2xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20"
-              style={{ minHeight: "56px" }}
+              className="w-full py-2.5 gradient-primary text-white text-base font-bold rounded-xl hover:opacity-90 active:opacity-95 shadow-lg shadow-yui-green-900/20 mt-2"
+              style={{ minHeight: "44px" }}
             >
               登録してはじめる
             </button>
-            <p className="text-center text-sm text-yui-earth-500 font-medium">
+            <p className="text-center text-xs text-yui-earth-500 font-medium">
               登録すると 🪙 10 ポイントがもらえます！
             </p>
           </form>
         )}
 
-        <div className="relative mt-8 mb-6">
+        <div className="relative mt-4 mb-4">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t flex-1 border-yui-earth-200"></div>
           </div>
@@ -341,8 +341,8 @@ export default function LoginPage() {
 
         <button
           onClick={handleGuestLogin}
-          className="w-full py-4 bg-white text-yui-green-700 text-lg font-bold rounded-2xl border-2 border-yui-green-200 hover:bg-yui-green-50 active:bg-yui-green-100 transition-colors shadow-sm mb-4"
-          style={{ minHeight: "56px" }}
+          className="w-full py-2.5 bg-white text-yui-green-700 text-base font-bold rounded-xl border border-yui-green-200 hover:bg-yui-green-50 active:bg-yui-green-100 transition-colors shadow-sm mb-4"
+          style={{ minHeight: "44px" }}
         >
           アカウント登録なしで試す
         </button>
@@ -357,7 +357,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <p className="text-sm text-white/40 mt-8 tracking-wide">
+      <p className="text-xs text-yui-earth-400 mt-4 tracking-wide">
         © 2026 結 Yui — みんなで支え合う農業の未来
       </p>
     </div>

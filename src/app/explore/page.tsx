@@ -228,7 +228,7 @@ export default function ExplorePage() {
     const Component = cardIsOwnJob ? Link : Link;
     const componentProps = {
       href: `/explore/${job.id}`,
-      className: `block relative h-full w-full min-w-0 bg-white rounded-xl p-5 shadow-sm border-2 transition-colors no-underline ${bgGradient}`,
+      className: `block relative w-full min-w-0 bg-white rounded-xl px-4 pt-4 pb-3 shadow-sm border-2 transition-colors no-underline ${bgGradient}`,
     };
 
     return (
@@ -252,15 +252,15 @@ export default function ExplorePage() {
             満員
           </div>
         )}
-        <div className="flex w-full min-w-0 flex-col h-full mt-1">
+        <div className="flex w-full min-w-0 flex-col">
           <p className={`text-xs font-bold mb-0.5 text-left ${isRecommended ? "text-green-700" : cardIsOwnJob ? "text-[#8c7361]" : "text-yui-earth-500"}`}>{job.creatorName}さん</p>
           
           {/* Two-column layout */}
-          <div className="flex justify-between items-stretch gap-3 mb-1 min-h-[110px]">
+          <div className="flex justify-between gap-3 mb-0">
             {/* Left side: Title + Info */}
-            <div className="flex flex-col flex-1 pb-1">
+            <div className="flex flex-col flex-1 min-w-0 pb-1">
               {/* Job title */}
-              <h3 className="font-bold text-yui-green-800 text-2xl break-words leading-tight mb-auto pb-2">{job.title}</h3>
+              <h3 className="font-bold text-yui-green-800 text-2xl break-words leading-tight pb-2">{job.title}</h3>
               
               {/* Date, time, location */}
               <div className="space-y-1.5">
@@ -284,7 +284,7 @@ export default function ExplorePage() {
             </div>
             
             {/* Right side: Pay and tags */}
-            <div className="flex flex-col items-end gap-1 shrink-0 h-full justify-between pb-0.5">
+            <div className="flex flex-col items-end gap-2 shrink-0 pb-0.5">
               {/* Points earned */}
               <div className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 transition-colors px-4 py-3 rounded-2xl border-2 border-amber-200 shadow-sm w-fit mb-1">
                 <Coins className="w-6 h-6 text-yui-accent" aria-hidden="true" />
@@ -314,8 +314,8 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="py-3 space-y-4 pb-20">
-      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+    <div className="pt-1 space-y-3 pb-20">
+      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 mb-1">
         <Search className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
         お手伝い募集を探す
       </h1>

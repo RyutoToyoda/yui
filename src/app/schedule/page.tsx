@@ -317,8 +317,8 @@ export default function SchedulePage() {
   };
 
   return (
-    <div className="py-3 space-y-4 pb-20">
-      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+    <div className="pt-1 space-y-3 pb-20">
+      <h1 className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 mb-1">
         <CalendarDays className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
         予定
       </h1>
@@ -340,8 +340,8 @@ export default function SchedulePage() {
       </div>
 
       {/* 重要通知 */}
-      <section aria-labelledby="important-notice" className="space-y-3">
-        <h2 id="important-notice" className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 pb-2">
+      <section aria-labelledby="important-notice">
+        <h2 id="important-notice" className="text-2xl md:text-3xl font-bold text-yui-green-800 flex items-center gap-2 mb-1">
           <BellRing className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
           お知らせ
         </h2>

@@ -127,7 +127,7 @@ export default function NotificationsPage() {
           {notifications.map((notif) => (
             <div
               key={notif.id}
-              className={`bg-white rounded-xl p-5 shadow-sm border-2 transition-colors relative cursor-pointer ${
+              className={`bg-white rounded-xl p-4 shadow-sm border-2 transition-colors relative cursor-pointer ${
                 notif.isRead
                   ? "border-yui-green-100"
                   : "border-orange-300 bg-orange-50/30"
@@ -182,9 +182,9 @@ export default function NotificationsPage() {
                       )}
                     </div>
                   )}
-                  <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-yui-earth-400 font-medium">
-                      {notif.createdAt.toLocaleDateString("ja-JP")}
+                      {notif.createdAt.toLocaleDateString("ja-JP")} {notif.createdAt.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                     {notif.jobId && (
                       <Link

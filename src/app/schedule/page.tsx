@@ -358,6 +358,9 @@ export default function SchedulePage() {
               <Link href="/notifications" key={notif.id} className="bg-white rounded-2xl border-2 border-orange-200 p-4 shadow-sm block no-underline hover:bg-orange-50 transition-colors">
                 <p className="text-base font-bold text-yui-green-800">{notif.title}</p>
                 <p className="text-sm text-yui-earth-600 mt-1 line-clamp-2">{notif.message}</p>
+                <p className="text-xs text-yui-earth-400 mt-2 font-medium">
+                  {notif.createdAt.toLocaleDateString("ja-JP")} {notif.createdAt.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
+                </p>
               </Link>
             ))
           ) : (

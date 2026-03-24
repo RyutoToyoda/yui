@@ -427,6 +427,7 @@ export default function SchedulePage() {
           recruitmentJobsWithApps={managingJobsWithApps.filter(({ job }) => job.date === selectedCalendarDate)}
           volunteeredJobs={upcomingApps.filter(({ job }) => job.date === selectedCalendarDate).map(({ job }) => job)}
           onSetConfirmAction={setConfirmAction}
+          router={router}
         />
       )}
 
@@ -474,12 +475,14 @@ function DetailModal({
   recruitmentJobsWithApps,
   volunteeredJobs,
   onSetConfirmAction,
+  router,
 }: {
   dateStr: string;
   onClose: () => void;
   recruitmentJobsWithApps: { job: Job; applications: Application[] }[];
   volunteeredJobs: Job[];
   onSetConfirmAction: (action: { type: string; appId?: string; jobId?: string }) => void;
+  router: ReturnType<typeof useRouter>;
 }) {
   const formatDateJP = (dateStr: string) => {
     if (!dateStr) return "";

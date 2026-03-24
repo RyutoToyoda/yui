@@ -235,14 +235,15 @@ export default function SchedulePage() {
     const recruitmentJobsForDate = managingJobsWithApps.filter(({ job }) => job.date === dateStr);
     const volunteeredJobsForDate = upcomingApps.filter(({ job }) => job.date === dateStr);
     
-    // If there's ONLY a self-owned recruitment job and NO volunteered jobs, redirect directly
-    if (recruitmentJobsForDate.length > 0 && volunteeredJobsForDate.length === 0) {
+    if (recruitmentJobsForDate.length > 0) {
       router.push(`/explore/${recruitmentJobsForDate[0].job.id}`);
       return;
     }
-    
-    // Otherwise, show the modal
-    setSelectedCalendarDate(dateStr);
+
+    if (volunteeredJobsForDate.length > 0) {
+      router.push(`/explore/${volunteeredJobsForDate[0].job.id}`);
+      return;
+    }
   };
 
   const formatDateJP = (dateStr: string) => {

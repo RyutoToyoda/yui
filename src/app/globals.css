@@ -130,16 +130,13 @@ html.ud-high-contrast select,
 html.ud-high-contrast textarea {
   border-width: 2.5px !important;
   border-color: #1a1a1a !important;
-}
-
-html.ud-high-contrast [class*="shadow-"] {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
-}
-
-@layer base {
-  * {
-    box-sizing: border-box;
+    background-color: #163122 !important;
+    color: #e8e8e8 !important;
   }
+
+  /* Make CollapsibleSection (like 履歴) have dark background in high contrast so the #e8e8e8 text is visible like お知らせ */
+  html.ud-high-contrast .border-yui-green-100 > button {
+    background-color: #163122 !important;
 
   html {
     font-size: var(--ud-font-size-normal);

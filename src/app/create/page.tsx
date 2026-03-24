@@ -156,8 +156,13 @@ export default function CreatePage() {
       setError("作業日と作業場所は必ず入力してください。");
       return;
     }
-    if (calculateTotalTokens() <= 0) {
+    const totalTokensNeeded = calculateTotalTokens();
+    if (totalTokensNeeded <= 0) {
       setError("作業時間を確認してください。");
+      return;
+    }
+    if (user && user.tokenBalance < totalTokensNeeded) {
+      setError("ポイントが足りません。");
       return;
     }
 

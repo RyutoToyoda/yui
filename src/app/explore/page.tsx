@@ -246,6 +246,15 @@ export default function ExplorePage() {
 
   // Handle calendar view specifically: show only jobs for that date AT THE END
   let filteredJobs = baseFilteredJobs;
+  const showRecommendedSection =
+    recommendedJobs.length > 0 &&
+    !searchQuery &&
+    !showFilters &&
+    !filterDateStr &&
+    !filterMinPoints &&
+    !filterMinPeople &&
+    !filterLocation &&
+    filterType === "all";
 
   const JobCard = ({ job, isRecommended, isOwnJob, isFull, onOwnJobClick }: { job: Job, isRecommended?: boolean, isOwnJob?: boolean, isFull?: boolean, onOwnJobClick?: (job: Job) => void }) => {
     const cardIsOwnJob = job.creatorId === user.uid;
@@ -526,7 +535,7 @@ export default function ExplorePage() {
       })()}
 
       {/* おすすめ - Top recommendations, NOT duplicated in list below */}
-      {recommendedJobs.length > 0 && !searchQuery && !showFilters && !filterDateStr && !filterMinPoints && !filterMinPeople && !filterLocation && filterType === "all" && (
+      {showRecommendedSection && (
         <section aria-labelledby="recommended-heading" className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
             {recommendedJobs.map((job) => (
@@ -539,7 +548,8 @@ export default function ExplorePage() {
       {/* その他のジョブリスト - exclude own jobs and recommended jobs */}
       <div className="space-y-3">
         {(() => {
-          const recommendedIds = new Set(recommendedJobs.map(j => j.id));
+          const allRecommendedIds = new Set(recommendedJobs.map(j => j.id));
+          const recommendedIds = showRecommendedSection ? new Set(recommendedJobs.map(j => j.id)) : new Set<string>();
           const otherJobs = filteredJobs.filter(job => 
             job.creatorId !== user.uid && 
             !recommendedIds.has(job.id) &&
@@ -549,7 +559,7 @@ export default function ExplorePage() {
           return otherJobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
               {otherJobs.map((job) => (
-                <JobCard key={job.id} job={job} isFull={false} />
+                <JobCard key={job.id} job={job} isRecommended={!showRecommendedSection && allRecommendedIds.has(job.id)} isFull={false} />
               ))}
             </div>
           ) : null;

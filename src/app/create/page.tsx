@@ -52,6 +52,7 @@ const jobTypes = [
 ];
 
 const ratePresets = [1, 1.5, 2, 4];
+const EQUIPMENT_POINT_PER_MACHINE_PER_HOUR = 4;
 
 // 住所から座標を取得（順ジオコーディング）
 async function geocodeAddress(address: string): Promise<LocationPoint | null> {
@@ -120,14 +121,22 @@ export default function CreatePage() {
   }, [location]);
 
   const calculateTotalTokens = () => {
+    if (!selectedType) return 0;
     if (!startTime || !endTime || !startTime.includes(":") || !endTime.includes(":")) return 0;
     const [sh, sm] = startTime.split(":").map(Number);
     const [eh, em] = endTime.split(":").map(Number);
     const minutes = eh * 60 + em - (sh * 60 + sm);
     if (isNaN(minutes)) return 0;
     const hours = Math.max(0, minutes / 60);
-    const peopleFactor = selectedType === "equipment" ? 1 : requiredPeople;
-    return Math.max(0, Math.round(hours * tokenRate * peopleFactor * 10) / 10);
+    const peopleTokens =
+      selectedType === "equipment"
+        ? 0
+        : Math.max(0, Math.round(hours * tokenRate * requiredPeople * 10) / 10);
+    const equipmentTokens =
+      selectedType === "equipment" || selectedType === "hybrid"
+        ? Math.max(0, Math.round(hours * equipmentNeeded.length * EQUIPMENT_POINT_PER_MACHINE_PER_HOUR * 10) / 10)
+        : 0;
+    return Math.max(0, Math.round((peopleTokens + equipmentTokens) * 10) / 10);
   };
 
   const handleTypeChange = (type: JobType | null) => {
@@ -154,6 +163,10 @@ export default function CreatePage() {
     }
     if (!date || !location.trim()) {
       setError("作業日と作業場所は必ず入力してください。");
+      return;
+    }
+    if ((selectedType === "equipment" || selectedType === "hybrid") && equipmentNeeded.length === 0) {
+      setError("農機具を1つ以上選んでください。");
       return;
     }
     const totalTokensNeeded = calculateTotalTokens();
@@ -429,14 +442,20 @@ export default function CreatePage() {
           {showDetails && (
             <div className="mt-2 space-y-4 pt-2 border-t-2 border-dashed border-yui-green-100/50">
               <div>
-                <p className="block text-base font-bold text-yui-green-800 mb-2">ポイント単価（1時間あたり）</p>
+                <p className="block text-base font-bold text-yui-green-800 mb-2">人向けポイント倍率（1時間あたり）</p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {ratePresets.map((rate) => (
                     <button
                       key={`rate-${rate}`}
                       type="button"
                       onClick={() => setTokenRate(rate)}
-                      className={`px-4 py-2 rounded-lg text-sm font-bold border ${tokenRate === rate ? "bg-yui-green-600 text-white border-yui-green-600" : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"}`}
+                      disabled={selectedType === "equipment"}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold border ${selectedType === "equipment"
+                        ? "bg-yui-earth-100 text-yui-earth-500 border-yui-earth-200 cursor-not-allowed"
+                        : tokenRate === rate
+                          ? "bg-yui-green-600 text-white border-yui-green-600"
+                          : "bg-white text-yui-green-700 border-yui-green-200 hover:bg-yui-green-50"
+                        }`}
                     >
                       {rate}P
                     </button>

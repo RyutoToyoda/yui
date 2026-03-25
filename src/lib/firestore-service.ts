@@ -1140,16 +1140,7 @@ async function runAutoMatch(job: Job): Promise<void> {
     if (avail.userId === job.creatorId) continue;
     if (!hasTimeOverlap(avail.startTime, avail.endTime, job.startTime, job.endTime)) continue;
 
-    // マッチ！通知を作成
-    await fsCreateNotification({
-      userId: avail.userId,
-      type: "match",
-      title: "🎯 ぴったりの募集が見つかりました！",
-      message: `${job.creatorName}さんの「${job.title}」があなたの${job.date}の手伝い設定と一致しています。`,
-      jobId: job.id,
-      isRead: false,
-      createdAt: new Date(),
-    });
+    // This specific match notification has been intentionally removed.
   }
 }
 

@@ -61,7 +61,7 @@ export default function JobDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-yui-earth-500 text-lg">読み込み中...</p>
+          <p className="loading-text text-yui-earth-500 text-lg">読み込み中...</p>
         </div>
       </div>
     );
@@ -380,7 +380,7 @@ export default function JobDetailPage() {
 
           {/* 応募セクション（メインカード内に統合） */}
           {!isOwner && (
-            <div className="pt-5 mt-2 border-t border-yui-green-100">
+            <div className="public-job-apply-panel pt-5 mt-2 border-t border-yui-green-100">
               {isMyWorkCompleted ? (
                 <div className="text-center py-2">
                   <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
@@ -400,7 +400,7 @@ export default function JobDetailPage() {
               ) : (job.status === "open" || (job.status === "matched" && (job.requiredPeople === 0 || approvedApplicants.length < job.requiredPeople))) ? (
                 <>
                   {/* 同意チェックボックス */}
-                  <div className="bg-yui-earth-50 rounded-xl px-4 py-1.5 mb-4 border border-yui-earth-200">
+                  <div className="apply-consent-box bg-yui-earth-50 rounded-xl px-4 py-1.5 mb-4 border border-yui-earth-200">
                     <label className="flex items-center gap-3 cursor-pointer" style={{ minHeight: "56px" }}>
                       <input
                         type="checkbox"
@@ -423,7 +423,7 @@ export default function JobDetailPage() {
 
                   <button
                     onClick={handlePreApply}
-                    className="w-full py-4 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
+                    className="apply-raise-hand-btn w-full py-4 bg-yui-green-600 text-white text-lg font-bold rounded-xl hover:bg-yui-green-700 active:bg-yui-green-800 transition-colors shadow-md"
                     style={{ minHeight: "56px" }}
                   >
                     手を挙げる
@@ -440,7 +440,7 @@ export default function JobDetailPage() {
       </div>
 
       {isOwner && (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="owner-participant-panel bg-white rounded-2xl shadow-sm overflow-hidden">
           <div style={{ backgroundColor: "#8c7361" }} className="p-6 text-white">
             <h2 className="text-lg font-bold">参加者管理</h2>
           </div>
@@ -471,7 +471,7 @@ export default function JobDetailPage() {
                     <div className="flex gap-2 flex-1">
                       <button
                         onClick={() => router.push(`/user/${app.applicantId}`)}
-                        className="flex items-center justify-center gap-1 flex-1 text-yui-green-600 px-3 py-2.5 bg-yui-green-50 rounded-xl hover:bg-yui-green-100 transition-colors font-bold border border-yui-green-200"
+                        className="hc-keep-standard flex items-center justify-center gap-1 flex-1 text-yui-green-600 px-3 py-2.5 bg-yui-green-50 rounded-xl hover:bg-yui-green-100 transition-colors font-bold border border-yui-green-200"
                         title="プロフィールを見る"
                       >
                         <User className="w-4 h-4" aria-hidden="true" />
@@ -482,7 +482,7 @@ export default function JobDetailPage() {
                         <button
                           onClick={() => setConfirmAction({ type: "single-payout", appId: app.id })}
                           disabled={!isPayoutUnlocked}
-                          className={`flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl font-bold transition-colors border ${isPayoutUnlocked ? "bg-yui-green-100 text-yui-green-700 hover:bg-yui-green-200 border-yui-green-300" : "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"}`}
+                          className={`hc-keep-standard flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl font-bold transition-colors border ${isPayoutUnlocked ? "bg-yui-green-100 text-yui-green-700 hover:bg-yui-green-200 border-yui-green-300" : "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"}`}
                         >
                           <Coins className="w-3.5 h-3.5" aria-hidden="true" />
                           <span className="text-xs">支払う</span>
@@ -490,7 +490,7 @@ export default function JobDetailPage() {
                         <button
                           onClick={() => setConfirmAction({ type: "reject", appId: app.id })}
                           disabled={isPayoutUnlocked}
-                          className={`flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl transition-colors font-bold border ${isPayoutUnlocked ? "text-gray-400 bg-gray-100 border-gray-300 cursor-not-allowed" : "text-red-600 bg-red-50 hover:bg-red-100 border-red-200"}`}
+                          className={`hc-keep-standard flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl transition-colors font-bold border ${isPayoutUnlocked ? "text-gray-400 bg-gray-100 border-gray-300 cursor-not-allowed" : "text-red-600 bg-red-50 hover:bg-red-100 border-red-200"}`}
                           title={isPayoutUnlocked ? "当日はお断りできません" : "却下する"}
                         >
                           <X className="w-4 h-4" aria-hidden="true" />
@@ -515,7 +515,7 @@ export default function JobDetailPage() {
                 <button
                   onClick={handleDeleteClick}
                   disabled={isPayoutUnlocked}
-                  className={`w-full flex items-center justify-center gap-2 text-base font-bold px-4 py-3 rounded-xl transition-colors ${isPayoutUnlocked ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
+                  className={`hc-keep-standard w-full flex items-center justify-center gap-2 text-base font-bold px-4 py-3 rounded-xl transition-colors ${isPayoutUnlocked ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-50 text-red-600 hover:bg-red-100"}`}
                   style={{ minHeight: "44px" }}
                 >
                   <Trash2 className="w-4 h-4" aria-hidden="true" />
@@ -531,7 +531,10 @@ export default function JobDetailPage() {
         isOpen={showConfirm}
         title="手を挙げますか？"
         message={`「${job.title}」（${job.date}）に手を挙げます。相手に通知が届きます。`}
+        titleClassName="apply-confirm-title"
+        messageClassName="apply-confirm-message"
         confirmLabel="手を挙げる"
+        confirmButtonClassName="bg-yui-green-600 text-white hover:bg-yui-green-700 active:bg-yui-green-800"
         cancelLabel="やめておく"
         onConfirm={handleApply}
         onCancel={() => setShowConfirm(false)}

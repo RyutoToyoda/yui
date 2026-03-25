@@ -44,7 +44,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-yui-earth-50" role="status" aria-label="読み込み中">
         <div className="text-center">
           <YuiLogo width={600} height={600} className="mb-8" />
-          <p className="text-yui-green-600 text-xl font-bold">読み込み中...</p>
+          <p className="loading-text text-yui-green-600 text-xl font-bold">読み込み中...</p>
         </div>
       </div>
     );

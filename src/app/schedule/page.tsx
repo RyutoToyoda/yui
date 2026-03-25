@@ -256,7 +256,7 @@ export default function SchedulePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-yui-earth-500 text-2xl">読み込み中...</p>
+          <p className="loading-text text-yui-earth-500 text-2xl">読み込み中...</p>
         </div>
       </div>
     );
@@ -419,8 +419,8 @@ export default function SchedulePage() {
 
         {selectedCalendarDate && (
           <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-4 md:p-5 shadow-sm space-y-3" aria-labelledby="selected-day-events">
-            <h2 id="selected-day-events" className="text-lg font-bold text-yui-green-800 flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-yui-green-600" aria-hidden="true" />
+            <h2 id="selected-day-events" className="selected-day-events-title text-lg font-bold text-yui-green-800 flex items-center gap-2">
+              <CalendarDays className="selected-day-events-icon w-5 h-5 text-yui-green-600" aria-hidden="true" />
               {formatDateJP(selectedCalendarDate)} の一覧
             </h2>
 
@@ -468,14 +468,14 @@ export default function SchedulePage() {
             <BellRing className="w-7 h-7 text-yui-green-600" aria-hidden="true" />
             お知らせ
           </h2>
-          <Link href="/notifications" className="text-sm font-bold text-yui-green-600 hover:text-yui-green-700 flex items-center gap-1">
+          <Link href="/notifications" className="important-notice-link text-sm font-bold text-yui-green-600 hover:text-yui-green-700 flex items-center gap-1">
             すべて見る <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {importantNotifications.length > 0 ? (
             importantNotifications.map((notif) => (
-              <Link href="/notifications" key={notif.id} className="bg-white rounded-2xl border-2 border-orange-200 p-4 shadow-sm block no-underline hover:bg-orange-50 transition-colors">
+              <Link href={notif.jobId ? `/explore/${notif.jobId}` : "/notifications"} key={notif.id} className="bg-white rounded-2xl border-2 border-orange-200 p-4 shadow-sm block no-underline hover:bg-orange-50 transition-colors">
                 <p className="text-base font-bold text-yui-green-800">{notif.title}</p>
                 <p className="text-sm text-yui-earth-600 mt-1 line-clamp-2">{notif.message}</p>
                 <p className="text-xs text-yui-earth-400 mt-2 font-medium">

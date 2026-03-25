@@ -52,6 +52,10 @@
   --ud-line-height: 1.6;
 }
 
+html.ud-high-contrast .loading-text {
+  color: #e8e8e8 !important;
+}
+
 /* 大きめ文字モード - Large Mode */
 html[data-font-size="large"] {
   --ud-font-size-title: 24px;
@@ -95,6 +99,10 @@ html.ud-high-contrast h2.text-yui-green-800 {
   color: #e8e8e8 !important;
 }
 
+html.ud-high-contrast h2.selected-day-events-title {
+  color: #143a1c !important;
+}
+
 /* Sub-section headings in settings: 文字の大きさ, 画面のくっきりさ (text-yui-green-700) */
 html.ud-high-contrast h3.text-yui-green-700 {
   color: #e8e8e8 !important;
@@ -114,13 +122,23 @@ html.ud-high-contrast h2 svg {
   stroke: #e8e8e8 !important;
 }
 
+html.ud-high-contrast h2.selected-day-events-title svg {
+  color: #2a7035 !important;
+  stroke: #2a7035 !important;
+}
+
+html.ud-high-contrast .selected-day-events-icon {
+  color: #2a7035 !important;
+  stroke: #2a7035 !important;
+}
+
 /* Only override h3 svg icons for settings headings (text-yui-green-700) */
 html.ud-high-contrast h3.text-yui-green-700 svg {
   color: #e8e8e8 !important;
   stroke: #e8e8e8 !important;
 }
 
-html.ud-high-contrast button[class*="border"] {
+html.ud-high-contrast button[class*="border"]:not(.hc-keep-standard) {
   border-width: 2.5px !important;
   border-color: #1a1a1a !important;
 }
@@ -152,6 +170,23 @@ html.ud-high-contrast div[role="alertdialog"] p {
   color: #e8e8e8 !important;
 }
 
+/* Keep logout confirm text colors same as standard mode */
+html.ud-high-contrast div[role="alertdialog"] .logout-confirm-title {
+  color: #143a1c !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .logout-confirm-message {
+  color: #73584a !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .apply-confirm-title {
+  color: #143a1c !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .apply-confirm-message {
+  color: #1a1a1a !important;
+}
+
 /* Onboarding screen styling in high contrast mode */
 html.ud-high-contrast div[aria-label="結 Yuiの使い方"] {
   background-color: #163122 !important;
@@ -162,7 +197,141 @@ html.ud-high-contrast div[aria-label="結 Yuiの使い方"] h1 {
 }
 
 html.ud-high-contrast div[aria-label="結 Yuiの使い方"] p {
+  color: #9fa4a8 !important;
+}
+
+/* Onboarding fine tuning */
+html.ud-high-contrast .onboarding-skip {
+  color: #f3f6f3 !important;
+}
+
+html.ud-high-contrast .onboarding-skip:hover {
+  color: #ffffff !important;
+}
+
+html.ud-high-contrast .onboarding-intro-body {
+  color: #9fa4a8 !important;
+}
+
+/* Schedule / notifications action labels */
+html.ud-high-contrast .important-notice-link,
+html.ud-high-contrast .mark-all-read-btn {
+  color: #f5f8f5 !important;
+}
+
+html.ud-high-contrast .refresh-notifs-btn,
+html.ud-high-contrast .refresh-notifs-btn svg {
+  color: #f5f8f5 !important;
+  stroke: #f5f8f5 !important;
+}
+
+/* Create page: hide optional settings border in high contrast */
+html.ud-high-contrast .create-optional-settings {
+  border: none !important;
+}
+
+/* Keep participant management visuals aligned with standard mode */
+html.ud-high-contrast .owner-participant-panel {
+  background-color: #ffffff !important;
+}
+
+html.ud-high-contrast .owner-participant-panel .bg-yui-earth-50 {
+  background-color: #f6f4f2 !important;
+}
+
+html.ud-high-contrast .owner-participant-panel .bg-yui-earth-100 {
+  background-color: #ece8e4 !important;
+}
+
+html.ud-high-contrast .ai-send-btn {
+  background-color: #163122 !important;
+  border-color: #1a1a1a !important;
   color: #e8e8e8 !important;
+}
+
+html.ud-high-contrast .ai-send-btn:disabled {
+  background-color: #163122 !important;
+  border-color: #1a1a1a !important;
+  color: #e8e8e8 !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Restore customized AI相談 look only in high contrast mode */
+html.ud-high-contrast .help-advisor-overlay {
+  background-color: #163122 !important;
+}
+
+html.ud-high-contrast .help-advisor-header {
+  background-color: #f3f7f3 !important;
+  color: #143a1c !important;
+  border-bottom: 2px solid #d9d1cb !important;
+}
+
+html.ud-high-contrast .help-advisor-header-title,
+html.ud-high-contrast .help-advisor-header-icon-svg,
+html.ud-high-contrast .help-advisor-header-close {
+  color: #143a1c !important;
+  stroke: #143a1c !important;
+}
+
+html.ud-high-contrast .help-advisor-header-icon {
+  background-color: #ffffff !important;
+  border: 2px solid #d9d1cb !important;
+}
+
+html.ud-high-contrast .help-advisor-header-close {
+  background-color: #ffffff !important;
+  border: 2px solid #d9d1cb !important;
+}
+
+html.ud-high-contrast .help-advisor-messages {
+  background: #163122 !important;
+}
+
+html.ud-high-contrast .help-advisor-bot-bubble,
+html.ud-high-contrast .help-advisor-typing-bubble,
+html.ud-high-contrast .help-advisor-speak-btn,
+html.ud-high-contrast .help-advisor-user-bubble {
+  border-width: 2px !important;
+}
+
+html.ud-high-contrast .help-advisor-bot-bubble {
+  border-color: #d9d1cb !important;
+}
+
+html.ud-high-contrast .help-advisor-bot-bubble p {
+  color: #143a1c !important;
+}
+
+html.ud-high-contrast .help-advisor-user-bubble {
+  border-color: #1e5428 !important;
+}
+
+html.ud-high-contrast .help-advisor-typing-bubble,
+html.ud-high-contrast .help-advisor-speak-btn {
+  border-color: #d9d1cb !important;
+}
+
+html.ud-high-contrast .help-advisor-footer {
+  background-color: #f3f7f3 !important;
+  border-top: 2px solid #d9d1cb !important;
+}
+
+/* Keep public job apply section close to standard mode in high contrast */
+html.ud-high-contrast .public-job-apply-panel .apply-consent-box {
+  background-color: #f6f4f2 !important;
+  border-color: #d9d1cb !important;
+}
+
+html.ud-high-contrast .public-job-apply-panel .apply-consent-box span {
+  color: #143a1c !important;
+}
+
+html.ud-high-contrast .public-job-apply-panel .apply-raise-hand-btn {
+  border: 2px solid #1e5428 !important;
+  background-color: #2a7035 !important;
+  color: #ffffff !important;
 }
 
 html {

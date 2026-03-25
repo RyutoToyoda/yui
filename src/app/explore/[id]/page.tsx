@@ -558,6 +558,8 @@ export default function JobDetailPage() {
           isOpen={true}
           title="お断りしますか？"
           message="この方の応募をお断りします。相手に通知が届きます。"
+          titleClassName="reject-confirm-title"
+          messageClassName="reject-confirm-message"
           confirmLabel="断る"
           cancelLabel="やめておく"
           variant="danger"
@@ -572,6 +574,8 @@ export default function JobDetailPage() {
           isOpen={true}
           title="この方にポイントを支払いますか？"
           message="この方に個別でお礼のポイントを送信します。"
+          titleClassName="single-payout-confirm-title"
+          messageClassName="single-payout-confirm-message"
           confirmLabel="支払う"
           cancelLabel="キャンセル"
           onConfirm={() => handleSinglePayout(confirmAction.appId!)}
@@ -584,10 +588,10 @@ export default function JobDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-yui-green-800 mb-2">
+              <h2 className="cancel-modal-title text-xl font-bold text-yui-green-800 mb-2">
                 作業をキャンセルしますか？
               </h2>
-              <p className="text-sm text-yui-earth-600 mb-4">
+              <p className="cancel-modal-message text-sm text-yui-earth-600 mb-4">
                 {approvedApplicants.length > 0
                   ? "応募者全員にキャンセル通知が届きます。"
                   : "この募集をキャンセルします。"}

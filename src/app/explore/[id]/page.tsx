@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fsGetJob, fsCreateApplication, fsGetApplicationsByJob, fsCreateNotification, fsUpdateJob, fsDeleteJob, fsCancelJob, getJobTypeEmoji, getJobTypeLabel, getPointsPerPerson, fsUpdateApplication, fsCompleteApplicationTransaction } from "@/lib/firestore-service";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Coins, CalendarDays, Clock, Users, Wrench, ArrowLeft, CheckCircle2, AlertTriangle, Trash2, MapPin, X, User } from "lucide-react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -15,6 +15,7 @@ export default function JobDetailPage() {
   const { user, refreshUser } = useAuth();
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isAgreed, setIsAgreed] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +36,7 @@ export default function JobDetailPage() {
   const [confirmAction, setConfirmAction] = useState<{ type: string; appId?: string } | null>(null);
 
   const jobId = params.id as string;
+  const showRejectedFromNotification = searchParams.get("from") === "notification" && searchParams.get("result") === "rejected";
 
   useEffect(() => {
     if (!user) return;
@@ -381,7 +383,12 @@ export default function JobDetailPage() {
           {/* 応募セクション（メインカード内に統合） */}
           {!isOwner && (
             <div className="public-job-apply-panel pt-5 mt-2 border-t border-yui-green-100">
-              {job.status === "cancelled" ? (
+              {showRejectedFromNotification ? (
+                <div className="text-center py-2">
+                  <AlertTriangle className="w-14 h-14 text-red-600 mx-auto mb-3" aria-hidden="true" />
+                  <p className="text-lg font-bold text-red-700">応募が断れました。</p>
+                </div>
+              ) : job.status === "cancelled" ? (
                 <div className="text-center py-2">
                   <AlertTriangle className="w-14 h-14 text-red-600 mx-auto mb-3" aria-hidden="true" />
                   <p className="text-lg font-bold text-red-700">この作業はキャンセルされました</p>

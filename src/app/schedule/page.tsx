@@ -475,7 +475,17 @@ export default function SchedulePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {importantNotifications.length > 0 ? (
             importantNotifications.map((notif) => (
-              <Link href={notif.jobId ? `/explore/${notif.jobId}` : "/notifications"} key={notif.id} className="bg-white rounded-2xl border-2 border-orange-200 p-4 shadow-sm block no-underline hover:bg-orange-50 transition-colors">
+              <Link
+                href={
+                  notif.jobId
+                    ? notif.type === "rejected"
+                      ? `/explore/${notif.jobId}?from=notification&result=rejected`
+                      : `/explore/${notif.jobId}`
+                    : "/notifications"
+                }
+                key={notif.id}
+                className="bg-white rounded-2xl border-2 border-orange-200 p-4 shadow-sm block no-underline hover:bg-orange-50 transition-colors"
+              >
                 <p className="text-base font-bold text-yui-green-800">{notif.title}</p>
                 <p className="text-sm text-yui-earth-600 mt-1 line-clamp-2">{notif.message}</p>
                 <p className="text-xs text-yui-earth-400 mt-2 font-medium">

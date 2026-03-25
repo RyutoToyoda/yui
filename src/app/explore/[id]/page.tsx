@@ -381,7 +381,12 @@ export default function JobDetailPage() {
           {/* 応募セクション（メインカード内に統合） */}
           {!isOwner && (
             <div className="public-job-apply-panel pt-5 mt-2 border-t border-yui-green-100">
-              {isMyWorkCompleted ? (
+              {job.status === "cancelled" ? (
+                <div className="text-center py-2">
+                  <AlertTriangle className="w-14 h-14 text-red-600 mx-auto mb-3" aria-hidden="true" />
+                  <p className="text-lg font-bold text-red-700">この作業はキャンセルされました</p>
+                </div>
+              ) : isMyWorkCompleted ? (
                 <div className="text-center py-2">
                   <CheckCircle2 className="w-14 h-14 text-yui-success mx-auto mb-3" aria-hidden="true" />
                   <p className="text-lg font-bold text-yui-green-700">このお手伝いは完了しました</p>

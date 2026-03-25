@@ -212,7 +212,7 @@ export default function CreatePage() {
       <div className="py-10 text-center max-w-2xl mx-auto">
         <CheckCircle2 className="w-16 h-16 text-yui-success mx-auto mb-4" aria-hidden="true" />
         <h2 className="text-2xl font-bold text-yui-green-800 mb-2">募集を作成しました</h2>
-        <p className="text-base text-yui-earth-600 mb-6">手伝ってくれる方からの連絡を待ちましょう。</p>
+        <p className="create-submitted-message text-base text-yui-earth-600 mb-6">手伝ってくれる方からの連絡を待ちましょう。</p>
         <div className="space-y-3">
           <button
             onClick={() => router.push("/explore")}
@@ -498,6 +498,8 @@ export default function CreatePage() {
         isOpen={showConfirm}
         title="この内容で募集しますか？"
         message={`「${title}」を ${date}（${startTime}〜${endTime}）に ${calculateTotalTokens()}ポイントで募集します。`}
+        titleClassName="create-confirm-title"
+        messageClassName="create-confirm-message"
         confirmLabel="募集を作成する"
         cancelLabel="もう一度確認する"
         onConfirm={handleSubmit}

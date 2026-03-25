@@ -187,6 +187,42 @@ html.ud-high-contrast div[role="alertdialog"] .apply-confirm-message {
   color: #1a1a1a !important;
 }
 
+html.ud-high-contrast div[role="alertdialog"] .reject-confirm-title {
+  color: #143a1c !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .reject-confirm-message {
+  color: #1a1a1a !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .single-payout-confirm-title {
+  color: #1a1a1a !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .single-payout-confirm-message {
+  color: #1a1a1a !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .create-confirm-title {
+  color: #1a1a1a !important;
+}
+
+html.ud-high-contrast div[role="alertdialog"] .create-confirm-message {
+  color: #1a1a1a !important;
+}
+
+html.ud-high-contrast .create-submitted-message {
+  color: #f5f8f5 !important;
+}
+
+html.ud-high-contrast h2.cancel-modal-title {
+  color: #1a1a1a !important;
+}
+
+html.ud-high-contrast .cancel-modal-message {
+  color: #1a1a1a !important;
+}
+
 /* Onboarding screen styling in high contrast mode */
 html.ud-high-contrast div[aria-label="結 Yuiの使い方"] {
   background-color: #163122 !important;

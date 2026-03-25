@@ -574,6 +574,8 @@ export default function SchedulePage() {
           isOpen={true}
           title="この方にポイントを支払いますか？"
           message="この方に個別でお礼のポイントを送信します。"
+          titleClassName="single-payout-confirm-title"
+          messageClassName="single-payout-confirm-message"
           confirmLabel="支払う"
           cancelLabel="キャンセル"
           onConfirm={() => handleSinglePayout(confirmAction.appId!, confirmAction.jobId!)}

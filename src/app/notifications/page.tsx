@@ -49,7 +49,7 @@ export default function NotificationsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-yui-earth-500 text-lg">読み込み中...</p>
+          <p className="loading-text text-yui-earth-500 text-lg">読み込み中...</p>
         </div>
       </div>
     );
@@ -104,7 +104,7 @@ export default function NotificationsPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 text-sm text-yui-earth-500 font-bold hover:text-yui-green-600 transition-colors disabled:opacity-50"
+            className="refresh-notifs-btn flex items-center gap-1.5 text-sm text-yui-earth-500 font-bold hover:text-yui-green-600 transition-colors disabled:opacity-50"
             aria-label="通知を更新する"
           >
             <RefreshCw className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -112,7 +112,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="flex items-center gap-1.5 text-sm text-yui-green-600 font-bold hover:text-yui-green-800 transition-colors"
+              className="mark-all-read-btn flex items-center gap-1.5 text-sm text-yui-green-600 font-bold hover:text-yui-green-800 transition-colors"
             >
               <CheckCheck className="w-5 h-5" aria-hidden="true" /> すべて読んだ
             </button>

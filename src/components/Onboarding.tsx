@@ -9,29 +9,29 @@ interface OnboardingProps {
 
 const slides = [
   {
-    emoji: "🌾",
-    title: "結 Yui へようこそ！",
-    body: "このアプリは、農家さん同士で「人手」や「農機具」を助け合うためのサービスです。お手伝いをすると「ポイント」がもらえ、そのポイントを使って助けを呼ぶことができます。",
-  },
-  {
     emoji: "📅",
-    title: "① ホーム画面はあなたの予定表",
-    body: "アプリを開くと、最初に「マイページ」が表示されます。ここにはあなたの直近の作業予定が一番上に表示されるので、今日やること迷いません。画面下の「マイページ」ボタンからいつでも戻れます。",
-  },
-  {
-    emoji: "🔍",
-    title: "② お手伝いに行く・設定を変える",
-    body: "他の農家さんのお手伝いに行きたい時や、自分の農機具・作物を登録したい時は、マイページの中にある大きなボタン（「探す」「設定」など）を押してください。",
+    title: "①ホーム画面はあなたの予定表",
+    body: "アプリを開くと、最初に「予定ページ」が表示されます。ここにはあなたの直近の作業予定がカレンダーで確認できます。",
   },
   {
     emoji: "🚜",
-    title: "③ 人手や農機具を募集する",
-    body: "画面の右下にある「募集」ボタンを押すと、お手伝いを頼むことができます。新しい機能として、**地図をタップしてピンを刺すだけ**で、正確な集合場所を簡単に伝えられるようになりました！",
+    title: "③人手や農機具を募集する",
+    body: "画面の下にある「募集」ボタンを押すと、お手伝いを頼むことができます。詳細設定で1時間あたりのポイント単位なども変更できます。",
   },
   {
-    emoji: "🪙",
-    title: "④ ポイントはお財布の中に",
-    body: "今あなたが持っているポイントは、画面の「右上」にいつでも表示されています。ポイントを貯めて、お互いに助け合いの輪を広げていきましょう！",
+    emoji: "🔍",
+    title: "③お手伝いを探す",
+    body: "画面の下の探すページに他人が募集したお手伝いの投稿をリストで見られます。手伝いに行きたい投稿をクリックし，手を挙げるボタンで応募できます。このページには自分が募集した投稿も確認できます。",
+  },
+  {
+    emoji: "🤖",
+    title: "④AIに相談する",
+    body: "アプリ利用上で困ったことをAIに相談できます．AI相談ボタンを押し，音声かテキストで質問できます。",
+  },
+  {
+    emoji: "👤",
+    title: "⑤ 自分の情報を登録・設定の変更",
+    body: "自分の農機具・作物を登録したい時は、右上のマイページに移動し，登録できます。文字の大きさなどの設定変更はマイページの一番下の設定ボタンからアクセスできます。",
     isLast: true,
   },
 ];
@@ -53,7 +53,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         {!isLast && (
           <button
             onClick={onComplete}
-            className="text-base md:text-lg text-yui-earth-500 font-bold hover:text-yui-earth-700 transition-colors px-3 md:px-4 py-2"
+            className="onboarding-skip text-base md:text-lg text-yui-earth-500 font-bold hover:text-yui-earth-700 transition-colors px-3 md:px-4 py-2"
             style={{ minHeight: "44px" }}
             aria-label="説明をスキップ"
           >
@@ -75,7 +75,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         </h1>
 
         {/* 説明文 */}
-        <p className="text-base md:text-2xl text-yui-earth-700 text-center leading-relaxed shrink-0" style={{ lineHeight: "1.7" }}>
+        <p className={`text-lg md:text-3xl text-yui-earth-500 text-center leading-relaxed shrink-0 ${current === 0 ? "onboarding-intro-body" : ""}`} style={{ lineHeight: "1.7" }}>
           {slide.body}
         </p>
       </div>

@@ -149,7 +149,7 @@ export default function ExplorePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-yui-earth-500 text-lg">読み込み中...</p>
+          <p className="loading-text text-yui-earth-500 text-lg">読み込み中...</p>
         </div>
       </div>
     );

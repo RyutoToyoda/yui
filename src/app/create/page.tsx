@@ -415,7 +415,7 @@ export default function CreatePage() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border-2 border-yui-green-100 p-5 md:p-6 w-full min-w-0 overflow-x-hidden">
+        <section className="create-optional-settings bg-white rounded-2xl p-5 md:p-6 w-full min-w-0 overflow-x-hidden">
           <button
             type="button"
             onClick={() => setShowDetails((prev) => !prev)}

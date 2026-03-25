@@ -10,6 +10,9 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   cancelLabel?: string;
   variant?: "danger" | "default";
+  titleClassName?: string;
+  messageClassName?: string;
+  confirmButtonClassName?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +24,9 @@ export default function ConfirmDialog({
   confirmLabel,
   cancelLabel = "やめる",
   variant = "default",
+  titleClassName = "",
+  messageClassName = "",
+  confirmButtonClassName = "",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -83,13 +89,13 @@ export default function ConfirmDialog({
               <AlertTriangle className="w-7 h-7 text-yui-danger" />
             </div>
           )}
-          <h2 id="confirm-dialog-title" className="text-lg font-bold text-yui-green-800">
+          <h2 id="confirm-dialog-title" className={`text-lg font-bold text-yui-green-800 ${titleClassName}`}>
             {title}
           </h2>
         </div>
 
         {/* メッセージ */}
-        <p id="confirm-dialog-message" className="text-sm text-yui-earth-600 text-center leading-relaxed">
+        <p id="confirm-dialog-message" className={`text-sm text-yui-earth-600 text-center leading-relaxed ${messageClassName}`}>
           {message}
         </p>
 
@@ -99,7 +105,9 @@ export default function ConfirmDialog({
             ref={confirmRef}
             onClick={onConfirm}
             className={`w-full py-4 text-base font-bold rounded-2xl transition-colors ${
-              variant === "danger"
+              confirmButtonClassName
+                ? confirmButtonClassName
+                : variant === "danger"
                 ? "bg-yui-danger text-white hover:bg-red-700 active:bg-red-800"
                 : "gradient-primary text-white hover:opacity-90"
             }`}

@@ -133,21 +133,21 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
 
       {/* 相談画面 (オーバーレイ) */}
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex flex-col h-[100dvh] w-full max-w-full overflow-x-hidden bg-yui-earth-50 animate-in fade-in slide-in-from-bottom-4 duration-300 overscroll-none">
+        <div className="help-advisor-overlay fixed inset-0 z-[60] flex flex-col h-[100dvh] w-full max-w-full overflow-x-hidden bg-yui-earth-50 animate-in fade-in slide-in-from-bottom-4 duration-300 overscroll-none">
           {/* ヘッダー */}
-          <header className="bg-yui-green-700 text-white h-16 md:h-24 px-4 md:px-6 flex items-center justify-between shadow-md shrink-0">
+          <header className="help-advisor-header bg-yui-green-700 text-white h-16 md:h-24 px-4 md:px-6 flex items-center justify-between shadow-md shrink-0">
             <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 md:p-2.5 rounded-full">
-                <MessageCircle className="w-6 h-6 md:w-8 md:h-8" />
+              <div className="help-advisor-header-icon bg-white/20 p-2 md:p-2.5 rounded-full">
+                <MessageCircle className="help-advisor-header-icon-svg w-6 h-6 md:w-8 md:h-8" />
               </div>
-              <h2 className="text-xl md:text-2xl font-black">AI 相談</h2>
+              <h2 className="help-advisor-header-title text-xl md:text-2xl font-black">AI 相談</h2>
             </div>
             <button
               onClick={() => {
                 setIsOpen(false);
                 onClose?.();
               }}
-              className="p-2 md:p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center h-12 w-12 md:h-14 md:w-14"
+              className="help-advisor-header-close p-2 md:p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center h-12 w-12 md:h-14 md:w-14"
               aria-label="閉じる"
             >
               <X className="w-6 h-6 md:w-8 md:h-8" />
@@ -157,7 +157,7 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
           {/* メッセージ表示エリア */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden pt-4 md:pt-5 px-4 md:px-5 pb-32 md:pb-40 space-y-6 bg-gradient-to-b from-white to-yui-earth-50 overscroll-contain"
+            className="help-advisor-messages flex-1 overflow-y-auto overflow-x-hidden pt-4 md:pt-5 px-4 md:px-5 pb-32 md:pb-40 space-y-6 bg-gradient-to-b from-white to-yui-earth-50 overscroll-contain"
           >
             {messages.map((msg) => (
               <div
@@ -166,19 +166,19 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
               >
                 {msg.sender === "bot" ? (
                   <div className="w-full max-w-[92%] md:max-w-[85%] flex items-start gap-2">
-                    <div className="min-w-0 flex-1 bg-white text-yui-earth-900 border border-yui-earth-100 rounded-3xl rounded-tl-none p-5 text-xl font-black leading-relaxed shadow-sm break-words">
+                    <div className="help-advisor-bot-bubble min-w-0 flex-1 bg-white text-yui-earth-900 border border-yui-earth-100 rounded-3xl rounded-tl-none p-5 text-xl font-black leading-relaxed shadow-sm break-words">
                       <p>{msg.text}</p>
                     </div>
                     <button
                       onClick={() => speak(msg.text)}
-                      className="shrink-0 p-3 bg-white border border-yui-earth-100 rounded-full shadow-sm text-yui-green-600 hover:bg-yui-green-50 transition-colors"
+                      className="help-advisor-speak-btn shrink-0 p-3 bg-white border border-yui-earth-100 rounded-full shadow-sm text-yui-green-600 hover:bg-yui-green-50 transition-colors"
                       aria-label="音声を再生"
                     >
                       {isSpeaking ? <Volume2 className="w-5 h-5 animate-pulse" /> : <Volume2 className="w-5 h-5" />}
                     </button>
                   </div>
                 ) : (
-                  <div className="max-w-[90%] md:max-w-[85%] bg-yui-green-600 text-white rounded-3xl rounded-tr-none p-5 text-lg font-bold shadow-sm break-words">
+                  <div className="help-advisor-user-bubble max-w-[90%] md:max-w-[85%] bg-yui-green-600 text-white rounded-3xl rounded-tr-none p-5 text-lg font-bold shadow-sm break-words">
                     <p>{msg.text}</p>
                   </div>
                 )}
@@ -186,7 +186,7 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
             ))}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-white border border-yui-earth-100 rounded-3xl rounded-tl-none p-5 flex gap-1">
+                <div className="help-advisor-typing-bubble bg-white border border-yui-earth-100 rounded-3xl rounded-tl-none p-5 flex gap-1">
                   <div className="w-2 h-2 bg-yui-green-400 rounded-full animate-bounce" />
                   <div className="w-2 h-2 bg-yui-green-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                   <div className="w-2 h-2 bg-yui-green-400 rounded-full animate-bounce [animation-delay:0.4s]" />
@@ -196,7 +196,7 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
           </div>
 
           {/* 操作エリア */}
-          <footer className="bg-white border-t border-yui-earth-200 p-4 md:p-6 pb-8 md:pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] relative mt-8">
+          <footer className="help-advisor-footer bg-white border-t border-yui-earth-200 p-4 md:p-6 pb-8 md:pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] relative mt-8">
             
             {/* 巨大なマイクボタンを中央上に配置 */}
             <div className="absolute left-1/2 -translate-x-1/2 -top-16">
@@ -222,12 +222,12 @@ export default function HelpAdvisor({ isOpen: externalIsOpen, onClose, showFloat
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSend(inputText)}
                   placeholder="文字で入力もできます"
-                  className="w-full min-w-0 bg-yui-earth-50 border-2 border-yui-earth-200 rounded-2xl px-4 py-3.5 text-base md:text-lg focus:outline-none focus:border-yui-green-500 font-bold"
+                  className="help-advisor-input w-full min-w-0 bg-yui-earth-50 border-2 border-yui-earth-200 rounded-2xl px-4 py-3.5 text-base md:text-lg focus:outline-none focus:border-yui-green-500 font-bold"
                 />
                 <button
                   onClick={() => handleSend(inputText)}
                   disabled={!inputText.trim()}
-                  className="shrink-0 bg-yui-green-600 text-white px-5 py-3 rounded-2xl disabled:opacity-30 disabled:grayscale transition-all"
+                  className="ai-send-btn shrink-0 bg-yui-green-600 text-[#f8fbf8] px-5 py-3 rounded-2xl disabled:opacity-30 disabled:grayscale transition-all"
                   aria-label="送信"
                 >
                   <Send className="w-6 h-6" />

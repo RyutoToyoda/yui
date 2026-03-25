@@ -40,7 +40,7 @@ export default function AdminAdsPage() {
     }
   };
 
-  if (loading) return <p className="text-gray-500">広告データを読み込み中...</p>;
+  if (loading) return <p className="loading-text text-gray-500">広告データを読み込み中...</p>;
 
   return (
     <div className="space-y-8">

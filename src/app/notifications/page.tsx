@@ -12,10 +12,12 @@ import {
 import type { Notification } from "@/types/firestore";
 import { Bell, CheckCheck, Zap, UserCheck, CheckCircle2, ArrowRight, RefreshCw, XCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -68,6 +70,25 @@ export default function NotificationsPage() {
   const handleMarkRead = async (id: string) => {
     await fsMarkNotificationRead(id);
     await loadData();
+  };
+
+  const getNotificationDetailHref = (notif: Notification) => {
+    if (!notif.jobId) return null;
+    return notif.type === "rejected"
+      ? `/explore/${notif.jobId}?from=notification&result=rejected`
+      : `/explore/${notif.jobId}`;
+  };
+
+  const handleNotificationCardClick = async (notif: Notification) => {
+    if (!notif.isRead) {
+      await fsMarkNotificationRead(notif.id);
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    const href = getNotificationDetailHref(notif);
+    if (href) {
+      router.push(href);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -130,7 +151,7 @@ export default function NotificationsPage() {
                   ? "border-yui-green-100"
                   : "border-orange-300 bg-orange-50/30"
               }`}
-              onClick={() => !notif.isRead && handleMarkRead(notif.id)}
+              onClick={() => handleNotificationCardClick(notif)}
               role="article"
               aria-label={`${notif.isRead ? "" : "未読: "}${notif.title}`}
             >
@@ -186,7 +207,7 @@ export default function NotificationsPage() {
                     </p>
                     {notif.jobId && (
                       <Link
-                        href={`/explore/${notif.jobId}`}
+                        href={getNotificationDetailHref(notif)!}
                         className="flex items-center gap-1 text-sm text-yui-green-600 font-bold no-underline hover:text-yui-green-800"
                         onClick={(e) => e.stopPropagation()}
                         style={{ minHeight: "44px", display: "inline-flex", alignItems: "center" }}

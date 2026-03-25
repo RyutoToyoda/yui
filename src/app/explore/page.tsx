@@ -16,6 +16,7 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [fullJobIds, setFullJobIds] = useState<Set<string>>(new Set());
   const [payoutReminderJobIds, setPayoutReminderJobIds] = useState<Set<string>>(new Set());
+  const [pastUnpaidJobIds, setPastUnpaidJobIds] = useState<Set<string>>(new Set());
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,6 +27,15 @@ export default function ExplorePage() {
   const [filterDateStr, setFilterDateStr] = useState("");
   const [filterMinPoints, setFilterMinPoints] = useState("");
   const [filterMaxPoints, setFilterMaxPoints] = useState("");
+
+  const isPastByDateTime = (job: Job) => {
+    const now = new Date();
+    const [y, m, d] = (job.date || "").split("-").map(Number);
+    const [hh, mm] = (job.endTime || "00:00").split(":").map(Number);
+    if (!y || !m || !d || Number.isNaN(hh) || Number.isNaN(mm)) return false;
+    const endDateTime = new Date(y, m - 1, d, hh, mm, 0, 0);
+    return endDateTime.getTime() < now.getTime();
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -51,81 +61,40 @@ export default function ExplorePage() {
         matched.forEach(j => mergedMap.set(j.id, j));
         activeUserJobs.forEach(j => mergedMap.set(j.id, j));
 
-        const today = new Date();
-        const todayStrLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-
-        // Check which jobs are full - use Promise.all for parallel queries
+        // Check full jobs and past unpaid jobs with one batched app lookup.
         const fullJobs = new Set<string>();
         const reminderJobs = new Set<string>();
-        if (matched.length > 0) {
-          const appPromises = matched.map(job => 
-            job.requiredPeople > 0 
-              ? fsGetApplicationsByJob(job.id).catch(() => [])
-              : Promise.resolve([])
+        const pastUnpaidJobs = new Set<string>();
+        const activeJobs = Array.from(mergedMap.values()).filter(
+          (job) => job.status !== "completed" && job.status !== "cancelled"
+        );
+
+        if (activeJobs.length > 0) {
+          const appsResults = await Promise.all(
+            activeJobs.map((job) => fsGetApplicationsByJob(job.id).catch(() => []))
           );
-          const allAppsResults = await Promise.all(appPromises);
-          
-          matched.forEach((job, index) => {
-            if (job.requiredPeople > 0) {
-              const apps = allAppsResults[index] || [];
-              const approvedCount = apps.filter(a => a.status === "approved").length;
-              if (approvedCount >= job.requiredPeople) {
-                fullJobs.add(job.id);
-              }
+
+          activeJobs.forEach((job, index) => {
+            const apps = appsResults[index] || [];
+            const approvedCount = apps.filter((a) => a.status === "approved").length;
+
+            if (job.requiredPeople > 0 && approvedCount >= job.requiredPeople) {
+              fullJobs.add(job.id);
             }
 
-            if (job.creatorId === user!.uid && job.date <= todayStrLocal) {
-              const hasUnpaidApproved = (allAppsResults[index] || []).some((a) => a.status === "approved");
-              if (hasUnpaidApproved) {
+            const hasUnpaidApproved = approvedCount > 0;
+            if (hasUnpaidApproved && isPastByDateTime(job)) {
+              pastUnpaidJobs.add(job.id);
+              if (job.creatorId === user!.uid) {
                 reminderJobs.add(job.id);
               }
             }
           });
         }
 
-        const ownInProgressJobs = activeUserJobs.filter(
-          (job) =>
-            job.creatorId === user!.uid &&
-            job.status === "in_progress" &&
-            job.date <= todayStrLocal &&
-            !matched.some((m) => m.id === job.id)
-        );
-        if (ownInProgressJobs.length > 0) {
-          const ownInProgressApps = await Promise.all(
-            ownInProgressJobs.map((job) => fsGetApplicationsByJob(job.id).catch(() => []))
-          );
-          ownInProgressJobs.forEach((job, index) => {
-            const apps = ownInProgressApps[index] || [];
-            const hasUnpaidApproved = apps.some((a) => a.status === "approved");
-            if (hasUnpaidApproved) {
-              reminderJobs.add(job.id);
-            }
-          });
-        }
-
-        // Include past own jobs in any active status (including open/not-full) when they still have unpaid approved participants.
-        const ownPastActiveJobs = userJobs.filter(
-          (job) =>
-            job.creatorId === user!.uid &&
-            job.date <= todayStrLocal &&
-            job.status !== "completed" &&
-            job.status !== "cancelled"
-        );
-        if (ownPastActiveJobs.length > 0) {
-          const ownPastApps = await Promise.all(
-            ownPastActiveJobs.map((job) => fsGetApplicationsByJob(job.id).catch(() => []))
-          );
-          ownPastActiveJobs.forEach((job, index) => {
-            const apps = ownPastApps[index] || [];
-            const hasUnpaidApproved = apps.some((a) => a.status === "approved");
-            if (hasUnpaidApproved) {
-              reminderJobs.add(job.id);
-            }
-          });
-        }
-
         setFullJobIds(fullJobs);
         setPayoutReminderJobIds(reminderJobs);
+        setPastUnpaidJobIds(pastUnpaidJobs);
 
         setOpenJobs(Array.from(mergedMap.values()));
       } catch (error) {
@@ -133,6 +102,7 @@ export default function ExplorePage() {
         setOpenJobs([]);
         setFullJobIds(new Set());
         setPayoutReminderJobIds(new Set());
+        setPastUnpaidJobIds(new Set());
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -193,7 +163,7 @@ export default function ExplorePage() {
 
   // Get non-full, non-own jobs for recommendations
   const recommendedJobs = [...openJobs]
-    .filter((job) => job.creatorId !== user.uid && job.date >= todayStr && !fullJobIds.has(job.id))
+    .filter((job) => job.creatorId !== user.uid && !isPastByDateTime(job) && !fullJobIds.has(job.id))
     .sort((a, b) => {
       // Sort by location match, then by date proximity
       const aLocMatch = (profileAnchor && a.location?.includes(profileAnchor)) ? 1 : 0;
@@ -206,7 +176,13 @@ export default function ExplorePage() {
     .slice(0, 3); // Top 3 by location + time proximity
 
   const orderedOpenJobs = [...openJobs]
-    .filter((job) => job.date >= todayStr)
+    .filter((job) => {
+      const isPast = isPastByDateTime(job);
+      if (job.creatorId === user.uid) {
+        return !isPast || pastUnpaidJobIds.has(job.id);
+      }
+      return !isPast && !pastUnpaidJobIds.has(job.id);
+    })
     .sort((a, b) => {
       // 優先度0: 自分の投稿したジョブ（一番上）
       if (a.creatorId === user.uid && b.creatorId !== user.uid) return -1;

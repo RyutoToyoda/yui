@@ -19,6 +19,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [fontSize, setFontSizeState] = useState<FontSize>("large");
   const [highContrast, setHighContrastState] = useState(false);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
 
   const getFontSizeStorageKey = (uid: string | null) => (uid ? `yui-font-size:${uid}` : "yui-font-size");
   const getContrastStorageKey = (uid: string | null) => (uid ? `yui-high-contrast:${uid}` : "yui-high-contrast");
@@ -26,12 +27,15 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setCurrentUid(firebaseUser?.uid ?? null);
+      setAuthResolved(true);
     });
     return () => unsubscribe();
   }, []);
 
   // ユーザー切替ごとに localStorage から設定を復元
   useEffect(() => {
+    if (!authResolved) return;
+
     const savedSize = localStorage.getItem(getFontSizeStorageKey(currentUid)) as FontSize | null;
     const savedContrast = localStorage.getItem(getContrastStorageKey(currentUid));
 
@@ -56,7 +60,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
       setHighContrastState(true);
       document.documentElement.classList.add("ud-high-contrast");
     }
-  }, [currentUid]);
+  }, [currentUid, authResolved]);
 
   const setFontSize = (size: FontSize) => {
     setFontSizeState(size);

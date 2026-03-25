@@ -52,6 +52,17 @@
   --ud-line-height: 1.6;
 }
 
+/* Keep loading labels visually stable while web fonts and settings hydrate. */
+.loading-text {
+  display: inline-block;
+  line-height: 1.25;
+  font-weight: 700;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size-adjust: 0.54;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html.ud-high-contrast .loading-text {
   color: #e8e8e8 !important;
 }
